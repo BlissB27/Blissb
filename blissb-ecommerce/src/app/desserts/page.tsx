@@ -12,7 +12,7 @@ export default async function DessertsPage() {
     dessertProducts = [];
   }
 
-  return (
+  return ( 
     <div className="min-h-screen bg-white">
       <div className="max-w-[1200px] mx-auto px-4 py-16">
         {/* Header */}
