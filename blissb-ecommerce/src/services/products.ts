@@ -4,8 +4,10 @@ import type { Product } from '@/data/products';
 
 // Convert Strapi product to our app's product format
 export function transformStrapiProduct(strapiProduct: any): Product {
+  console.log('Transforming Strapi product:', strapiProduct);
+
   // Strapi v5 format - no attributes wrapper, direct fields
-  return {
+  const transformed = {
     id: strapiProduct.documentId || strapiProduct.id.toString(),
     name: strapiProduct.name || '',
     price: strapiProduct.price || 0,
@@ -24,6 +26,9 @@ export function transformStrapiProduct(strapiProduct: any): Product {
     gallery: strapiProduct.gallery?.map((img: any) => getStrapiMediaUrl(img.url)) || [],
     slug: strapiProduct.slug || '',
   };
+
+  console.log('Transformed product:', transformed);
+  return transformed;
 }
 
 // Get all products
@@ -55,7 +60,11 @@ export async function getProductsByCategory(category: Product['category']): Prom
     });
 
     console.log(`Found ${response.data?.length || 0} products for category ${category}`);
-    return response.data.map(transformStrapiProduct);
+
+    const transformedProducts = response.data.map(transformStrapiProduct);
+    console.log('Transformed products:', transformedProducts);
+
+    return transformedProducts;
   } catch (error) {
     console.error(`Error fetching ${category} products:`, error);
     console.error('Full error details:', JSON.stringify(error, null, 2));

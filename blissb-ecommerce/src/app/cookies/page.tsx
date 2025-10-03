@@ -8,6 +8,7 @@ export default async function CookiesPage() {
   try {
     cookieProducts = await getProductsByCategoryAsync('cookies');
     console.log('Cookies products found:', cookieProducts.length);
+    console.log('Cookie products data:', cookieProducts);
   } catch (error) {
     console.error('Error fetching cookies:', error);
     cookieProducts = [];
