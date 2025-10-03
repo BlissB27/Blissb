@@ -7,7 +7,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-06-20',
 });
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Temporarily disable Resend until we configure it
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 export async function POST(request: NextRequest) {
@@ -93,26 +94,32 @@ async function sendOrderNotification(orderInfo: any) {
   try {
     const emailContent = formatOrderEmail(orderInfo);
 
-    // Send email to business owner
-    const emailResult = await resend.emails.send({
-      from: 'Bliss-B Desserts <onboarding@resend.dev>', // Use Resend's default domain for testing
-      to: 'blissbdesserts@gmail.com',
-      subject: `🎉 Nueva Orden - ${orderInfo.orderNumber}`,
-      text: emailContent,
-      html: formatOrderEmailHTML(orderInfo),
-    });
-
-    console.log('Email sent successfully:', emailResult);
-
-    // Optional: Send confirmation email to customer
-    if (orderInfo.customerEmail) {
-      await resend.emails.send({
-        from: 'Bliss-B Desserts <onboarding@resend.dev>',
-        to: orderInfo.customerEmail,
-        subject: `Order Confirmation - ${orderInfo.orderNumber}`,
-        text: formatCustomerConfirmationEmail(orderInfo),
-        html: formatCustomerConfirmationEmailHTML(orderInfo),
+    // Only send email if Resend is configured
+    if (resend) {
+      // Send email to business owner
+      const emailResult = await resend.emails.send({
+        from: 'Bliss-B Desserts <onboarding@resend.dev>', // Use Resend's default domain for testing
+        to: 'blissbdesserts@gmail.com',
+        subject: `🎉 Nueva Orden - ${orderInfo.orderNumber}`,
+        text: emailContent,
+        html: formatOrderEmailHTML(orderInfo),
       });
+
+      console.log('Email sent successfully:', emailResult);
+
+      // Optional: Send confirmation email to customer
+      if (orderInfo.customerEmail) {
+        await resend.emails.send({
+          from: 'Bliss-B Desserts <onboarding@resend.dev>',
+          to: orderInfo.customerEmail,
+          subject: `Order Confirmation - ${orderInfo.orderNumber}`,
+          text: formatCustomerConfirmationEmail(orderInfo),
+          html: formatCustomerConfirmationEmailHTML(orderInfo),
+        });
+      }
+    } else {
+      // Log order info to console if email service not configured
+      console.log('ORDER RECEIVED (Email service not configured):', emailContent);
     }
 
   } catch (error) {
