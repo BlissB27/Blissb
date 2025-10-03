@@ -4,7 +4,13 @@ import { getProductsByCategoryAsync } from "@/data/products";
 import { Cake } from "lucide-react";
 
 export default async function CakesPage() {
-  const cakeProducts = await getProductsByCategoryAsync('cakes');
+  let cakeProducts = [];
+  try {
+    cakeProducts = await getProductsByCategoryAsync('cakes');
+  } catch (error) {
+    console.error('Error fetching cakes:', error);
+    cakeProducts = [];
+  }
 
   return (
     <div className="min-h-screen bg-white">
