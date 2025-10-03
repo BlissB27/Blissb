@@ -5,6 +5,10 @@ const STRAPI_TOKEN = process.env.STRAPI_API_TOKEN;
 async function strapiRequest(path: string, options: RequestInit = {}) {
   const url = `${STRAPI_URL}${path}`;
 
+  console.log(`Making Strapi request to: ${url}`);
+  console.log(`STRAPI_URL: ${STRAPI_URL}`);
+  console.log(`Has token: ${!!STRAPI_TOKEN}`);
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...options.headers,
@@ -23,11 +27,17 @@ async function strapiRequest(path: string, options: RequestInit = {}) {
       next: options.method === 'GET' || !options.method ? { revalidate: 60 } : undefined,
     });
 
+    console.log(`Response status: ${response.status}`);
+
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Response error text: ${errorText}`);
       throw new Error(`Strapi API error: ${response.status} ${response.statusText}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    console.log(`Response data:`, data);
+    return data;
   } catch (error) {
     console.error('Strapi request failed:', error);
     throw error;

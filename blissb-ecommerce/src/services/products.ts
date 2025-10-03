@@ -45,15 +45,20 @@ export async function getAllProducts(): Promise<Product[]> {
 // Get products by category
 export async function getProductsByCategory(category: Product['category']): Promise<Product[]> {
   try {
+    console.log(`Fetching products for category: ${category}`);
+    console.log(`Strapi URL: ${process.env.NEXT_PUBLIC_STRAPI_URL}`);
+
     const response: any = await strapiGet('/products', {
       'filters[category][$eq]': category,
       'populate': '*',
       'sort': 'createdAt:desc'
     });
 
+    console.log(`Found ${response.data?.length || 0} products for category ${category}`);
     return response.data.map(transformStrapiProduct);
   } catch (error) {
     console.error(`Error fetching ${category} products:`, error);
+    console.error('Full error details:', JSON.stringify(error, null, 2));
     return [];
   }
 }
