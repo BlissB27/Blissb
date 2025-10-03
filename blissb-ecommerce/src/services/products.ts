@@ -53,18 +53,24 @@ export async function getProductsByCategory(category: Product['category']): Prom
     console.log(`Fetching products for category: ${category}`);
     console.log(`Strapi URL: ${process.env.NEXT_PUBLIC_STRAPI_URL}`);
 
+    // Get all products first
     const response: any = await strapiGet('/products', {
-      'filters[category][$eq]': category,
       'populate': '*',
       'sort': 'createdAt:desc'
     });
 
-    console.log(`Found ${response.data?.length || 0} products for category ${category}`);
+    console.log(`Found ${response.data?.length || 0} total products`);
 
-    const transformedProducts = response.data.map(transformStrapiProduct);
-    console.log('Transformed products:', transformedProducts);
+    // Transform all products
+    const allProducts = response.data.map(transformStrapiProduct);
 
-    return transformedProducts;
+    // Filter by category on client side
+    const filteredProducts = allProducts.filter((product: Product) => product.category === category);
+
+    console.log(`Found ${filteredProducts.length} products for category ${category}`);
+    console.log('Filtered products:', filteredProducts);
+
+    return filteredProducts;
   } catch (error) {
     console.error(`Error fetching ${category} products:`, error);
     console.error('Full error details:', JSON.stringify(error, null, 2));
