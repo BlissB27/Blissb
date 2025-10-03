@@ -1,10 +1,10 @@
 
 import { ProductCard } from "@/components/ProductCard";
-import { getProductsByCategoryAsync } from "@/data/products";
+import { getProductsByCategoryAsync, type Product } from "@/data/products";
 import { IceCream } from "lucide-react";
 
 export default async function DessertsPage() {
-  let dessertProducts = [];
+  let dessertProducts: Product[] = [];
   try {
     dessertProducts = await getProductsByCategoryAsync('desserts');
   } catch (error) {

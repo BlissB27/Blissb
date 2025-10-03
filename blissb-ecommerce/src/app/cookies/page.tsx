@@ -1,10 +1,10 @@
 
 import { ProductCard } from "@/components/ProductCard";
-import { getProductsByCategoryAsync } from "@/data/products";
+import { getProductsByCategoryAsync, type Product } from "@/data/products";
 import { CalendarClock } from "lucide-react";
 
 export default async function CookiesPage() {
-  let cookieProducts = [];
+  let cookieProducts: Product[] = [];
   try {
     cookieProducts = await getProductsByCategoryAsync('cookies');
     console.log('Cookies products found:', cookieProducts.length);
