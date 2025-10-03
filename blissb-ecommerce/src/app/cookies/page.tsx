@@ -4,7 +4,14 @@ import { getProductsByCategoryAsync } from "@/data/products";
 import { CalendarClock } from "lucide-react";
 
 export default async function CookiesPage() {
-  const cookieProducts = await getProductsByCategoryAsync('cookies');
+  let cookieProducts = [];
+  try {
+    cookieProducts = await getProductsByCategoryAsync('cookies');
+    console.log('Cookies products found:', cookieProducts.length);
+  } catch (error) {
+    console.error('Error fetching cookies:', error);
+    cookieProducts = [];
+  }
 
   return (
     <div className="min-h-screen bg-white">

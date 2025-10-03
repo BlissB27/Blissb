@@ -28,15 +28,19 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: '*.media.strapiapp.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'grateful-actor-f2fe40a075.media.strapiapp.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
         hostname: '*.vercel.app',
         pathname: '/uploads/**',
       },
-      // Add your custom Strapi domain here when ready
-      // {
-      //   protocol: 'https',
-      //   hostname: 'your-strapi-domain.com',
-      //   pathname: '/uploads/**',
-      // }
     ],
   },
 };
