@@ -1,0 +1,250 @@
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import type { Product } from '@/data/products';
+
+export type CartItem = {
+  id: string;
+  product: Product;
+  quantity: number;
+  flavor?: string; // Para cakes que requieren sabor específico
+};
+
+type CartStore = {
+  items: CartItem[];
+  isOpen: boolean;
+  
+  // Actions
+  addItem: (product: Product, quantity?: number, flavor?: string) => void;
+  removeItem: (productId: string) => void;
+  updateQuantity: (productId: string, quantity: number) => void;
+  clearCart: () => void;
+  toggleCart: () => void;
+  openCart: () => void;
+  closeCart: () => void;
+  
+  // Getters
+  getTotalItems: () => number;
+  getTotalPrice: () => number;
+  getItemQuantity: (productId: string) => number;
+  getShippingInfo: () => {
+    totalCookies: number;
+    dozensRequired: number;
+    shippingCost: number;
+    message: string;
+  };
+  getTotalWithDelivery: () => number;
+  getMinimumCookiesInfo: () => {
+    hasEnoughCookies: boolean;
+    currentCookies: number;
+    minimumRequired: number;
+  };
+  
+  // Validation
+  validateMinimumQuantity: (product: Product, quantity: number) => {
+    isValid: boolean;
+    error?: string;
+  };
+  validateProduct: (product: Product, flavor?: string) => {
+    isValid: boolean;
+    error?: string;
+  };
+};
+
+// Constantes
+const MINIMUM_COOKIES_REQUIRED = 4;
+const SHIPPING_COST_PER_DOZEN = 15; // $15 por cada 12 galletas
+const COOKIES_PER_DOZEN = 12;
+
+export const useCartStore = create<CartStore>()(
+  persist(
+    (set, get) => ({
+      items: [],
+      isOpen: false,
+      
+      addItem: (product, quantity = 1, flavor) => {
+        // Validar producto antes de agregar
+        const productValidation = get().validateProduct(product, flavor);
+        if (!productValidation.isValid) {
+          console.error(productValidation.error);
+          return;
+        }
+
+        // Validar cantidad mínima
+        const quantityValidation = get().validateMinimumQuantity(product, quantity);
+        if (!quantityValidation.isValid) {
+          console.error(quantityValidation.error);
+          return;
+        }
+        
+        set((state) => {
+          // Para cakes, crear un ID único que incluya el sabor
+          const itemId = product.category === 'cakes' && flavor 
+            ? `${product.id}-${flavor}`
+            : product.id;
+            
+          const existingItem = state.items.find(item => item.id === itemId);
+          
+          if (existingItem) {
+            return {
+              items: state.items.map(item =>
+                item.id === itemId
+                  ? { ...item, quantity: item.quantity + quantity }
+                  : item
+              ),
+              isOpen: true,
+            };
+          }
+          
+          return {
+            items: [...state.items, { 
+              id: itemId, 
+              product, 
+              quantity,
+              flavor 
+            }],
+            isOpen: true,
+          };
+        });
+      },
+      
+      removeItem: (productId) => {
+        set((state) => ({
+          items: state.items.filter(item => item.id !== productId),
+        }));
+      },
+      
+      updateQuantity: (productId, quantity) => {
+        if (quantity <= 0) {
+          get().removeItem(productId);
+          return;
+        }
+        
+        set((state) => {
+          const item = state.items.find(item => item.id === productId);
+          if (!item) return state;
+          
+          const validation = get().validateMinimumQuantity(item.product, quantity);
+          if (!validation.isValid) {
+            console.error(validation.error);
+            return state;
+          }
+          
+          return {
+            items: state.items.map(item =>
+              item.id === productId
+                ? { ...item, quantity }
+                : item
+            ),
+          };
+        });
+      },
+      
+      clearCart: () => {
+        set({ items: [] });
+      },
+      
+      toggleCart: () => {
+        set((state) => ({ isOpen: !state.isOpen }));
+      },
+      
+      openCart: () => {
+        set({ isOpen: true });
+      },
+      
+      closeCart: () => {
+        set({ isOpen: false });
+      },
+      
+      getTotalItems: () => {
+        return get().items.reduce((total, item) => total + item.quantity, 0);
+      },
+      
+      getTotalPrice: () => {
+        return get().items.reduce(
+          (total, item) => total + (item.product.price * item.quantity),
+          0
+        );
+      },
+      
+      getItemQuantity: (productId) => {
+        const item = get().items.find(item => item.id === productId);
+        return item?.quantity || 0;
+      },
+      
+      getShippingInfo: () => {
+        const cookieItems = get().items.filter(item => item.product.category === 'cookies');
+        const totalCookies = cookieItems.reduce((sum, item) => sum + item.quantity, 0);
+        const dozensRequired = Math.ceil(totalCookies / COOKIES_PER_DOZEN);
+        const shippingCost = dozensRequired * SHIPPING_COST_PER_DOZEN;
+
+        let message = '';
+        if (totalCookies === 0) {
+          message = 'Shipping costs calculated at checkout';
+        } else if (totalCookies < COOKIES_PER_DOZEN) {
+          message = `Shipping cost: $${SHIPPING_COST_PER_DOZEN} for up to ${COOKIES_PER_DOZEN} cookies`;
+        } else {
+          message = `Shipping cost: $${shippingCost} for ${totalCookies} cookies (${dozensRequired} dozen${dozensRequired > 1 ? 's' : ''})`;
+        }
+
+        return {
+          totalCookies,
+          dozensRequired,
+          shippingCost,
+          message
+        };
+      },
+
+      getTotalWithDelivery: () => {
+        const subtotal = get().getTotalPrice();
+        const shippingInfo = get().getShippingInfo();
+
+        // Importar deliveryStore de forma dinámica para evitar dependencias circulares
+        // El delivery fee se calculará en el componente que use esta función
+        return subtotal + shippingInfo.shippingCost;
+      },
+
+      getMinimumCookiesInfo: () => {
+        const cookieItems = get().items.filter(item => item.product.category === 'cookies');
+        const currentCookies = cookieItems.reduce((total, item) => total + item.quantity, 0);
+
+        // Si no hay galletas en el carrito, permitir continuar
+        // Si hay galletas, debe tener al menos el mínimo requerido
+        const hasEnoughCookies = currentCookies === 0 || currentCookies >= MINIMUM_COOKIES_REQUIRED;
+
+        return {
+          hasEnoughCookies,
+          currentCookies,
+          minimumRequired: MINIMUM_COOKIES_REQUIRED,
+        };
+      },
+      
+      validateMinimumQuantity: (product, quantity) => {
+        // Validación básica: mínimo 1 para cualquier producto
+        if (quantity < 1) {
+          return {
+            isValid: false,
+            error: `Minimum quantity is 1`,
+          };
+        }
+        
+        return { isValid: true };
+      },
+
+      validateProduct: (product, flavor) => {
+        // Validar que los cakes tengan sabor especificado
+        if (product.category === 'cakes' && !flavor) {
+          return {
+            isValid: false,
+            error: `Please select a flavor for ${product.name}`,
+          };
+        }
+        
+        return { isValid: true };
+      },
+    }),
+    {
+      name: 'bliss-b-cart',
+      partialize: (state) => ({ items: state.items }),
+    }
+  )
+);
