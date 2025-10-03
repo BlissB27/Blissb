@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { WaveDivider } from "./WaveDivider";
+import { motion } from "framer-motion";
 
 /** Tipos */
 type Occasion = {
@@ -64,7 +66,7 @@ function BannerCard({
             <Button
               asChild
               variant="ghost"
-              className="rounded-full border px-5 py-2 text-sm"
+              className="rounded-md border px-5 py-2 text-sm hover:bg-[#3B2A22]"
               style={{ borderColor: panelText, color: panelText }}
             >
               <a href={href}>See The Menu</a>
@@ -95,19 +97,46 @@ function BannerCard({
 /** Sección completa */
 export default function Banner() {
   return (
-    <section className="bg-[#F5EBDD]">
-      <div className="mx-auto max-w-[1200px] px-4 py-10 md:py-14">
+    <section className="bg-[#F5EBDD] relative">
+      {/* Wave divider at the top */}
+      <WaveDivider direction="top" color="#ffff" className="absolute  left-0 right-0" />
+
+      <div className="mx-auto max-w-[1200px] px-4 py-10 md:py-14 mt-12 md:mt-16">
         {/* Título */}
-        <h2 className="text-center text-2xl md:text-4xl font-bold text-[#8F4B2B]">
+        <motion.h2
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{
+            type: "spring",
+            damping: 25,
+            stiffness: 300,
+            duration: 0.6
+          }}
+          className="text-center text-2xl md:text-4xl font-bold text-[#8F4B2B]"
+        >
           Cookies for Every Occasion
-        </h2>
+        </motion.h2>
 
         {/* Grid de cards */}
-        <div className="mt-8 grid grid-cols-1 gap-5 md:gap-6 md:grid-cols-3">
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-50px" }}
+          transition={{
+            type: "spring",
+            damping: 25,
+            stiffness: 300,
+            delay: 0.2,
+            duration: 0.6
+          }}
+          className="mt-8 grid grid-cols-1 gap-5 md:gap-6 md:grid-cols-3"
+        >
           <BannerCard
             title="Events"
             description="Lorem Ipsum is simply dummy text of the printing."
             imageSrc="/img/1.png"
+            href="/cookies"
             panelBg="#9A4F2A"
             objectPosition="center"
           />
@@ -115,6 +144,7 @@ export default function Banner() {
             title="Corporate Gifts"
             description="Lorem Ipsum is simply dummy text of the printing."
             imageSrc="/img/2.png"
+            href="/corporate"
             panelBg="#EFC596"
             objectPosition="center"
           />
@@ -122,11 +152,15 @@ export default function Banner() {
             title="Catering"
             description="Lorem Ipsum is simply dummy text of the printing."
             imageSrc="/img/3.png"
+            href="/corporate"
             panelBg="#9A4F2A"
             objectPosition="center"
           />
-        </div>
+        </motion.div>
       </div>
+
+      {/* Wave divider at the bottom */}
+      <WaveDivider direction="bottom" color="#ffffff" className="absolute bottom-0 left-0 right-0" />
     </section>
   );
 }

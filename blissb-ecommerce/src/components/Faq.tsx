@@ -1,6 +1,8 @@
 'use client'
 import { useState } from "react";
 import { Plus, Minus } from "lucide-react";
+import { WaveDivider } from "./WaveDivider";
+import { motion } from "framer-motion";
 
 const FAQ_DATA = [
   {
@@ -90,6 +92,8 @@ export function FAQ() {
   };
 
   return (
+
+    <>
     <section className="bg-[#F8F4F0] py-16">
       <div className="mx-auto max-w-6xl px-4">
         <h2 className="text-center text-3xl md:text-4xl font-bold text-[#C08552] mb-12">
@@ -125,5 +129,7 @@ export function FAQ() {
         </div>
       </div>
     </section>
+    <WaveDivider direction="top" color="#F8F4F0" className="absolute bottom-0 left-0 right-0"/>
+    </>
   );
 }

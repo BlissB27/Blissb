@@ -3,67 +3,166 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
+import { useDeliveryStore } from "@/store/deliveryStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Minus, Trash2, AlertCircle, ChevronDown } from "lucide-react";
+import { AlertCircle, CreditCard, Lock, ArrowLeft } from "lucide-react";
+import { motion } from "framer-motion";
+import { loadStripe } from "@stripe/stripe-js";
+import Link from "next/link";
 import Image from "next/image";
+
+// Initialize Stripe
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { 
-    items, 
-    updateQuantity, 
-    removeItem, 
-    getTotalPrice,
-    getMinimumCookiesInfo 
-  } = useCartStore();
+  const { items, getTotalPrice, getShippingInfo } = useCartStore();
+  const {
+    selectedType,
+    selectedDate,
+    selectedTime,
+    selectedZipCode,
+    isValidSelection,
+    getDeliveryFee
+  } = useDeliveryStore();
 
-  const [formData, setFormData] = useState({
+  const [customerInfo, setCustomerInfo] = useState({
+    name: '',
     email: '',
-    firstName: '',
-    lastName: '',
-    company: '',
+    phone: '',
     address: '',
-    apartment: '',
     city: '',
     state: '',
-    zipCode: '',
-    phone: '',
-    country: 'United States',
-    sendNews: false,
-    sameBilling: true,
-    cardNumber: '',
-    expiration: '',
-    securityCode: '',
-    orderNote: ''
+    zipCode: ''
   });
 
-  const [couponCode, setCouponCode] = useState('');
-  const [showCoupon, setShowCoupon] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
-  const cookiesInfo = getMinimumCookiesInfo();
   const subtotal = getTotalPrice();
-  const total = subtotal; // Add shipping, taxes, discounts later
+  const shippingInfo = getShippingInfo();
 
-  // Redirect if cart is empty or doesn't meet requirements
-  useEffect(() => {
-    if (items.length === 0 || !cookiesInfo.hasEnoughCookies) {
-      router.push('/');
+  // Calculate delivery fee based on selected type
+  const getDeliveryFeeForType = () => {
+    if (selectedType === 'shipping') {
+      return shippingInfo.shippingCost;
+    } else if (selectedType === 'delivery') {
+      return getDeliveryFee(selectedZipCode);
+    } else if (selectedType === 'pickup') {
+      return 0;
     }
-  }, [items.length, cookiesInfo.hasEnoughCookies, router]);
-
-  const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    return 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const deliveryFee = getDeliveryFeeForType();
+  const total = subtotal + deliveryFee;
+
+  // Redirect if cart is empty or delivery not selected
+  useEffect(() => {
+    if (items.length === 0) {
+      router.push('/');
+      return;
+    }
+    if (!isValidSelection()) {
+      router.push('/order-confirmation');
+      return;
+    }
+  }, [items.length, isValidSelection, router]);
+
+  const validateForm = () => {
+    const errors: string[] = [];
+
+    // Información de contacto siempre requerida
+    if (!customerInfo.name.trim()) errors.push('Name is required');
+    if (!customerInfo.email.trim()) errors.push('Email is required');
+    if (!customerInfo.phone.trim()) errors.push('Phone is required');
+
+    // Dirección solo requerida para shipping y delivery
+    if (selectedType === 'shipping' || selectedType === 'delivery') {
+      if (!customerInfo.address.trim()) errors.push('Address is required');
+      if (!customerInfo.city.trim()) errors.push('City is required');
+      if (!customerInfo.state.trim()) errors.push('State is required');
+      if (!customerInfo.zipCode.trim()) errors.push('ZIP code is required');
+    }
+
+    setValidationErrors(errors);
+    return errors.length === 0;
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setCustomerInfo(prev => ({ ...prev, [field]: value }));
+    // Clear validation errors when user starts typing
+    if (validationErrors.length > 0) {
+      setValidationErrors([]);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here will integrate with Stripe later
-    alert('Order placed successfully! (Demo mode)');
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      const stripe = await stripePromise;
+      if (!stripe) {
+        throw new Error('Stripe failed to load');
+      }
+
+      // Prepare delivery info
+      const deliveryInfo = {
+        type: selectedType,
+        date: selectedDate,
+        time: selectedTime,
+        zipCode: selectedZipCode,
+        address: selectedType !== 'pickup' ? customerInfo.address : '',
+        fee: deliveryFee
+      };
+
+      // Create checkout session
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          items,
+          customerInfo,
+          deliveryInfo
+        }),
+      });
+
+      const { sessionId } = await response.json();
+
+      // Store payment session before redirect
+      sessionStorage.setItem('stripe_session_id', sessionId);
+      sessionStorage.setItem('payment_in_progress', 'true');
+
+      // Redirect to Stripe Checkout
+      const result = await stripe.redirectToCheckout({
+        sessionId,
+      });
+
+      if (result.error) {
+        console.error('Stripe error:', result.error.message);
+        setValidationErrors([result.error.message || 'Payment failed']);
+        // Clear session storage on error
+        sessionStorage.removeItem('stripe_session_id');
+        sessionStorage.removeItem('payment_in_progress');
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      setValidationErrors(['Something went wrong. Please try again.']);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (items.length === 0) {
@@ -72,319 +171,355 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-[#F8F4F0]">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Left Column - Forms */}
-          <div className="space-y-8">
-            <h1 className="text-2xl font-bold text-[#3B2A22]">Checkout</h1>
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <Link
+            href="/order-confirmation"
+            className="inline-flex items-center gap-2 text-[#8F4B2B] hover:underline mb-4"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to order confirmation
+          </Link>
+          <h1 className="text-3xl font-bold text-[#8F4B2B]">Checkout</h1>
+        </motion.div>
 
-            <form onSubmit={handleSubmit} className="space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column - Customer Information */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Validation Errors */}
+              {validationErrors.length > 0 && (
+                <Card className="bg-red-50 border-red-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-red-600 mb-2">
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="font-medium">Please fix the following errors:</span>
+                    </div>
+                    <ul className="text-sm text-red-600 list-disc list-inside space-y-1">
+                      {validationErrors.map((error, index) => (
+                        <li key={index}>{error}</li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Contact Information */}
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-[#8F4B2B]">Contact information</h2>
-                  <button type="button" className="text-sm text-[#8F4B2B] hover:underline">
-                    Sign in
-                  </button>
-                </div>
-                <p className="text-sm text-[#6E5B4E] mb-4">
-                  We'll use this email to send you details and updates about your order.
-                </p>
-                
-                <div className="space-y-4">
-                  <div>
-                    <Input
-                      placeholder="Email address"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => handleInputChange('email', e.target.value)}
-                      className="rounded-full border-[#E6D7CB] focus:border-[#8F4B2B]"
-                      required
-                    />
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="news"
-                      checked={formData.sendNews}
-                      onCheckedChange={(checked) => handleInputChange('sendNews', checked)}
-                    />
-                    <Label htmlFor="news" className="text-sm text-[#6E5B4E]">
-                      Send me news and offers by email
-                    </Label>
-                  </div>
-                </div>
-              </Card>
+              <Card className="bg-white border-[#E6D7CB]">
+                <CardContent className="p-6">
+                  <h2 className="text-lg font-semibold text-[#8F4B2B] mb-4">
+                    Contact Information
+                  </h2>
 
-              {/* Shipping Address */}
-              <Card className="p-6">
-                <h2 className="text-lg font-semibold text-[#8F4B2B] mb-2">Shipping address</h2>
-                <p className="text-sm text-[#6E5B4E] mb-4">
-                  Enter the address where you want your order delivered.
-                </p>
-
-                <div className="space-y-4">
-                  <Input
-                    placeholder="Country/Region"
-                    value={formData.country}
-                    onChange={(e) => handleInputChange('country', e.target.value)}
-                    className="rounded-full border-[#E6D7CB] focus:border-[#8F4B2B]"
-                  />
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input
-                      placeholder="First name"
-                      value={formData.firstName}
-                      onChange={(e) => handleInputChange('firstName', e.target.value)}
-                      className="rounded-full border-[#E6D7CB] focus:border-[#8F4B2B]"
-                      required
-                    />
-                    <Input
-                      placeholder="Last name"
-                      value={formData.lastName}
-                      onChange={(e) => handleInputChange('lastName', e.target.value)}
-                      className="rounded-full border-[#E6D7CB] focus:border-[#8F4B2B]"
-                      required
-                    />
-                  </div>
-
-                  <Input
-                    placeholder="Company (optional)"
-                    value={formData.company}
-                    onChange={(e) => handleInputChange('company', e.target.value)}
-                    className="rounded-full border-[#E6D7CB] focus:border-[#8F4B2B]"
-                  />
-
-                  <Input
-                    placeholder="Address"
-                    value={formData.address}
-                    onChange={(e) => handleInputChange('address', e.target.value)}
-                    className="rounded-full border-[#E6D7CB] focus:border-[#8F4B2B]"
-                    required
-                  />
-
-                  <button 
-                    type="button"
-                    className="text-sm text-[#8F4B2B] hover:underline flex items-center gap-1"
-                  >
-                    <AlertCircle className="w-4 h-4" />
-                    Add apartment, suite, etc.
-                  </button>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input
-                      placeholder="City"
-                      value={formData.city}
-                      onChange={(e) => handleInputChange('city', e.target.value)}
-                      className="rounded-full border-[#E6D7CB] focus:border-[#8F4B2B]"
-                      required
-                    />
-                    <Input
-                      placeholder="State"
-                      value={formData.state}
-                      onChange={(e) => handleInputChange('state', e.target.value)}
-                      className="rounded-full border-[#E6D7CB] focus:border-[#8F4B2B]"
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input
-                      placeholder="ZIP Code"
-                      value={formData.zipCode}
-                      onChange={(e) => handleInputChange('zipCode', e.target.value)}
-                      className="rounded-full border-[#E6D7CB] focus:border-[#8F4B2B]"
-                      required
-                    />
-                    <Input
-                      placeholder="Phone"
-                      type="tel"
-                      value={formData.phone}
-                      onChange={(e) => handleInputChange('phone', e.target.value)}
-                      className="rounded-full border-[#E6D7CB] focus:border-[#8F4B2B]"
-                    />
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="billing"
-                      checked={formData.sameBilling}
-                      onCheckedChange={(checked) => handleInputChange('sameBilling', checked)}
-                    />
-                    <Label htmlFor="billing" className="text-sm text-[#6E5B4E]">
-                      Use same address for billing
-                    </Label>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Payment Options */}
-              <Card className="p-6">
-                <h2 className="text-lg font-semibold text-[#8F4B2B] mb-2">Payment options</h2>
-                <p className="text-sm text-[#6E5B4E] mb-4">
-                  All transactions are secure and encrypted.
-                </p>
-
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Input
-                      placeholder="Card number"
-                      value={formData.cardNumber}
-                      onChange={(e) => handleInputChange('cardNumber', e.target.value)}
-                      className="rounded-full border-[#E6D7CB] focus:border-[#8F4B2B] md:col-span-2"
-                    />
-                    <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="name" className="text-[#3B2A22] font-medium">
+                        Full Name *
+                      </Label>
                       <Input
-                        placeholder="Expiration"
-                        value={formData.expiration}
-                        onChange={(e) => handleInputChange('expiration', e.target.value)}
-                        className="rounded-full border-[#E6D7CB] focus:border-[#8F4B2B]"
+                        id="name"
+                        value={customerInfo.name}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
+                        className="mt-1 border-[#E6D7CB] focus:border-[#8F4B2B]"
+                        placeholder="Enter your full name"
+                        required
                       />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="email" className="text-[#3B2A22] font-medium">
+                        Email Address *
+                      </Label>
                       <Input
-                        placeholder="Security code"
-                        value={formData.securityCode}
-                        onChange={(e) => handleInputChange('securityCode', e.target.value)}
-                        className="rounded-full border-[#E6D7CB] focus:border-[#8F4B2B]"
+                        id="email"
+                        type="email"
+                        value={customerInfo.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        className="mt-1 border-[#E6D7CB] focus:border-[#8F4B2B]"
+                        placeholder="Enter your email"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="phone" className="text-[#3B2A22] font-medium">
+                        Phone Number *
+                      </Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={customerInfo.phone}
+                        onChange={(e) => handleInputChange('phone', e.target.value)}
+                        className="mt-1 border-[#E6D7CB] focus:border-[#8F4B2B]"
+                        placeholder="Enter your phone number"
+                        required
                       />
                     </div>
                   </div>
-
-                  <button 
-                    type="button"
-                    className="text-sm text-[#8F4B2B] hover:underline flex items-center gap-1"
-                  >
-                    <AlertCircle className="w-4 h-4" />
-                    Add a note to your order
-                  </button>
-                </div>
+                </CardContent>
               </Card>
 
-              <div className="text-xs text-[#6E5B4E] text-center">
-                By proceeding with your purchase you agree to our Terms and Conditions and Privacy Policy
-              </div>
+              {/* Address Information (only for shipping/delivery) */}
+              {(selectedType === 'shipping' || selectedType === 'delivery') && (
+                <Card className="bg-white border-[#E6D7CB]">
+                  <CardContent className="p-6">
+                    <h2 className="text-lg font-semibold text-[#8F4B2B] mb-4">
+                      {selectedType === 'shipping' ? 'Shipping' : 'Delivery'} Address
+                    </h2>
 
-              <Button 
-                type="submit"
-                className="w-full bg-[#1E7A31] hover:bg-[#166426] text-white font-medium py-4 text-lg rounded-full"
-                size="lg"
-              >
-                Place order
-              </Button>
-            </form>
-          </div>
-
-          {/* Right Column - Order Summary */}
-          <div className="lg:pl-8">
-            <Card className="bg-[#8F4B2B] text-white p-6 sticky top-8">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">Order summary</h2>
-                <div className="flex items-center gap-1 text-sm">
-                  <AlertCircle className="w-4 h-4" />
-                  <span>Our cookies may contain nuts, gluten, dairy, and soy</span>
-                </div>
-              </div>
-
-              {/* Products */}
-              <div className="space-y-4 mb-6">
-                {items.map((item) => (
-                  <div key={item.id} className="flex items-start gap-3">
-                    <div className="relative">
-                      <div className="w-16 h-16 bg-white rounded-lg overflow-hidden">
-                        <Image
-                          src={item.product.image}
-                          alt={item.product.name}
-                          width={64}
-                          height={64}
-                          className="object-contain w-full h-full"
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="address" className="text-[#3B2A22] font-medium">
+                          Street Address *
+                        </Label>
+                        <Input
+                          id="address"
+                          value={customerInfo.address}
+                          onChange={(e) => handleInputChange('address', e.target.value)}
+                          className="mt-1 border-[#E6D7CB] focus:border-[#8F4B2B]"
+                          placeholder="Enter your address"
+                          required
                         />
                       </div>
-                      <span className="absolute -top-2 -right-2 bg-[#1E7A31] text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
-                        {item.quantity}
-                      </span>
-                    </div>
-                    
-                    <div className="flex-1">
-                      <h3 className="font-medium text-white mb-1">{item.product.name}</h3>
-                      <p className="text-sm text-white/80 mb-2">Descripción del producto</p>
-                      <p className="text-xl font-bold">${(item.product.price * item.quantity).toFixed(0)}</p>
-                    </div>
 
-                    <div className="flex flex-col items-end gap-2">
-                      <button
-                        onClick={() => removeItem(item.id)}
-                        className="text-white/80 hover:text-white"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                      
-                      <div className="flex items-center bg-white/20 rounded-full">
-                        <button
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                          className="p-1 hover:bg-white/20 rounded-full"
-                          disabled={item.quantity <= (item.product.category === 'cookies' ? 4 : 1)}
-                        >
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <span className="px-3 py-1 text-sm font-medium min-w-[2rem] text-center">
-                          {item.quantity}
-                        </span>
-                        <button
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          className="p-1 hover:bg-white/20 rounded-full"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="city" className="text-[#3B2A22] font-medium">
+                            City *
+                          </Label>
+                          <Input
+                            id="city"
+                            value={customerInfo.city}
+                            onChange={(e) => handleInputChange('city', e.target.value)}
+                            className="mt-1 border-[#E6D7CB] focus:border-[#8F4B2B]"
+                            placeholder="Enter city"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="state" className="text-[#3B2A22] font-medium">
+                            State *
+                          </Label>
+                          <Input
+                            id="state"
+                            value={customerInfo.state}
+                            onChange={(e) => handleInputChange('state', e.target.value)}
+                            className="mt-1 border-[#E6D7CB] focus:border-[#8F4B2B]"
+                            placeholder="Enter state"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="zipCode" className="text-[#3B2A22] font-medium">
+                          ZIP Code *
+                        </Label>
+                        <Input
+                          id="zipCode"
+                          value={customerInfo.zipCode}
+                          onChange={(e) => handleInputChange('zipCode', e.target.value)}
+                          className="mt-1 border-[#E6D7CB] focus:border-[#8F4B2B]"
+                          placeholder="Enter ZIP code"
+                          required
+                        />
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  </CardContent>
+                </Card>
+              )}
 
-              {/* Add Coupons */}
-              <div className="mb-6">
-                <button
-                  onClick={() => setShowCoupon(!showCoupon)}
-                  className="flex items-center justify-between w-full text-left font-medium mb-2"
-                >
-                  Add coupons
-                  <ChevronDown className={`w-4 h-4 transition-transform ${showCoupon ? 'rotate-180' : ''}`} />
-                </button>
-                
-                {showCoupon && (
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Enter code"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value)}
-                      className="flex-1 bg-white/20 border-white/30 text-white placeholder:text-white/60"
-                    />
-                    <Button 
-                      type="button"
-                      className="bg-white text-[#8F4B2B] hover:bg-white/90"
-                    >
-                      Apply
-                    </Button>
+              {/* Pickup Information Notice */}
+              {selectedType === 'pickup' && (
+                <Card className="bg-[#F0F8F0] border-[#1E7A31]/20">
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 bg-[#1E7A31] rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-sm">🏪</span>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-[#1E7A31] mb-2">Pickup Information</h3>
+                        <div className="text-sm text-[#6E5B4E] space-y-1">
+                          <p><strong>Location:</strong> 123 Sweet Street, Atlanta, GA 30309</p>
+                          <p><strong>Date & Time:</strong> {selectedDate} at {selectedTime}</p>
+                          <p><strong>Note:</strong> Please bring a valid ID for pickup verification.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Payment Information */}
+              <Card className="bg-white border-[#E6D7CB]">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <CreditCard className="w-5 h-5 text-[#8F4B2B]" />
+                    <h2 className="text-lg font-semibold text-[#8F4B2B]">
+                      Payment
+                    </h2>
+                    <Lock className="w-4 h-4 text-[#6E5B4E]" />
                   </div>
+
+                  <p className="text-sm text-[#6E5B4E] mb-4">
+                    Your payment information will be securely processed by Stripe.
+                    You'll be redirected to complete your payment.
+                  </p>
+
+                  <div className="flex items-center gap-2 text-xs text-[#6E5B4E]">
+                    <Lock className="w-3 h-3" />
+                    <span>Secured by 256-bit SSL encryption</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                disabled={isProcessing}
+                className="w-full bg-[#1E7A31] hover:bg-[#166728] text-white py-3 font-medium text-lg"
+                size="lg"
+              >
+                {isProcessing ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Processing...
+                  </div>
+                ) : (
+                  `Complete Order - $${total.toFixed(2)}`
                 )}
-              </div>
+              </Button>
 
-              <Separator className="my-4 bg-white/20" />
+              <p className="text-xs text-[#6E5B4E] text-center">
+                By completing your order, you agree to our Terms of Service and Privacy Policy.
+              </p>
+            </form>
+          </motion.div>
 
-              {/* Totals */}
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Subtotal • {items.length} items</span>
-                  <span className="font-semibold">${subtotal.toFixed(0)}</span>
+          {/* Right Column - Order Summary */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+            className="lg:sticky lg:top-8 lg:h-fit"
+          >
+            <Card className="bg-white border-[#E6D7CB]">
+              <CardContent className="p-6">
+                <h2 className="text-xl font-bold text-[#8F4B2B] mb-6">
+                  Order Summary
+                </h2>
+
+                {/* Delivery Information */}
+                <div className="bg-[#F8F4F0] rounded-lg p-4 mb-6">
+                  <h3 className="font-semibold text-[#3B2A22] mb-2">
+                    {selectedType === 'shipping' ? 'Shipping' : selectedType === 'delivery' ? 'Delivery' : 'Pickup'} Details
+                  </h3>
+                  <div className="text-sm text-[#6E5B4E] space-y-1">
+                    {selectedType === 'shipping' && (
+                      <p>Nationwide shipping (3-5 business days)</p>
+                    )}
+                    {(selectedType === 'delivery' || selectedType === 'pickup') && (
+                      <>
+                        <p>{selectedDate} at {selectedTime}</p>
+                        {selectedType === 'delivery' && selectedZipCode && (
+                          <p>ZIP Code: {selectedZipCode}</p>
+                        )}
+                        {selectedType === 'pickup' && (
+                          <p>123 Sweet Street, Atlanta, GA 30309</p>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
-                <div className="text-sm text-white/80">
-                  Shipping cost (free when choosing in-store pickup)
+
+                {/* Items */}
+                <div className="space-y-4 mb-6">
+                  {items.map((item) => (
+                    <div key={item.id} className="flex items-center gap-3">
+                      <div className="relative">
+                        <div className="w-12 h-12 bg-[#F8F4F0] rounded-lg overflow-hidden">
+                          <Image
+                            src={item.product.image}
+                            alt={item.product.name}
+                            width={48}
+                            height={48}
+                            className="object-contain w-full h-full"
+                          />
+                        </div>
+                        <span className="absolute -top-2 -right-2 bg-[#8F4B2B] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                          {item.quantity}
+                        </span>
+                      </div>
+
+                      <div className="flex-1">
+                        <h4 className="font-medium text-[#3B2A22] text-sm">
+                          {item.product.name}
+                        </h4>
+                        {item.flavor && (
+                          <p className="text-xs text-[#6E5B4E]">
+                            Flavor: {item.flavor}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="text-right">
+                        <p className="font-semibold text-[#3B2A22]">
+                          ${(item.product.price * item.quantity).toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex justify-between text-xl font-bold pt-2 border-t border-white/20">
-                  <span>Total</span>
-                  <span>${total.toFixed(0)}</span>
+
+                <Separator className="my-4" />
+
+                {/* Totals */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-[#6E5B4E]">
+                    <span>Subtotal</span>
+                    <span>${subtotal.toFixed(2)}</span>
+                  </div>
+
+                  <div className="flex justify-between text-[#6E5B4E]">
+                    <span>
+                      {selectedType === 'shipping' ? 'Shipping' : selectedType === 'delivery' ? 'Delivery' : 'Pickup'}
+                    </span>
+                    <span>
+                      {deliveryFee > 0 ? `$${deliveryFee.toFixed(2)}` : 'Free'}
+                    </span>
+                  </div>
+
+                  <Separator className="my-2" />
+
+                  <div className="flex justify-between text-lg font-bold text-[#3B2A22]">
+                    <span>Total</span>
+                    <span>${total.toFixed(2)}</span>
+                  </div>
                 </div>
-              </div>
+
+                {/* Allergy Warning */}
+                <div className="mt-6 p-3 bg-[#FFF9F5] border border-[#E6D7CB] rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-[#8F4B2B] flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-[#6E5B4E]">
+                      <strong>Allergy Notice:</strong> All products may contain tree nuts and food allergens.
+                      Please visit our allergens info page for full details.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
             </Card>
-          </div>
+          </motion.div>
         </div>
       </div>
     </div>

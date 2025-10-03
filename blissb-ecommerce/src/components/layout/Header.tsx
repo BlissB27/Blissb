@@ -5,19 +5,28 @@ import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, Search } from "lucide-react";
+import { Menu, X, Search, Handbag, ChevronDown } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { SearchModal } from "../SearchModal";
-import { useHydrated } from "@/hooks/useHudrated";
+import { useHydrated } from "@/hooks/useHydrated";
+import { Carrusel } from "../Carrusel";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const NAV = [
   { href: "/", label: "Home" },
   { href: "/cookies", label: "Cookies" },
   { href: "/cakes", label: "Cakes" },
   { href: "/desserts", label: "Desserts" },
-  { href: "/corporate", label: "Corporate" },
-  { href: "/catering", label: "Catering" },
-  { href: "/contact", label: "Contact us" },
+];
+
+const SERVICES = [
+  { href: "/corporate", label: "Corporate & Catering" },
+  
 ];
 
 // Componente separado para el carrito que maneja la hidratación
@@ -34,19 +43,9 @@ function CartButton() {
       className="inline-block relative" 
       aria-label="Cart"
     >
-      <span
-        className="inline-flex h-9 w-9 items-center justify-center text-white bg-[#1E7A31]
-          [clip-path:polygon(50%_0%,61%_6%,71%_18%,82%_29%,94%_39%,100%_50%,94%_61%,82%_71%,71%_82%,61%_94%,50%_100%,39%_94%,29%_82%,18%_71%,6%_61%,0%_50%,6%_39%,18%_29%,29%_18%,39%_6%)]
-          shadow-sm"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          className="h-4 w-4"
-          fill="currentColor"
-        >
-          <path d="M3 4h2l1 2h14a1 1 0 0 1 .94 1.34l-2 6A2 2 0 0 1 17.04 14H9.3l-.7 2h10.4v2H8a1 1 0 0 1-.95-1.32L8.1 13 5 6H3V4Zm6 16a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm9 0a2 2 0 1 0-.001-4.001A2 2 0 0 0 18 20Z" />
-        </svg>
-      </span>
+     <Handbag />
+      
+     
       {/* Counter badge - solo mostrar cuando hay items y está hidratado */}
       {hydrated && totalItems > 0 && (
         <span className="absolute -top-1 -right-1 bg-[#8F4B2B] text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
@@ -61,33 +60,37 @@ export default function Header() {
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [mobileServicesOpen, setMobileServicesOpen] = useState(false);
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-white">
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-[#E6D7CB]/50 transition-all duration-300">
         {/* Announcement */}
-        <div className="w-full bg-[#8F4B2B] text-white">
-          <div className="mx-auto max-w-[1200px] px-4 py-2 text-center text-[13px]">
-            Buy 4 Get 1 Free Today Only (Promo code applied at checkout)
-          </div>
-        </div>
+        <Carrusel/>
 
         {/* Main nav */}
-        <div className="border-b border-[#E6D7CB]">
+        <div className=" border-b-0.5 border-[#E6D7CB]">
           <div className="mx-auto flex max-w-[1200px] items-center justify-between px-4 py-4">
             {/* Left: Logo + mobile toggle */}
             <div className="flex w-full items-center justify-between md:w-auto md:justify-start gap-4 md:gap-6">
               {/* Mobile: menu toggle */}
               <button
-                className="md:hidden text-[#6E5B4E]"
+                className="md:hidden text-[#6E5B4E] hover:text-[#8F4B2B] p-1 rounded-md hover:bg-[#F8EDE4] transition-all duration-200"
                 onClick={() => setIsMobileOpen(!isMobileOpen)}
                 aria-label="Toggle menu"
               >
-                {isMobileOpen ? (
-                  <X className="h-6 w-6" />
-                ) : (
-                  <Menu className="h-6 w-6" />
-                )}
+                <div className="relative w-6 h-6">
+                  <Menu
+                    className={`absolute inset-0 h-6 w-6 transition-all duration-200 ${
+                      isMobileOpen ? 'opacity-0 rotate-90' : 'opacity-100 rotate-0'
+                    }`}
+                  />
+                  <X
+                    className={`absolute inset-0 h-6 w-6 transition-all duration-200 ${
+                      isMobileOpen ? 'opacity-100 rotate-0' : 'opacity-0 rotate-90'
+                    }`}
+                  />
+                </div>
               </button>
 
               {/* Logo */}
@@ -97,7 +100,7 @@ export default function Header() {
               >
                 <Image
                   src="/img/Bliss-B-logo.png"
-                  width={200}
+                  width={300}
                   height={200}
                   alt="logo"
                 />
@@ -110,7 +113,7 @@ export default function Header() {
             </div>
 
             {/* Center nav (desktop only) */}
-            <nav className="hidden md:flex gap-6">
+            <nav className="hidden md:flex gap-6 items-center">
               {NAV.map((item) => {
                 const isActive =
                   item.href === "/"
@@ -120,16 +123,52 @@ export default function Header() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`text-sm transition-colors ${
+                    className={`relative text-sm transition-all duration-200 px-3 py-2 rounded-md hover:bg-[#F8EDE4] ${
                       isActive
                         ? "text-[#8F4B2B] font-medium"
                         : "text-[#6E5B4E] hover:text-[#8F4B2B]"
                     }`}
                   >
                     {item.label}
+                    {/* Underline animation */}
+                    {isActive && (
+                      <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#8F4B2B] rounded-full animate-in slide-in-from-left-full duration-300" />
+                    )}
                   </Link>
                 );
               })}
+
+              {/* Services Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center gap-1 text-sm text-[#6E5B4E] hover:text-[#8F4B2B] transition-colors focus:outline-none relative  duration-200 px-3 py-2 rounded-md hover:bg-[#F8EDE4]">
+                  Services
+                  <ChevronDown className="h-3 w-3" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-45">
+                  {SERVICES.map((service) => (
+                    <DropdownMenuItem key={service.href} asChild>
+                      <Link
+                        href={service.href}
+                        className="w-full text-[#6E5B4E] hover:text-[#8F4B2B] focus:text-[#8F4B2B] relative text-sm transition-all duration-200 px-3 py-2 rounded-md "
+                      >
+                        {service.label}
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Contact us */}
+              <Link
+                href="/contact"
+                className={`text-sm transition-colors relative  duration-200 px-3 py-2 rounded-md hover:bg-[#F8EDE4] ${
+                  pathname.startsWith("/contact")
+                    ? "text-[#8F4B2B] font-medium"
+                    : "text-[#6E5B4E] hover:text-[#8F4B2B]"
+                }`}
+              >
+                Contact us
+              </Link>
             </nav>
 
             {/* Right side */}
@@ -141,19 +180,14 @@ export default function Header() {
               >
                 <Search className="w-4 h-4" />
               </button>
-              <Link
-                href="/account"
-                className="text-sm text-[#6E5B4E] hover:text-[#8F4B2B]"
-              >
-                Account
-              </Link>
+              
               <CartButton />
             </div>
           </div>
 
           {/* Mobile menu */}
           {isMobileOpen && (
-            <nav className="md:hidden px-4 pb-6 animate-in slide-in-from-top-2 duration-200">
+            <nav className="md:hidden px-4 pb-6 animate-in slide-in-from-top-2 duration-300 fade-in-0">
               <ul className="space-y-3 mt-2">
                 {NAV.map((item) => {
                   const isActive =
@@ -176,6 +210,61 @@ export default function Header() {
                     </li>
                   );
                 })}
+
+                {/* Services dropdown in mobile */}
+                <li>
+                  <button
+                    onClick={() => setMobileServicesOpen(!mobileServicesOpen)}
+                    className="flex items-center justify-between w-full text-base text-[#6E5B4E] hover:text-[#8F4B2B] transition-colors"
+                  >
+                    Services
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform duration-200 ${
+                        mobileServicesOpen ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+                  {mobileServicesOpen && (
+                    <ul className="ml-4 mt-2 space-y-2 animate-in slide-in-from-top-1 duration-200">
+                      {SERVICES.map((service) => {
+                        const isActive = pathname.startsWith(service.href);
+                        return (
+                          <li key={service.href}>
+                            <Link
+                              href={service.href}
+                              onClick={() => {
+                                setIsMobileOpen(false);
+                                setMobileServicesOpen(false);
+                              }}
+                              className={`block text-base transition-colors ${
+                                isActive
+                                  ? "text-[#8F4B2B] font-medium"
+                                  : "text-[#6E5B4E] hover:text-[#8F4B2B]"
+                              }`}
+                            >
+                              {service.label}
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </li>
+
+                {/* Contact us */}
+                <li>
+                  <Link
+                    href="/contact"
+                    onClick={() => setIsMobileOpen(false)}
+                    className={`block text-base ${
+                      pathname.startsWith("/contact")
+                        ? "text-[#8F4B2B] font-medium"
+                        : "text-[#6E5B4E] hover:text-[#8F4B2B]"
+                    }`}
+                  >
+                    Contact us
+                  </Link>
+                </li>
               </ul>
             </nav>
           )}

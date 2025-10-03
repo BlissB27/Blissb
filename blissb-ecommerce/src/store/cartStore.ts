@@ -6,6 +6,7 @@ export type CartItem = {
   id: string;
   product: Product;
   quantity: number;
+  flavor?: string; // Para cakes que requieren sabor específico
 };
 
 type CartStore = {
@@ -13,7 +14,7 @@ type CartStore = {
   isOpen: boolean;
   
   // Actions
-  addItem: (product: Product, quantity?: number) => void;
+  addItem: (product: Product, quantity?: number, flavor?: string) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
@@ -25,13 +26,13 @@ type CartStore = {
   getTotalItems: () => number;
   getTotalPrice: () => number;
   getItemQuantity: (productId: string) => number;
-  getFreeShippingProgress: () => {
-    current: number;
-    target: number;
-    remaining: number;
-    percentage: number;
-    isEligible: boolean;
+  getShippingInfo: () => {
+    totalCookies: number;
+    dozensRequired: number;
+    shippingCost: number;
+    message: string;
   };
+  getTotalWithDelivery: () => number;
   getMinimumCookiesInfo: () => {
     hasEnoughCookies: boolean;
     currentCookies: number;
@@ -43,11 +44,16 @@ type CartStore = {
     isValid: boolean;
     error?: string;
   };
+  validateProduct: (product: Product, flavor?: string) => {
+    isValid: boolean;
+    error?: string;
+  };
 };
 
 // Constantes
-const FREE_SHIPPING_THRESHOLD = 320;
 const MINIMUM_COOKIES_REQUIRED = 4;
+const SHIPPING_COST_PER_DOZEN = 15; // $15 por cada 12 galletas
+const COOKIES_PER_DOZEN = 12;
 
 export const useCartStore = create<CartStore>()(
   persist(
@@ -55,31 +61,48 @@ export const useCartStore = create<CartStore>()(
       items: [],
       isOpen: false,
       
-      addItem: (product, quantity = 1) => {
-        const validation = get().validateMinimumQuantity(product, quantity);
-        
-        if (!validation.isValid) {
-          console.error(validation.error);
+      addItem: (product, quantity = 1, flavor) => {
+        // Validar producto antes de agregar
+        const productValidation = get().validateProduct(product, flavor);
+        if (!productValidation.isValid) {
+          console.error(productValidation.error);
+          return;
+        }
+
+        // Validar cantidad mínima
+        const quantityValidation = get().validateMinimumQuantity(product, quantity);
+        if (!quantityValidation.isValid) {
+          console.error(quantityValidation.error);
           return;
         }
         
         set((state) => {
-          const existingItem = state.items.find(item => item.id === product.id);
+          // Para cakes, crear un ID único que incluya el sabor
+          const itemId = product.category === 'cakes' && flavor 
+            ? `${product.id}-${flavor}`
+            : product.id;
+            
+          const existingItem = state.items.find(item => item.id === itemId);
           
           if (existingItem) {
             return {
               items: state.items.map(item =>
-                item.id === product.id
+                item.id === itemId
                   ? { ...item, quantity: item.quantity + quantity }
                   : item
               ),
-              isOpen: true, // Auto-abrir drawer al agregar
+              isOpen: true,
             };
           }
           
           return {
-            items: [...state.items, { id: product.id, product, quantity }],
-            isOpen: true, // Auto-abrir drawer al agregar
+            items: [...state.items, { 
+              id: itemId, 
+              product, 
+              quantity,
+              flavor 
+            }],
+            isOpen: true,
           };
         });
       },
@@ -148,40 +171,72 @@ export const useCartStore = create<CartStore>()(
         return item?.quantity || 0;
       },
       
-      getFreeShippingProgress: () => {
-        const current = get().getTotalPrice();
-        const remaining = Math.max(0, FREE_SHIPPING_THRESHOLD - current);
-        const percentage = Math.min(100, (current / FREE_SHIPPING_THRESHOLD) * 100);
-        
+      getShippingInfo: () => {
+        const cookieItems = get().items.filter(item => item.product.category === 'cookies');
+        const totalCookies = cookieItems.reduce((sum, item) => sum + item.quantity, 0);
+        const dozensRequired = Math.ceil(totalCookies / COOKIES_PER_DOZEN);
+        const shippingCost = dozensRequired * SHIPPING_COST_PER_DOZEN;
+
+        let message = '';
+        if (totalCookies === 0) {
+          message = 'Shipping costs calculated at checkout';
+        } else if (totalCookies < COOKIES_PER_DOZEN) {
+          message = `Shipping cost: $${SHIPPING_COST_PER_DOZEN} for up to ${COOKIES_PER_DOZEN} cookies`;
+        } else {
+          message = `Shipping cost: $${shippingCost} for ${totalCookies} cookies (${dozensRequired} dozen${dozensRequired > 1 ? 's' : ''})`;
+        }
+
         return {
-          current,
-          target: FREE_SHIPPING_THRESHOLD,
-          remaining,
-          percentage,
-          isEligible: current >= FREE_SHIPPING_THRESHOLD,
+          totalCookies,
+          dozensRequired,
+          shippingCost,
+          message
         };
       },
-      
+
+      getTotalWithDelivery: () => {
+        const subtotal = get().getTotalPrice();
+        const shippingInfo = get().getShippingInfo();
+
+        // Importar deliveryStore de forma dinámica para evitar dependencias circulares
+        // El delivery fee se calculará en el componente que use esta función
+        return subtotal + shippingInfo.shippingCost;
+      },
+
       getMinimumCookiesInfo: () => {
         const cookieItems = get().items.filter(item => item.product.category === 'cookies');
         const currentCookies = cookieItems.reduce((total, item) => total + item.quantity, 0);
-        
+
+        // Si no hay galletas en el carrito, permitir continuar
+        // Si hay galletas, debe tener al menos el mínimo requerido
+        const hasEnoughCookies = currentCookies === 0 || currentCookies >= MINIMUM_COOKIES_REQUIRED;
+
         return {
-          hasEnoughCookies: currentCookies >= MINIMUM_COOKIES_REQUIRED,
+          hasEnoughCookies,
           currentCookies,
           minimumRequired: MINIMUM_COOKIES_REQUIRED,
         };
       },
       
       validateMinimumQuantity: (product, quantity) => {
-        if (product.category === 'cookies') {
-          const allowedQuantities = [4, 10, 15];
-          if (!allowedQuantities.includes(quantity)) {
-            return {
-              isValid: false,
-              error: `Please select 4, 10, or 15 pieces for ${product.name}`,
-            };
-          }
+        // Validación básica: mínimo 1 para cualquier producto
+        if (quantity < 1) {
+          return {
+            isValid: false,
+            error: `Minimum quantity is 1`,
+          };
+        }
+        
+        return { isValid: true };
+      },
+
+      validateProduct: (product, flavor) => {
+        // Validar que los cakes tengan sabor especificado
+        if (product.category === 'cakes' && !flavor) {
+          return {
+            isValid: false,
+            error: `Please select a flavor for ${product.name}`,
+          };
         }
         
         return { isValid: true };

@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
-import { useHydrated } from "@/hooks/useHudrated";
+import { useDeliveryStore } from "@/store/deliveryStore";
+import { useHydrated } from "@/hooks/useHydrated";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CheckCircle, ShoppingBag, ArrowRight } from "lucide-react";
+import { DeliverySelector } from "@/components/DeliverySelector";
 import Image from "next/image";
 
 export default function OrderConfirmationPage() {
@@ -14,15 +16,39 @@ export default function OrderConfirmationPage() {
   const hydrated = useHydrated();
   const [isLoading, setIsLoading] = useState(true);
   
-  const { 
-    items, 
-    getTotalPrice, 
-    getFreeShippingProgress,
-    getMinimumCookiesInfo 
+  const {
+    items,
+    getTotalPrice,
+    getShippingInfo,
+    getMinimumCookiesInfo
   } = useCartStore();
 
-  const shippingProgress = getFreeShippingProgress();
+  const {
+    selectedType,
+    selectedZipCode,
+    isConfirmed,
+    isValidSelection,
+    getDeliveryFee
+  } = useDeliveryStore();
+
+  const shippingInfo = getShippingInfo();
   const cookiesInfo = getMinimumCookiesInfo();
+
+  // Calcular delivery fee dinámicamente
+  const getDeliveryFeeForType = () => {
+    if (selectedType === 'shipping') {
+      return shippingInfo.shippingCost; // $15 por docena de galletas
+    } else if (selectedType === 'delivery') {
+      return getDeliveryFee(selectedZipCode); // $0 o $20 basado en zip code
+    } else if (selectedType === 'pickup') {
+      return 0; // Pickup siempre gratis
+    }
+    return 0;
+  };
+
+  const deliveryFee = getDeliveryFeeForType();
+  const subtotal = getTotalPrice();
+  const finalTotal = subtotal + deliveryFee;
 
   // Wait for hydration and add delay before checking
   useEffect(() => {
@@ -129,56 +155,77 @@ export default function OrderConfirmationPage() {
             ))}
           </div>
 
-          {/* Shipping Status */}
-          {shippingProgress.isEligible ? (
-            <div className="bg-[#1E7A31]/10 border border-[#1E7A31]/20 rounded-lg p-4 mb-4">
-              <p className="text-[#1E7A31] font-medium text-center">
-                🎉 Congratulations! Your order qualifies for FREE SHIPPING
-              </p>
-            </div>
-          ) : (
-            <div className="bg-[#8F4B2B]/10 border border-[#8F4B2B]/20 rounded-lg p-4 mb-4">
-              <p className="text-[#8F4B2B] text-center">
-                Add ${shippingProgress.remaining.toFixed(2)} more to get free shipping
-              </p>
-            </div>
-          )}
+          {/* Delivery Method Info */}
+          <div className="bg-[#8F4B2B]/10 border border-[#8F4B2B]/20 rounded-lg p-4 mb-4">
+            <p className="text-[#8F4B2B] text-center">
+              {selectedType === 'shipping' && shippingInfo.totalCookies > 0
+                ? shippingInfo.message
+                : selectedType === 'delivery'
+                ? `Local delivery ${deliveryFee === 0 ? '(Free to your area!)' : `($${deliveryFee} to your area)`}`
+                : selectedType === 'pickup'
+                ? 'Pickup at bakery location (Free)'
+                : 'Please select delivery method'
+              }
+            </p>
+          </div>
 
           {/* Totals */}
           <div className="border-t pt-4">
             <div className="flex justify-between items-center mb-2">
               <span className="text-[#6E5B4E]">Subtotal:</span>
               <span className="font-medium text-[#3B2A22]">
-                ${getTotalPrice().toFixed(2)}
+                ${subtotal.toFixed(2)}
               </span>
             </div>
             <div className="flex justify-between items-center mb-2">
-              <span className="text-[#6E5B4E]">Shipping:</span>
+              <span className="text-[#6E5B4E]">
+                {selectedType === 'shipping' ? 'Shipping:' :
+                 selectedType === 'delivery' ? 'Delivery:' :
+                 selectedType === 'pickup' ? 'Pickup:' : 'Delivery:'}
+              </span>
               <span className="font-medium text-[#3B2A22]">
-                {shippingProgress.isEligible ? 'FREE' : 'Calculated at checkout'}
+                {deliveryFee > 0 ? `$${deliveryFee.toFixed(2)}` : 'Free'}
               </span>
             </div>
             <div className="flex justify-between items-center text-lg font-bold border-t pt-2">
               <span className="text-[#3B2A22]">Total:</span>
               <span className="text-[#8F4B2B]">
-                ${getTotalPrice().toFixed(2)}
+                ${finalTotal.toFixed(2)}
               </span>
             </div>
           </div>
         </Card>
 
+        {/* Delivery Selection */}
+        <Card className="bg-white p-6 mb-6">
+          <DeliverySelector
+            showConfirmation={true}
+            onConfirm={() => {
+              // Optional: Add any additional logic when delivery is confirmed
+              console.log('Delivery method confirmed');
+            }}
+          />
+        </Card>
+
         {/* Action Buttons */}
         <div className="space-y-3">
-          <Button 
+          <Button
             onClick={() => router.push('/checkout')}
             className="w-full bg-[#1E7A31] hover:bg-[#166426] text-white font-medium py-4 text-lg"
             size="lg"
+            disabled={!isValidSelection() || !isConfirmed}
           >
             Proceed to Checkout
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
-          
-          <Button 
+
+          {(!isValidSelection() || !isConfirmed) && (
+            <div className="text-center text-sm text-[#6E5B4E] bg-yellow-50 p-3 rounded-md border border-yellow-200">
+              Please confirm your delivery method selection to proceed
+            </div>
+          )}
+
+          <Button
             onClick={() => router.push('/')}
             variant="outline"
             className="w-full border-[#8F4B2B] text-[#8F4B2B] hover:bg-[#8F4B2B] hover:text-white font-medium py-4"

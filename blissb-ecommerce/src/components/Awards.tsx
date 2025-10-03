@@ -5,7 +5,7 @@ import Link from "next/link";
 
 export function Awards() {
   return (
-    <section className="bg-[#F8EDE4]">
+    <section className="bg-[#f6eee5]">
       <div className="mx-auto max-w-[1200px] px-4 py-10 md:py-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           {/* Left: Awards Text */}
