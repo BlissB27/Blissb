@@ -53,20 +53,20 @@ function BannerCard({
       <div className="flex flex-col md:grid md:grid-cols-[var(--text)_var(--image)] md:h-full">
         {/* Panel de texto */}
         <div
-          className="w-full p-6 md:p-8 flex flex-col justify-center gap-4"
+          className="w-full p-4 md:p-8 flex flex-col justify-center gap-3 md:gap-4"
           style={{ backgroundColor: panelBg, color: panelText }}
         >
-          <h3 className="text-xl md:text-2xl font-semibold leading-tight">
+          <h3 className="text-lg md:text-2xl font-semibold leading-tight">
             {title}
           </h3>
-          <p className="text-sm md:text-base opacity-90 leading-relaxed">
+          <p className="text-xs md:text-base opacity-90 leading-relaxed">
             {description}
           </p>
           <div>
             <Button
               asChild
               variant="ghost"
-              className="rounded-md border px-5 py-2 text-sm hover:bg-[#3B2A22]"
+              className="rounded-md border px-4 py-1.5 text-xs md:px-5 md:py-2 md:text-sm hover:bg-[#3B2A22]"
               style={{ borderColor: panelText, color: panelText }}
             >
               <a href={href}>See The Menu</a>
