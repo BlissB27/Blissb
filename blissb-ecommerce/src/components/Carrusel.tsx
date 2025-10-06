@@ -1,11 +1,10 @@
 "use client";
 
 const ANNOUNCEMENTS = [
-  "Buy 4 Get 1 Free Today Only (Promo code applied at checkout)",
-  "Free Shipping on Orders Over $50 - Limited Time Offer",
-  "New Flavor Alert: Try Our Red Velvet Cookies Now Available",
-  "Custom Cakes Available - Order 48 Hours in Advance",
-  "Corporate Catering Services - Perfect for Your Next Event"
+  "Free delivery in select areas ",
+  "Cookie & cake carts for events",
+  "Corporate cookie boxes",
+  "Shipping every Monday",
 ];
 
 export function Carrusel() {

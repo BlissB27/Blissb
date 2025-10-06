@@ -134,7 +134,7 @@ export default function Banner() {
         >
           <BannerCard
             title="Events"
-            description="Lorem Ipsum is simply dummy text of the printing."
+            description="We set up on site with our cookie and cake carts, serving fresh desserts at your party."
             imageSrc="/img/1.png"
             href="/cookies"
             panelBg="#9A4F2A"
@@ -142,7 +142,7 @@ export default function Banner() {
           />
           <BannerCard
             title="Corporate Gifts"
-            description="Lorem Ipsum is simply dummy text of the printing."
+            description="Share Bliss-B flavors with clients or teams through our cookie boxes, a sweet way to say thank you."
             imageSrc="/img/2.png"
             href="/corporate"
             panelBg="#EFC596"
@@ -150,7 +150,7 @@ export default function Banner() {
           />
           <BannerCard
             title="Catering"
-            description="Lorem Ipsum is simply dummy text of the printing."
+            description="Order large quantities of cookies, brownies, and more, perfect for weddings, parties, and gatherings."
             imageSrc="/img/3.png"
             href="/corporate"
             panelBg="#9A4F2A"
