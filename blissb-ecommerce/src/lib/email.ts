@@ -1,7 +1,8 @@
 import { Resend } from 'resend';
-import { render } from '@react-email/render';
-import OrderConfirmationEmail from '@/emails/OrderConfirmation';
-import AdminOrderNotificationEmail from '@/emails/AdminOrderNotification';
+import {
+  generateOrderConfirmationHTML,
+  generateAdminOrderHTML,
+} from './emailTemplates';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -43,18 +44,16 @@ interface OrderEmailData {
  */
 export async function sendOrderConfirmationEmail(data: OrderEmailData) {
   try {
-    const emailHtml = render(
-      OrderConfirmationEmail({
-        customerName: data.customerName,
-        orderNumber: data.orderNumber,
-        orderDate: data.orderDate,
-        products: data.products,
-        subtotal: data.subtotal,
-        shipping: data.shipping,
-        total: data.total,
-        shippingAddress: data.shippingAddress,
-      })
-    );
+    const emailHtml = generateOrderConfirmationHTML({
+      customerName: data.customerName,
+      orderNumber: data.orderNumber,
+      orderDate: data.orderDate,
+      products: data.products,
+      subtotal: data.subtotal,
+      shipping: data.shipping,
+      total: data.total,
+      shippingAddress: data.shippingAddress,
+    });
 
     const result = await resend.emails.send({
       from: 'Blissb Desserts <blissbdesserts@gmail.com>',
@@ -75,21 +74,19 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData) {
  */
 export async function sendAdminOrderNotification(data: OrderEmailData) {
   try {
-    const emailHtml = render(
-      AdminOrderNotificationEmail({
-        orderNumber: data.orderNumber,
-        orderDate: data.orderDate,
-        customerName: data.customerName,
-        customerEmail: data.customerEmail,
-        products: data.products,
-        subtotal: data.subtotal,
-        shipping: data.shipping,
-        total: data.total,
-        shippingAddress: data.shippingAddress,
-        paymentMethod: data.paymentMethod || 'Stripe',
-        paymentId: data.paymentId || '',
-      })
-    );
+    const emailHtml = generateAdminOrderHTML({
+      orderNumber: data.orderNumber,
+      orderDate: data.orderDate,
+      customerName: data.customerName,
+      customerEmail: data.customerEmail,
+      products: data.products,
+      subtotal: data.subtotal,
+      shipping: data.shipping,
+      total: data.total,
+      shippingAddress: data.shippingAddress,
+      paymentMethod: data.paymentMethod || 'Stripe',
+      paymentId: data.paymentId || '',
+    });
 
     const adminEmail = process.env.ADMIN_EMAIL || 'blissbdesserts@gmail.com';
 
