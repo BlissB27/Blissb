@@ -151,7 +151,7 @@ function OrderSuccessContent() {
                   <div className="text-left">
                     <p className="font-medium text-[#3B2A22]">Questions?</p>
                     <p className="text-[#6E5B4E]">
-                      Contact us at (555) 123-4567
+                      Contact us at +1 (470) 883-5035
                     </p>
                   </div>
                 </div>
