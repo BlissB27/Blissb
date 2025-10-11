@@ -139,7 +139,7 @@ export default function CorporatePage() {
             {/* Left Content - Gift Boxes */}
             <div className="relative w-full h-[300px] md:h-[400px] lg:h-[500px] order-2 lg:order-1">
               <Image
-                src="/img/corporate.png"
+                src="/img/Corporate.png"
                 alt="Corporate Gift Box with Cookies"
                 fill
                 className="object-contain rounded-lg"
