@@ -350,9 +350,9 @@ export default function CheckoutPage() {
                       <div>
                         <h3 className="font-semibold text-[#1E7A31] mb-2">Pickup Information</h3>
                         <div className="text-sm text-[#6E5B4E] space-y-1">
-                          <p><strong>Location:</strong> 123 Sweet Street, Atlanta, GA 30309</p>
+                          <p><strong>Location:</strong> Braselton, GA 30517</p>
                           <p><strong>Date & Time:</strong> {selectedDate} at {selectedTime}</p>
-                          <p><strong>Note:</strong> Please bring a valid ID for pickup verification.</p>
+                          <p><strong>Note:</strong>We'll contact you for more details and please bring a valid ID for pickup verification.</p>
                         </div>
                       </div>
                     </div>
@@ -435,7 +435,7 @@ export default function CheckoutPage() {
                           <p>ZIP Code: {selectedZipCode}</p>
                         )}
                         {selectedType === 'pickup' && (
-                          <p>123 Sweet Street, Atlanta, GA 30309</p>
+                          <p>Braselton, GA, 30517</p>
                         )}
                       </>
                     )}
@@ -468,6 +468,11 @@ export default function CheckoutPage() {
                         {item.flavor && (
                           <p className="text-xs text-[#6E5B4E]">
                             Flavor: {item.flavor}
+                          </p>
+                        )}
+                        {item.customMessage && (
+                          <p className="text-xs text-[#1E7A31] italic">
+                            "{item.customMessage}"
                           </p>
                         )}
                       </div>

@@ -155,6 +155,16 @@ export function CartDrawer() {
                         <h4 className="font-medium text-[#3B2A22] text-sm mb-1">
                           {item.product.name}
                         </h4>
+                        {item.flavor && (
+                          <p className="text-xs text-[#8F4B2B] mb-1">
+                            Flavor: {item.flavor}
+                          </p>
+                        )}
+                        {item.customMessage && (
+                          <p className="text-xs text-[#1E7A31] italic mb-1 bg-[#1E7A31]/5 px-2 py-1 rounded">
+                            "{item.customMessage}"
+                          </p>
+                        )}
                         <p className="text-xs text-[#6E5B4E] mb-2">
                           Descripción del producto
                         </p>

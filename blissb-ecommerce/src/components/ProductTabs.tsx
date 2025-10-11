@@ -31,6 +31,7 @@ export function ProductTabs() {
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
+  const [visibleCount, setVisibleCount] = useState(8);
 
   // Load products based on active tab
   useEffect(() => {
@@ -60,6 +61,7 @@ export function ProductTabs() {
         }
 
         setProducts(fetchedProducts);
+        setVisibleCount(8); // Reset visible count when tab changes
       } catch (error) {
         console.error('Error loading products:', error);
         setProducts([]);
@@ -70,6 +72,10 @@ export function ProductTabs() {
 
     loadProducts();
   }, [activeTab]);
+
+  const handleLoadMore = () => {
+    setVisibleCount(prev => prev + 8);
+  };
 
   // Touch/Mouse handlers for swipe functionality
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -204,7 +210,7 @@ export function ProductTabs() {
         <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {loading ? (
             // Loading skeleton
-            Array.from({ length: 4 }).map((_, index) => (
+            Array.from({ length: 8 }).map((_, index) => (
               <div key={index} className="animate-pulse">
                 <div className="bg-gray-200 aspect-square rounded-lg mb-4"></div>
                 <div className="h-4 bg-gray-200 rounded mb-2"></div>
@@ -212,7 +218,7 @@ export function ProductTabs() {
               </div>
             ))
           ) : products.length > 0 ? (
-            products.map(product => (
+            products.slice(0, visibleCount).map(product => (
               <ProductCard key={product.id} product={product} />
             ))
           ) : (
@@ -290,10 +296,13 @@ export function ProductTabs() {
           )}
         </div>
 
-        {/* Show More Button (only if there are products) */}
-        {!loading && products.length > 0 && (
+        {/* Show More Button (only if there are more products to load) */}
+        {!loading && products.length > visibleCount && (
           <div className="text-center">
-            <button className="bg-[#8F4B2B] hover:bg-[#6f3a22] text-white px-8 py-3 rounded-md font-medium transition-colors">
+            <button
+              onClick={handleLoadMore}
+              className="bg-[#8F4B2B] hover:bg-[#6f3a22] text-white px-8 py-3 rounded-md font-medium transition-colors"
+            >
               {activeTab === "all"
                 ? "Load More Products"
                 : activeTab === "featured"
@@ -308,7 +317,7 @@ export function ProductTabs() {
         <div className="text-center mt-4">
           {!loading && (
             <span className="text-sm text-[#6E5B4E]">
-              Showing {products.length} {products.length === 1 ? 'product' : 'products'}
+              Showing {Math.min(visibleCount, products.length)} of {products.length} {products.length === 1 ? 'product' : 'products'}
             </span>
           )}
         </div>

@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { useCartStore } from "@/store/cartStore";
 import { getProductByIdAsync, getProductBySlug, getAllProducts, type Product } from "@/data/products";
 import { ProductCard } from "@/components/ProductCard";
@@ -29,6 +30,7 @@ export default function ProductPage({
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedFlavor, setSelectedFlavor] = useState<string>("");
   const [showFlavorRequired, setShowFlavorRequired] = useState(false);
+  const [customMessage, setCustomMessage] = useState<string>("");
 
   // Load product data
   useEffect(() => {
@@ -95,9 +97,10 @@ export default function ProductPage({
       setShowFlavorRequired(true);
       return;
     }
-    
-    addItem(product, selectedQuantity, selectedFlavor || undefined);
+
+    addItem(product, selectedQuantity, selectedFlavor || undefined, customMessage || undefined);
     setShowFlavorRequired(false);
+    setCustomMessage(""); // Limpiar mensaje después de agregar
   };
 
   const handleRelatedProductAdd = (relatedProduct: any) => {
@@ -221,6 +224,25 @@ export default function ProductPage({
                 {showFlavorRequired && (
                   <p className="text-sm text-red-500 mt-1">Please select a flavor to continue</p>
                 )}
+              </div>
+            )}
+
+            {/* Custom Message for Desserts */}
+            {product.category === 'desserts' && (
+              <div className="mb-6">
+                <label className="text-sm text-[#6E5B4E] mb-2 block">
+                  Special message (optional)
+                </label>
+                <Input
+                  placeholder="e.g., Happy Birthday John!"
+                  maxLength={50}
+                  value={customMessage}
+                  onChange={(e) => setCustomMessage(e.target.value)}
+                  className="border-[#E6D7CB] focus:border-[#8F4B2B]"
+                />
+                <p className="text-xs text-[#6E5B4E] mt-1">
+                  Max 50 characters
+                </p>
               </div>
             )}
 

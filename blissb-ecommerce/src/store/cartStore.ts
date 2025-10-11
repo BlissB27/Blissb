@@ -7,6 +7,7 @@ export type CartItem = {
   product: Product;
   quantity: number;
   flavor?: string; // Para cakes que requieren sabor específico
+  customMessage?: string; // Para desserts que permiten mensaje personalizado
 };
 
 type CartStore = {
@@ -14,7 +15,7 @@ type CartStore = {
   isOpen: boolean;
   
   // Actions
-  addItem: (product: Product, quantity?: number, flavor?: string) => void;
+  addItem: (product: Product, quantity?: number, flavor?: string, customMessage?: string) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
@@ -61,7 +62,7 @@ export const useCartStore = create<CartStore>()(
       items: [],
       isOpen: false,
       
-      addItem: (product, quantity = 1, flavor) => {
+      addItem: (product, quantity = 1, flavor, customMessage) => {
         // Validar producto antes de agregar
         const productValidation = get().validateProduct(product, flavor);
         if (!productValidation.isValid) {
@@ -75,16 +76,21 @@ export const useCartStore = create<CartStore>()(
           console.error(quantityValidation.error);
           return;
         }
-        
+
         set((state) => {
-          // Para cakes, crear un ID único que incluya el sabor
-          const itemId = product.category === 'cakes' && flavor 
-            ? `${product.id}-${flavor}`
-            : product.id;
-            
+          // Para cakes con sabor o desserts con mensaje, crear un ID único
+          let itemId = product.id;
+          if (product.category === 'cakes' && flavor) {
+            itemId = `${product.id}-${flavor}`;
+          } else if (product.category === 'desserts' && customMessage) {
+            // Para desserts con mensaje personalizado, crear ID único
+            itemId = `${product.id}-${Date.now()}`;
+          }
+
           const existingItem = state.items.find(item => item.id === itemId);
-          
-          if (existingItem) {
+
+          // Si existe y NO tiene mensaje personalizado, incrementar cantidad
+          if (existingItem && !customMessage) {
             return {
               items: state.items.map(item =>
                 item.id === itemId
@@ -94,13 +100,15 @@ export const useCartStore = create<CartStore>()(
               isOpen: true,
             };
           }
-          
+
+          // Agregar nuevo item
           return {
-            items: [...state.items, { 
-              id: itemId, 
-              product, 
+            items: [...state.items, {
+              id: itemId,
+              product,
               quantity,
-              flavor 
+              flavor,
+              customMessage
             }],
             isOpen: true,
           };

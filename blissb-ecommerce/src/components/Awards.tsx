@@ -28,23 +28,23 @@ export function Awards() {
             </div>
 
             {/* Right: 2024 Images */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="overflow-hidden rounded-lg">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="overflow-hidden rounded-lg border-2 border-[#8F4B2B]/20 h-[300px] md:h-[400px]">
                 <Image
-                  src="/img/Premio/premio.JPG"
+                  src="/img/Premio/homep1.jpeg"
                   alt="2024 Award 1"
                   width={300}
-                  height={300}
-                  className="w-full h-auto object-cover"
+                  height={400}
+                  className="w-full h-full object-cover"
                 />
               </div>
-              <div className="overflow-hidden rounded-lg">
+              <div className="overflow-hidden rounded-lg border-2 border-[#8F4B2B]/20 h-[300px] md:h-[400px]">
                 <Image
-                  src="/img/Premio/premio2.jpg"
+                  src="/img/Premio/homep2.jpeg"
                   alt="2024 Award 2"
                   width={300}
-                  height={300}
-                  className="w-full h-auto object-cover"
+                  height={400}
+                  className="w-full h-full object-cover"
                 />
               </div>
             </div>
@@ -70,23 +70,23 @@ export function Awards() {
             </div>
 
             {/* Right: 2023 Images */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="overflow-hidden rounded-lg">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="overflow-hidden rounded-lg border-2 border-[#8F4B2B]/20 h-[300px] md:h-[400px]">
                 <Image
-                  src="/img/Premio/premio3.JPG"
+                  src="/img/Premio/prime.jpeg"
                   alt="2023 Award 1"
                   width={300}
-                  height={300}
-                  className="w-full h-auto object-cover"
+                  height={400}
+                  className="w-full h-full object-cover"
                 />
               </div>
-              <div className="overflow-hidden rounded-lg">
+              <div className="overflow-hidden rounded-lg border-2 border-[#8F4B2B]/20 h-[300px] md:h-[400px]">
                 <Image
-                  src="/img/Premio/premio5.jpg"
+                  src="/img/Premio/homep.jpeg"
                   alt="2023 Award 2"
                   width={300}
-                  height={300}
-                  className="w-full h-auto object-cover"
+                  height={400}
+                  className="w-full h-full object-cover"
                 />
               </div>
             </div>
@@ -96,12 +96,12 @@ export function Awards() {
           <div className="mt-8 text-center">
             <Button asChild variant="outline" className="border-[#8F4B2B] text-[#8F4B2B] hover:bg-[#8F4B2B] hover:text-white">
               <Link
-                href="https://instagram.com/bliss-b"
+                href="https://instagram.com/blissb.bakery"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm"
               >
-                @bliss-b
+                @blissb.bakery
               </Link>
             </Button>
           </div>

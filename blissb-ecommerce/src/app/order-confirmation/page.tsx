@@ -7,7 +7,7 @@ import { useDeliveryStore } from "@/store/deliveryStore";
 import { useHydrated } from "@/hooks/useHydrated";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { CheckCircle, ShoppingBag, ArrowRight } from "lucide-react";
+import { CheckCircle, ShoppingBag, ArrowRight, Lock, Phone, Truck} from "lucide-react";
 import { DeliverySelector } from "@/components/DeliverySelector";
 import Image from "next/image";
 
@@ -236,10 +236,21 @@ export default function OrderConfirmationPage() {
         </div>
 
         {/* Additional Info */}
-        <div className="text-center mt-6 text-sm text-[#6E5B4E]">
-          <p>
-            🔒 Secure checkout • 🚚 Fast delivery • 📞 24/7 support
-          </p>
+        <div className="flex items-center justify-center gap-4 mt-6 text-sm text-[#6E5B4E]">
+          <div className="flex items-center gap-1">
+            <Lock className="w-4 h-4" />
+            <span>Secure checkout</span>
+          </div>
+          <span>•</span>
+          <div className="flex items-center gap-1">
+            <Truck className="w-4 h-4" />
+            <span>Fast delivery</span>
+          </div>
+          <span>•</span>
+          <div className="flex items-center gap-1">
+            <Phone className="w-4 h-4" />
+            <span>24/7 support</span>
+          </div>
         </div>
       </div>
     </div>

@@ -126,7 +126,7 @@ export default function ContactPage() {
                         href="mailto:hello@bliss-b.com" 
                         className="text-[#8F4B2B] hover:underline font-medium"
                       >
-                        hello@bliss-b.com
+                        blissbdesserts@gmail.com
                       </a>
                     </div>
                   </div>
@@ -147,7 +147,7 @@ export default function ContactPage() {
                         href="tel:+15551234567" 
                         className="text-[#8F4B2B] hover:underline font-medium"
                       >
-                        (555) 123-4567
+                        +1 (470) 883-5035
                       </a>
                     </div>
                   </div>
@@ -163,10 +163,9 @@ export default function ContactPage() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-[#3B2A22] mb-1">Location</h3>
-                      <p className="text-[#6E5B4E] mb-2">Visit our bakery</p>
+                      
                       <address className="text-[#8F4B2B] not-italic">
-                        123 Sweet Street<br />
-                        Atlanta, GA 30309<br />
+                        Braselton, GA <br />
                         United States
                       </address>
                     </div>
@@ -184,8 +183,8 @@ export default function ContactPage() {
                     <div>
                       <h3 className="font-semibold text-[#3B2A22] mb-1">Business Hours</h3>
                       <div className="text-[#6E5B4E] space-y-1">
-                        <p>Monday - Friday: 9:00 AM - 6:00 PM</p>
-                        <p>Saturday: 10:00 AM - 4:00 PM</p>
+                        <p>Monday - Friday: 9:00 AM - 7:00 PM</p>
+                        <p>Saturday: 10:00 AM - 6:00 PM</p>
                         <p>Sunday: Closed</p>
                       </div>
                     </div>

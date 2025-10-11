@@ -1,7 +1,7 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
-export type DeliveryType = 'shipping' | 'delivery' | 'pickup';
+export type DeliveryType = "shipping" | "delivery" | "pickup";
 
 export type TimeSlot = {
   time: string;
@@ -21,7 +21,6 @@ export type DeliveryOption = {
   type: DeliveryType;
   label: string;
   description: string;
-  icon: string;
   estimatedTime?: string;
   fee?: number;
 };
@@ -61,67 +60,74 @@ type DeliveryStore = {
 // Configuración de horarios
 const DELIVERY_SCHEDULE = {
   delivery: {
-    days: ['monday', 'friday'], // Solo lunes y viernes
+    days: ["monday", "friday"], // Solo lunes y viernes
     timeSlots: [
-      { time: '3:00 PM', available: true, maxOrders: 5 },
-      { time: '4:00 PM', available: true, maxOrders: 5 },
-      { time: '5:00 PM', available: true, maxOrders: 5 },
-      { time: '6:00 PM', available: true, maxOrders: 3 },
-    ]
+      { time: "3:00 PM - 6:00 PM", available: true },
+    ],
   },
   pickup: {
-    days: ['tuesday', 'thursday'], // Solo martes y jueves
+    days: ["tuesday", "thursday"], // Solo martes y jueves
     timeSlots: [
-      { time: '4:00 PM', available: true, maxOrders: 8 },
-      { time: '5:00 PM', available: true, maxOrders: 8 },
-      { time: '6:00 PM', available: true, maxOrders: 5 },
-    ]
-  }
+      { time: "4:00 PM", available: true },
+      { time: "5:00 PM", available: true },
+      { time: "6:00 PM", available: true },
+    ],
+  },
 };
 
 // Configuración de zonas de entrega basada en zip codes
 const DELIVERY_ZONE_CONFIG: DeliveryZoneConfig = {
   freeDeliveryZipCodes: [
-    '30517', '30548', '30519', '30542', '30011', '30507', '30522',
-    '30563', '30537', '30601', '30512', '30534', '30043', '30518', '30024'
+    "30517",
+    "30548",
+    "30519",
+    "30542",
+    "30011",
+    "30507",
+    "30522",
+    "30563",
+    "30537",
+    "30601",
+    "30512",
+    "30534",
+    "30043",
+    "30518",
+    "30024",
   ],
-  standardDeliveryFee: 20
+  standardDeliveryFee: 20,
 };
 
 const DELIVERY_OPTIONS: DeliveryOption[] = [
   {
-    type: 'shipping',
-    label: 'Shipping',
-    description: 'We ship nationwide Monday to Friday',
-    icon: '📦',
-    estimatedTime: '3-5 business days',
-    fee: 15 // $15 per dozen cookies
+    type: "shipping",
+    label: "Shipping",
+    description: "We ship nationwide Monday to Friday",
+    estimatedTime: "3-5 business days",
+    fee: 15,
   },
   {
-    type: 'delivery',
-    label: 'Schedule Delivery',
-    description: 'Local delivery within 25 miles',
-    icon: '🚚',
-    estimatedTime: 'Same day or next day',
-    fee: 15
+    type: "delivery",
+    label: "Schedule Delivery",
+    description: "Local delivery within 25 miles",
+    estimatedTime: "Same day or next day",
+    fee: 15,
   },
   {
-    type: 'pickup',
-    label: 'Schedule Pickup',
-    description: 'Pick up at our bakery location',
-    icon: '🏪',
-    estimatedTime: 'Same day available',
-    fee: 0
-  }
+    type: "pickup",
+    label: "Schedule Pickup",
+    description: "Pick up at our bakery location",
+    estimatedTime: "Same day available",
+    fee: 0,
+  },
 ];
 
 export const useDeliveryStore = create<DeliveryStore>()(
   persist(
     (set, get) => ({
-      selectedType: 'shipping',
+      selectedType: "shipping",
       selectedDate: null,
       selectedTime: null,
-      selectedZipCode: '',
+      selectedZipCode: "",
       isConfirmed: false,
 
       setDeliveryType: (type) => {
@@ -129,7 +135,7 @@ export const useDeliveryStore = create<DeliveryStore>()(
           selectedType: type,
           selectedDate: null,
           selectedTime: null,
-          isConfirmed: false
+          isConfirmed: false,
         });
       },
 
@@ -137,21 +143,21 @@ export const useDeliveryStore = create<DeliveryStore>()(
         set({
           selectedDate: date,
           selectedTime: null,
-          isConfirmed: false
+          isConfirmed: false,
         });
       },
 
       setSelectedTime: (time) => {
         set({
           selectedTime: time,
-          isConfirmed: false
+          isConfirmed: false,
         });
       },
 
       setSelectedZipCode: (zipCode) => {
         set({
           selectedZipCode: zipCode,
-          isConfirmed: false
+          isConfirmed: false,
         });
       },
 
@@ -159,7 +165,7 @@ export const useDeliveryStore = create<DeliveryStore>()(
         const { selectedType, selectedDate, selectedTime } = get();
 
         // Validar que la selección sea completa para delivery/pickup
-        if (selectedType === 'delivery' || selectedType === 'pickup') {
+        if (selectedType === "delivery" || selectedType === "pickup") {
           if (!selectedDate || !selectedTime) {
             return;
           }
@@ -170,26 +176,26 @@ export const useDeliveryStore = create<DeliveryStore>()(
 
       resetSelection: () => {
         set({
-          selectedType: 'shipping',
+          selectedType: "shipping",
           selectedDate: null,
           selectedTime: null,
-          selectedZipCode: '',
-          isConfirmed: false
+          selectedZipCode: "",
+          isConfirmed: false,
         });
       },
 
       resetDelivery: () => {
         set({
-          selectedType: 'shipping',
+          selectedType: "shipping",
           selectedDate: null,
           selectedTime: null,
-          selectedZipCode: '',
-          isConfirmed: false
+          selectedZipCode: "",
+          isConfirmed: false,
         });
       },
 
       getAvailableDays: (type) => {
-        if (type === 'shipping') return [];
+        if (type === "shipping") return [];
 
         const schedule = DELIVERY_SCHEDULE[type];
         const today = new Date();
@@ -200,15 +206,17 @@ export const useDeliveryStore = create<DeliveryStore>()(
           const date = new Date(today);
           date.setDate(today.getDate() + i);
 
-          const dayName = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+          const dayName = date
+            .toLocaleDateString("en-US", { weekday: "long" })
+            .toLowerCase();
           const isAvailable = schedule.days.includes(dayName);
 
           if (isAvailable) {
             availableDays.push({
-              date: date.toISOString().split('T')[0],
-              dayName: date.toLocaleDateString('en-US', { weekday: 'long' }),
+              date: date.toISOString().split("T")[0],
+              dayName: date.toLocaleDateString("en-US", { weekday: "long" }),
               available: true,
-              timeSlots: schedule.timeSlots.map(slot => ({ ...slot, currentOrders: 0 }))
+              timeSlots: schedule.timeSlots,
             });
           }
         }
@@ -217,26 +225,31 @@ export const useDeliveryStore = create<DeliveryStore>()(
       },
 
       getTimeSlots: (date, type) => {
-        if (type === 'shipping') return [];
+        if (type === "shipping") return [];
 
         const schedule = DELIVERY_SCHEDULE[type];
-        return schedule.timeSlots.map(slot => ({ ...slot, currentOrders: 0 }));
+        return schedule.timeSlots;
       },
 
       isValidSelection: () => {
-        const { selectedType, selectedDate, selectedTime, selectedZipCode } = get();
+        const { selectedType, selectedDate, selectedTime, selectedZipCode } =
+          get();
 
-        if (selectedType === 'shipping') {
+        if (selectedType === "shipping") {
           return true; // Shipping no requiere fecha/hora específica
         }
 
-        if (selectedType === 'delivery') {
+        if (selectedType === "delivery") {
           // Delivery requiere zip code, fecha y hora
-          return selectedZipCode !== '' && selectedZipCode.length === 5 &&
-                 selectedDate !== null && selectedTime !== null;
+          return (
+            selectedZipCode !== "" &&
+            selectedZipCode.length === 5 &&
+            selectedDate !== null &&
+            selectedTime !== null
+          );
         }
 
-        if (selectedType === 'pickup') {
+        if (selectedType === "pickup") {
           // Pickup solo requiere fecha y hora
           return selectedDate !== null && selectedTime !== null;
         }
@@ -265,7 +278,7 @@ export const useDeliveryStore = create<DeliveryStore>()(
       },
     }),
     {
-      name: 'bliss-b-delivery',
+      name: "bliss-b-delivery",
       partialize: (state) => ({
         selectedType: state.selectedType,
         selectedDate: state.selectedDate,

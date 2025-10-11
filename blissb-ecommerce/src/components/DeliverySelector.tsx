@@ -6,7 +6,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useDeliveryStore, type DeliveryType } from "@/store/deliveryStore";
-import { Calendar, Clock, AlertCircle, CheckCircle2, MapPin } from "lucide-react";
+import { Calendar, Clock, AlertCircle, CheckCircle2, MapPin, Package, Truck, ShoppingBag } from "lucide-react";
+
+const deliveryIcons = {
+  shipping: Package,
+  delivery: Truck,
+  pickup: ShoppingBag,
+};
 
 interface DeliverySelectorProps {
   showConfirmation?: boolean;
@@ -100,6 +106,8 @@ export function DeliverySelector({ showConfirmation = false, onConfirm }: Delive
               feeLabel = 'Enter zip code';
             }
 
+            const IconComponent = deliveryIcons[option.type];
+
             return (
               <Card
                 key={option.type}
@@ -111,7 +119,15 @@ export function DeliverySelector({ showConfirmation = false, onConfirm }: Delive
                 onClick={() => handleTypeChange(option.type)}
               >
                 <div className="text-center space-y-2">
-                  <div className="text-2xl">{option.icon}</div>
+                  <div className="flex justify-center">
+                    <IconComponent
+                      className={`w-10 h-10 ${
+                        selectedType === option.type
+                          ? 'text-[#8F4B2B]'
+                          : 'text-[#6E5B4E]'
+                      }`}
+                    />
+                  </div>
                   <h4 className="font-medium text-[#3B2A22]">{option.label}</h4>
                   <p className="text-sm text-[#6E5B4E]">{option.description}</p>
                   <p className="text-xs text-[#8F4B2B] font-medium">{option.estimatedTime}</p>
@@ -207,12 +223,12 @@ export function DeliverySelector({ showConfirmation = false, onConfirm }: Delive
             <Clock className="w-5 h-5" />
             Select Time
           </h3>
-          <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {timeSlots.map((slot) => (
               <Button
                 key={slot.time}
                 variant={selectedTime === slot.time ? "default" : "outline"}
-                className={`p-3 h-auto ${
+                className={`p-4 h-auto ${
                   selectedTime === slot.time
                     ? 'bg-[#8F4B2B] text-white'
                     : slot.available
@@ -222,13 +238,8 @@ export function DeliverySelector({ showConfirmation = false, onConfirm }: Delive
                 onClick={() => slot.available && handleTimeSelect(slot.time)}
                 disabled={!slot.available}
               >
-                <div className="text-center">
-                  <div className="font-medium text-sm">{slot.time}</div>
-                  {slot.maxOrders && slot.currentOrders !== undefined && (
-                    <div className="text-xs opacity-80">
-                      {slot.maxOrders - slot.currentOrders} left
-                    </div>
-                  )}
+                <div className="text-center w-full">
+                  <div className="font-medium">{slot.time}</div>
                 </div>
               </Button>
             ))}
@@ -320,8 +331,9 @@ export function DeliverySelector({ showConfirmation = false, onConfirm }: Delive
 
             {isConfirmed && (
               <div className="text-center">
-                <Badge className="bg-[#1E7A31] text-white">
-                  ✓ Selection Confirmed
+                <Badge className="bg-[#1E7A31] text-white flex items-center gap-1 justify-center w-fit mx-auto">
+                  <CheckCircle2 className="w-4 h-4" />
+                  Selection Confirmed
                 </Badge>
               </div>
             )}

@@ -5,6 +5,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Instagram } from "lucide-react";
+import { FaTiktok } from "react-icons/fa";
 
 const NAVIGATION_LINKS = [
   { href: "/", label: "Home" },
@@ -80,45 +82,55 @@ export function Footer() {
             </form>
           </div>
 
-          {/* Right: Instagram */}
+          {/* Right: Social Media */}
           <div className="md:col-span-2 lg:col-span-1">
             <h3 className="text-xl font-bold mb-6 text-[#EFC596]">
-              Follow Our Journey
+              Follow Us
             </h3>
+            <p className="text-white/90 text-sm mb-6 leading-relaxed">
+              Stay connected and see our latest creations on social media.
+            </p>
 
-            {/* Instagram Grid */}
-            <div className="grid grid-cols-3 gap-3 mb-6">
-              {Array.from({ length: 6 }, (_, i) => (
-                <Button
-                  key={i}
-                  variant="outline"
-                  className="aspect-square p-0 bg-white/10 border-white/20 hover:bg-white/20 hover:border-white/40 text-white/60 text-xs rounded-md transition-all duration-200 hover:scale-105"
-                  asChild
-                >
-                  <Link href="#" className="flex items-center justify-center">
-                    <div className="w-8 h-8 bg-white/20 rounded-sm flex items-center justify-center">
-                      📸
-                    </div>
-                  </Link>
-                </Button>
-              ))}
-            </div>
-
-            <Button
-              asChild
-              variant="ghost"
-              className="text-white/90 hover:text-[#EFC596] hover:bg-white/10 p-0 h-auto rounded-md"
-            >
-              <Link
-                href="https://instagram.com/bliss-b"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm font-medium flex items-center gap-2"
+            {/* Social Media Links */}
+            <div className="flex flex-col gap-4">
+              <Button
+                asChild
+                variant="outline"
+                className="w-full bg-white/10 border-white/30 hover:bg-white/20 hover:border-white/50 text-white h-auto py-4 rounded-md transition-all duration-200 group"
               >
-                <span>Follow</span>
-                <span className="text-[#EFC596]">@bliss-b</span>
-              </Link>
-            </Button>
+                <Link
+                  href="https://instagram.com/blissb.bakery"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-3"
+                >
+                  <Instagram className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                  <div className="flex flex-col items-start">
+                    <span className="font-medium">Instagram</span>
+                    <span className="text-xs text-white/70">@blissb.bakery</span>
+                  </div>
+                </Link>
+              </Button>
+
+              <Button
+                asChild
+                variant="outline"
+                className="w-full bg-white/10 border-white/30 hover:bg-white/20 hover:border-white/50 text-white h-auto py-4 rounded-md transition-all duration-200 group"
+              >
+                <Link
+                  href="https://tiktok.com/@blissb.bakery"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-3"
+                >
+                  <FaTiktok className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                  <div className="flex flex-col items-start">
+                    <span className="font-medium">TikTok</span>
+                    <span className="text-xs text-white/70">@blissb.bakery</span>
+                  </div>
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
 
