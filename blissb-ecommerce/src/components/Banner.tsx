@@ -39,7 +39,12 @@ function BannerCard({
         rounded-2xl overflow-hidden
         shadow-[0_8px_20px_rgba(0,0,0,0.08)]
         bg-transparent isolate
-        md:h-[355px]                         /* desktop: altura fija */
+        md:h-[355px]
+        md:w-full
+        w-[300px]
+        ml-14
+        md:ml-0
+
       "
       style={
         {
@@ -135,7 +140,7 @@ export default function Banner() {
           <BannerCard
             title="Events"
             description="We set up on site with our cookie and cake carts, serving fresh desserts at your party."
-            imageSrc="/img/1.png"
+            imageSrc="/img/event1.jpeg"
             href="/cookies"
             panelBg="#9A4F2A"
             objectPosition="center"
@@ -143,7 +148,7 @@ export default function Banner() {
           <BannerCard
             title="Corporate Gifts"
             description="Share Bliss-B flavors with clients or teams through our cookie boxes, a sweet way to say thank you."
-            imageSrc="/img/2.png"
+            imageSrc="/img/corporate1.jpeg"
             href="/corporate"
             panelBg="#EFC596"
             objectPosition="center"
@@ -151,7 +156,7 @@ export default function Banner() {
           <BannerCard
             title="Catering"
             description="Order large quantities of cookies, brownies, and more, perfect for weddings, parties, and gatherings."
-            imageSrc="/img/3.png"
+            imageSrc="/img/catering1.jpeg"
             href="/corporate"
             panelBg="#9A4F2A"
             objectPosition="center"
