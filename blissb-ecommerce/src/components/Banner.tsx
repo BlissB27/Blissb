@@ -42,7 +42,7 @@ function BannerCard({
         md:h-[355px]
         md:w-full
         w-[300px]
-        ml-14
+        ml-10
         md:ml-0
 
       "
