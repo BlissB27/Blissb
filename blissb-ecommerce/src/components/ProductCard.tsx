@@ -37,6 +37,17 @@ export function ProductCard({ product }: ProductCardProps) {
       return;
     }
 
+    // Verificar disponibilidad de stock
+    const stock = product.stock ?? 0;
+    if (stock <= 0) {
+      return; // No agregar si no hay stock
+    }
+
+    // Verificar que la cantidad no exceda el stock disponible
+    if (quantity > stock) {
+      return; // No agregar si la cantidad excede el stock
+    }
+
     // Agregar al carrito con sabor y/o mensaje personalizado
     addItem(
       product,
@@ -54,7 +65,8 @@ export function ProductCard({ product }: ProductCardProps) {
   };
 
   const handleQuantityChange = (increment: number) => {
-    const newQuantity = Math.max(1, quantity + increment);
+    const stock = product.stock ?? 0;
+    const newQuantity = Math.max(1, Math.min(stock, quantity + increment));
     setQuantity(newQuantity);
   };
 
@@ -103,7 +115,8 @@ export function ProductCard({ product }: ProductCardProps) {
               <Button
                 size="sm"
                 onClick={handleAddToCart}
-                className="bg-white text-[#8F4B2B] border border-[#8F4B2B] rounded-full cursor-pointer hover:bg-[#8F4B2B] hover:text-white shadow-sm"
+                disabled={(product.stock ?? 0) <= 0}
+                className="bg-white text-[#8F4B2B] border border-[#8F4B2B] rounded-full cursor-pointer hover:bg-[#8F4B2B] hover:text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus />
               </Button>
@@ -128,12 +141,29 @@ export function ProductCard({ product }: ProductCardProps) {
                 </span>
               )}
             </div>
-            
+
             {/* Quantity indicator - Solo mostrar cuando está montado en el cliente */}
             {isMounted && currentQuantity > 0 && (
               <span className="text-xs text-[#1E7A31] bg-[#1E7A31]/10 px-2 py-1 rounded-full">
                 {currentQuantity} in cart
               </span>
+            )}
+          </div>
+
+          {/* Stock availability indicator */}
+          <div className="flex items-center gap-2">
+            {product.stock !== undefined && (
+              <>
+                {product.stock > 0 ? (
+                  <span className={`text-xs ${product.stock <= 5 ? 'text-orange-600' : 'text-[#1E7A31]'}`}>
+                    {product.stock <= 5 ? `Only ${product.stock} left!` : `${product.stock} available`}
+                  </span>
+                ) : (
+                  <span className="text-xs text-red-600 font-medium">
+                    Out of stock
+                  </span>
+                )}
+              </>
             )}
           </div>
 
@@ -167,8 +197,8 @@ export function ProductCard({ product }: ProductCardProps) {
                   e.preventDefault();
                   handleQuantityChange(-1);
                 }}
-                className="px-2 py-1 text-sm hover:bg-gray-50"
-                disabled={quantity <= 1}
+                className="px-2 py-1 text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={quantity <= 1 || (product.stock ?? 0) <= 0}
               >
                 -
               </button>
@@ -180,7 +210,8 @@ export function ProductCard({ product }: ProductCardProps) {
                   e.preventDefault();
                   handleQuantityChange(1);
                 }}
-                className="px-2 py-1 text-sm hover:bg-gray-50"
+                className="px-2 py-1 text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={(product.stock ?? 0) <= 0 || quantity >= (product.stock ?? 0)}
               >
                 +
               </button>
@@ -220,10 +251,11 @@ export function ProductCard({ product }: ProductCardProps) {
           {/* Full width add button for mobile */}
           <Button
             onClick={handleAddToCart}
-            className="w-full md:hidden bg-[#8F4B2B] hover:bg-[#6f3a22] text-white"
+            disabled={(product.stock ?? 0) <= 0}
+            className="w-full md:hidden bg-[#8F4B2B] hover:bg-[#6f3a22] text-white disabled:opacity-50 disabled:cursor-not-allowed"
             size="sm"
           >
-            Add to Cart ({quantity})
+            {(product.stock ?? 0) <= 0 ? 'Out of Stock' : `Add to Cart (${quantity})`}
           </Button>
         </div>
       </Card>

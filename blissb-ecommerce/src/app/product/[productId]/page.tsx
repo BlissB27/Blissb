@@ -98,6 +98,17 @@ export default function ProductPage({
       return;
     }
 
+    // Verificar disponibilidad de stock
+    const stock = product.stock ?? 0;
+    if (stock <= 0) {
+      return; // No agregar si no hay stock
+    }
+
+    // Verificar que la cantidad no exceda el stock disponible
+    if (selectedQuantity > stock) {
+      return; // No agregar si la cantidad excede el stock
+    }
+
     addItem(product, selectedQuantity, selectedFlavor || undefined, customMessage || undefined);
     setShowFlavorRequired(false);
     setCustomMessage(""); // Limpiar mensaje después de agregar
@@ -194,6 +205,21 @@ export default function ProductPage({
               )}
             </div>
 
+            {/* Stock availability */}
+            {product.stock !== undefined && (
+              <div className="mb-4">
+                {product.stock > 0 ? (
+                  <p className={`text-sm font-medium ${product.stock <= 5 ? 'text-orange-600' : 'text-[#1E7A31]'}`}>
+                    {product.stock <= 5 ? `Only ${product.stock} left in stock!` : `In stock (${product.stock} available)`}
+                  </p>
+                ) : (
+                  <p className="text-sm font-medium text-red-600">
+                    Out of stock
+                  </p>
+                )}
+              </div>
+            )}
+
             <p className="text-[#6E5B4E] mb-2">
               <Link href="#shipping" className="underline hover:text-[#8F4B2B]">
                 Shipping
@@ -252,7 +278,8 @@ export default function ProductPage({
               <div className="flex items-center border border-[#E6D7CB] rounded-lg w-fit">
                 <button
                   onClick={() => setSelectedQuantity(Math.max(1, selectedQuantity - 1))}
-                  className="p-2 hover:bg-gray-50 hover:rounded-lg cursor-pointer"
+                  className="p-2 hover:bg-gray-50 hover:rounded-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={selectedQuantity <= 1 || (product.stock ?? 0) <= 0}
                 >
                   −
                 </button>
@@ -260,8 +287,9 @@ export default function ProductPage({
                   {selectedQuantity}
                 </span>
                 <button
-                  onClick={() => setSelectedQuantity(selectedQuantity + 1)}
-                  className="p-2 hover:bg-gray-50 hover:rounded-lg cursor-pointer"
+                  onClick={() => setSelectedQuantity(Math.min((product.stock ?? 0), selectedQuantity + 1))}
+                  className="p-2 hover:bg-gray-50 hover:rounded-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={(product.stock ?? 0) <= 0 || selectedQuantity >= (product.stock ?? 0)}
                 >
                   +
                 </button>
@@ -276,12 +304,17 @@ export default function ProductPage({
             {/* Add to Cart Button */}
             <Button
               onClick={handleAddToCart}
-              className="w-full bg-[#1E7A31] hover:bg-[#166728] text-white py-3 mb-6 font-medium"
+              disabled={(product.stock ?? 0) <= 0}
+              className="w-full bg-[#1E7A31] hover:bg-[#166728] text-white py-3 mb-6 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               size="lg"
             >
-              Add to cart
-              {selectedFlavor && (
-                <span className="ml-1">- {selectedFlavor.charAt(0).toUpperCase() + selectedFlavor.slice(1)}</span>
+              {(product.stock ?? 0) <= 0 ? 'Out of Stock' : (
+                <>
+                  Add to cart
+                  {selectedFlavor && (
+                    <span className="ml-1">- {selectedFlavor.charAt(0).toUpperCase() + selectedFlavor.slice(1)}</span>
+                  )}
+                </>
               )}
             </Button>
 

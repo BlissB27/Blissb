@@ -12,6 +12,7 @@ export type Product = {
   flavors?: string[]; // Para cakes que requieren selección de sabor
   gallery?: string[]; // Galería de imágenes adicionales
   slug?: string; // URL slug para SEO friendly URLs
+  stock?: number; // Cantidad disponible en inventario
 };
 
 export const PRODUCTS: Product[] = [

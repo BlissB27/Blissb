@@ -25,6 +25,7 @@ export function transformStrapiProduct(strapiProduct: any): Product {
     // Agregar galería de imágenes
     gallery: strapiProduct.gallery?.map((img: any) => getStrapiMediaUrl(img.url)) || [],
     slug: strapiProduct.slug || '',
+    stock: strapiProduct.stock ?? 0,
   };
 
   console.log('Transformed product:', transformed);
