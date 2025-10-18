@@ -85,12 +85,13 @@ export const useCartStore = create<CartStore>()(
         }
 
         set((state) => {
-          // Para cakes con sabor o desserts con mensaje, crear un ID único
+          // Para productos con sabor o desserts con mensaje, crear un ID único
           let itemId = product.id;
-          if (product.category === 'cakes' && flavor) {
+          if (flavor) {
+            // Cualquier producto con sabor seleccionado
             itemId = `${product.id}-${flavor}`;
-          } else if (product.category === 'desserts' && customMessage) {
-            // Para desserts con mensaje personalizado, crear ID único
+          } else if (customMessage) {
+            // Para productos con mensaje personalizado, crear ID único
             itemId = `${product.id}-${Date.now()}`;
           }
 
@@ -281,8 +282,8 @@ export const useCartStore = create<CartStore>()(
       },
 
       validateProduct: (product, flavor) => {
-        // Validar que los cakes tengan sabor especificado
-        if (product.category === 'cakes' && !flavor) {
+        // Validar que los productos con flavors disponibles tengan sabor especificado
+        if (product.flavors && product.flavors.length > 0 && !flavor) {
           return {
             isValid: false,
             error: `Please select a flavor for ${product.name}`,

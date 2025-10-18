@@ -22,6 +22,7 @@ export function transformStrapiProduct(strapiProduct: any): Product {
     isOnOffer: strapiProduct.isOnOffer || false,
     originalPrice: strapiProduct.originalPrice,
     flavors: strapiProduct.flavors || [],
+    allowCustomMessage: strapiProduct.allowCustomMessage || false,
     // Agregar galería de imágenes
     gallery: strapiProduct.gallery?.map((img: any) => getStrapiMediaUrl(img.url)) || [],
     slug: strapiProduct.slug || '',

@@ -77,6 +77,10 @@
       "required": true,
       "default": 0,
       "min": 0
+    },
+    "allowCustomMessage": {
+      "type": "boolean",
+      "default": false
     }
   }
 }

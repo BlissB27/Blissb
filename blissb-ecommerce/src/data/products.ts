@@ -9,7 +9,8 @@ export type Product = {
   isOnOffer?: boolean;
   originalPrice?: number;
   minQuantity?: number; // Ya no se usa para cookies, pero mantener por compatibilidad
-  flavors?: string[]; // Para cakes que requieren selección de sabor
+  flavors?: string[]; // Para productos que requieren selección de sabor
+  allowCustomMessage?: boolean; // Si permite mensaje personalizado (ej: cakes, algunos desserts)
   gallery?: string[]; // Galería de imágenes adicionales
   slug?: string; // URL slug para SEO friendly URLs
   stock?: number; // Cantidad disponible en inventario

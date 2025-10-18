@@ -165,9 +165,11 @@ export function CartDrawer() {
                             "{item.customMessage}"
                           </p>
                         )}
-                        <p className="text-xs text-[#6E5B4E] mb-2">
-                          Descripción del producto
-                        </p>
+                        {item.product.description && (
+                          <p className="text-xs text-[#6E5B4E] mb-2 line-clamp-2">
+                            {item.product.description}
+                          </p>
+                        )}
                         <p className="text-[#8F4B2B] font-semibold text-lg">
                           ${(item.product.price * item.quantity).toFixed(0)}
                         </p>

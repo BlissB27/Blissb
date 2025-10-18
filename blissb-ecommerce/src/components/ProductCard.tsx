@@ -30,8 +30,8 @@ export function ProductCard({ product }: ProductCardProps) {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
 
-    // Si es un cake con sabores disponibles y no se ha seleccionado sabor, mostrar error
-    if (product.category === 'cakes' && product.flavors && product.flavors.length > 0 && !selectedFlavor) {
+    // Si el producto tiene sabores disponibles y no se ha seleccionado sabor, mostrar error
+    if (product.flavors && product.flavors.length > 0 && !selectedFlavor) {
       setShowFlavorRequired(true);
       return;
     }
@@ -164,8 +164,8 @@ export function ProductCard({ product }: ProductCardProps) {
             </div>
           )}
 
-          {/* Flavor selector for cakes */}
-          {product.category === 'cakes' && product.flavors && product.flavors.length > 0 && (
+          {/* Flavor selector for products with flavors (cakes, desserts, etc.) */}
+          {product.flavors && product.flavors.length > 0 && (
             <div className="space-y-1">
               <Select onValueChange={setSelectedFlavor} value={selectedFlavor}>
                 <SelectTrigger className="w-full text-sm">
@@ -215,8 +215,8 @@ export function ProductCard({ product }: ProductCardProps) {
             </div>
           </div>
 
-          {/* Custom message input for desserts */}
-          {product.category === 'desserts' && (
+          {/* Custom message input for products that allow it */}
+          {product.allowCustomMessage && (
             <div className="space-y-1">
               <label className="text-sm text-[#6E5B4E]">
                 Special message (optional)
