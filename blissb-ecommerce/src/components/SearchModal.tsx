@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, X } from "lucide-react";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { PRODUCTS, type Product } from "@/data/products";
+import { type Product, searchProducts, getAllProducts } from "@/data/products";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -17,21 +17,55 @@ type SearchModalProps = {
 export function SearchModal({ isOpen, onClose }: SearchModalProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
+  // Load all products when modal opens
+  useEffect(() => {
+    if (isOpen && allProducts.length === 0) {
+      const loadProducts = async () => {
+        setIsLoading(true);
+        try {
+          const products = await getAllProducts();
+          setAllProducts(products);
+        } catch (error) {
+          console.error('Error loading products for search:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      loadProducts();
+    }
+  }, [isOpen, allProducts.length]);
+
+  // Search products when search term changes
   useEffect(() => {
     if (searchTerm.trim() === "") {
       setFilteredProducts([]);
       return;
     }
 
-    const filtered = PRODUCTS.filter(product =>
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const searchAsync = async () => {
+      setIsLoading(true);
+      try {
+        const results = await searchProducts(searchTerm);
+        setFilteredProducts(results);
+      } catch (error) {
+        console.error('Error searching products:', error);
+        // Fallback to local filter if API fails
+        const filtered = allProducts.filter(product =>
+          product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          product.description?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        setFilteredProducts(filtered);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    setFilteredProducts(filtered);
-  }, [searchTerm]);
+    searchAsync();
+  }, [searchTerm, allProducts]);
 
   const handleClose = () => {
     setSearchTerm("");
@@ -65,6 +99,11 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
             <div className="text-center py-8 text-[#6E5B4E]">
               <Search className="w-12 h-12 mx-auto mb-4 text-[#E6D7CB]" />
               <p>Start typing to search for products...</p>
+            </div>
+          ) : isLoading ? (
+            <div className="text-center py-8 text-[#6E5B4E]">
+              <div className="w-8 h-8 border-4 border-[#8F4B2B] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p>Searching...</p>
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="text-center py-8 text-[#6E5B4E]">
