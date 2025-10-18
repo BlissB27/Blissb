@@ -1,4 +1,5 @@
-const STRAPI_URL = process.env.STRAPI_API_URL || process.env.NEXT_PUBLIC_STRAPI_URL + '/api';
+// Use STRAPI_API_URL (server-side) or fallback to NEXT_PUBLIC_STRAPI_URL + /api (client-side)
+const STRAPI_URL = process.env.STRAPI_API_URL || (process.env.NEXT_PUBLIC_STRAPI_URL ? `${process.env.NEXT_PUBLIC_STRAPI_URL}/api` : '');
 const STRAPI_TOKEN = process.env.STRAPI_API_TOKEN;
 
 // Helper function for Strapi API requests

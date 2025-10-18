@@ -13,8 +13,7 @@ const NAVIGATION_LINKS = [
   { href: "/cookies", label: "Cookies" },
   { href: "/cakes", label: "Cakes" },
   { href: "/desserts", label: "Desserts" },
-  { href: "/corporate", label: "Corporate" },
-  { href: "/catering", label: "Catering" },
+  { href: "/corporate", label: "Corporate & Catering" },
   { href: "/contact", label: "Contact Us" },
 ];
 
@@ -158,14 +157,7 @@ export function Footer() {
                 variant="ghost"
                 className="text-white/80 hover:text-white hover:bg-white/10 p-2 h-auto rounded-md text-xs"
               >
-                <Link href="/privacy">Privacy Policy</Link>
-              </Button>
-              <Button
-                asChild
-                variant="ghost"
-                className="text-white/80 hover:text-white hover:bg-white/10 p-2 h-auto rounded-md text-xs"
-              >
-                <Link href="/terms">Terms of Service</Link>
+                <Link href="/policies">Shipping & Policies</Link>
               </Button>
             </div>
           </div>

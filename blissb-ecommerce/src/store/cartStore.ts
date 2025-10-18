@@ -77,6 +77,13 @@ export const useCartStore = create<CartStore>()(
           return;
         }
 
+        // Validar stock disponible
+        const stock = product.stock ?? 0;
+        if (stock <= 0) {
+          console.error(`${product.name} is out of stock`);
+          return;
+        }
+
         set((state) => {
           // Para cakes con sabor o desserts con mensaje, crear un ID único
           let itemId = product.id;
@@ -91,14 +98,34 @@ export const useCartStore = create<CartStore>()(
 
           // Si existe y NO tiene mensaje personalizado, incrementar cantidad
           if (existingItem && !customMessage) {
+            const newQuantity = existingItem.quantity + quantity;
+            // Verificar que no exceda el stock disponible
+            if (newQuantity > stock) {
+              console.error(`Cannot add more items. Only ${stock} in stock.`);
+              return {
+                items: state.items.map(item =>
+                  item.id === itemId
+                    ? { ...item, quantity: stock }
+                    : item
+                ),
+                isOpen: true,
+              };
+            }
+
             return {
               items: state.items.map(item =>
                 item.id === itemId
-                  ? { ...item, quantity: item.quantity + quantity }
+                  ? { ...item, quantity: newQuantity }
                   : item
               ),
               isOpen: true,
             };
+          }
+
+          // Validar stock al agregar nuevo item
+          if (quantity > stock) {
+            console.error(`Cannot add ${quantity} items. Only ${stock} in stock.`);
+            quantity = stock;
           }
 
           // Agregar nuevo item
@@ -126,17 +153,32 @@ export const useCartStore = create<CartStore>()(
           get().removeItem(productId);
           return;
         }
-        
+
         set((state) => {
           const item = state.items.find(item => item.id === productId);
           if (!item) return state;
-          
+
+          // Validate minimum quantity
           const validation = get().validateMinimumQuantity(item.product, quantity);
           if (!validation.isValid) {
             console.error(validation.error);
             return state;
           }
-          
+
+          // Validate stock availability
+          const stock = item.product.stock ?? 0;
+          if (quantity > stock) {
+            console.error(`Cannot add more than ${stock} items. Only ${stock} in stock.`);
+            // Set to max available stock instead of failing silently
+            return {
+              items: state.items.map(i =>
+                i.id === productId
+                  ? { ...i, quantity: stock }
+                  : i
+              ),
+            };
+          }
+
           return {
             items: state.items.map(item =>
               item.id === productId
@@ -226,7 +268,7 @@ export const useCartStore = create<CartStore>()(
         };
       },
       
-      validateMinimumQuantity: (product, quantity) => {
+      validateMinimumQuantity: (_product, quantity) => {
         // Validación básica: mínimo 1 para cualquier producto
         if (quantity < 1) {
           return {
@@ -234,7 +276,7 @@ export const useCartStore = create<CartStore>()(
             error: `Minimum quantity is 1`,
           };
         }
-        
+
         return { isValid: true };
       },
 
@@ -246,7 +288,7 @@ export const useCartStore = create<CartStore>()(
             error: `Please select a flavor for ${product.name}`,
           };
         }
-        
+
         return { isValid: true };
       },
     }),

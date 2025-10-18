@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { CalendarClock } from "lucide-react";
 import { ProductCard } from "@/components/ProductCard";
 import { WaveDivider } from "./WaveDivider";
@@ -77,42 +77,19 @@ export function ProductTabs() {
     setVisibleCount(prev => prev + 8);
   };
 
-  // Touch/Mouse handlers for swipe functionality
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!scrollRef.current) return;
-    setIsDragging(true);
-    setStartX(e.pageX - scrollRef.current.offsetLeft);
-    setScrollLeft(scrollRef.current.scrollLeft);
-  };
-
-  const handleMouseLeave = () => {
-    setIsDragging(false);
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !scrollRef.current) return;
-    e.preventDefault();
-    const x = e.pageX - scrollRef.current.offsetLeft;
-    const walk = (x - startX) * 2;
-    scrollRef.current.scrollLeft = scrollLeft - walk;
-  };
-
+  // Touch handlers for swipe functionality (simplified for better mobile performance)
   const handleTouchStart = (e: React.TouchEvent) => {
     if (!scrollRef.current) return;
     setIsDragging(true);
-    setStartX(e.touches[0].pageX - scrollRef.current.offsetLeft);
+    setStartX(e.touches[0].pageX);
     setScrollLeft(scrollRef.current.scrollLeft);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging || !scrollRef.current) return;
-    const x = e.touches[0].pageX - scrollRef.current.offsetLeft;
-    const walk = (x - startX) * 2;
-    scrollRef.current.scrollLeft = scrollLeft - walk;
+    const x = e.touches[0].pageX;
+    const walk = (startX - x) * 1.5;
+    scrollRef.current.scrollLeft = scrollLeft + walk;
   };
 
   const handleTouchEnd = () => {
@@ -187,14 +164,14 @@ export function ProductTabs() {
             delay: 0.3,
             duration: 0.6
           }}
-          className="flex justify-center mb-8"
+          className="flex justify-center mb-8 overflow-x-auto scrollbar-hide -mx-4 px-4"
         >
-          <div className="flex gap-1 p-1 bg-white rounded-lg overflow-x-auto">
+          <div className="flex gap-1 md:gap-2 p-1 bg-white rounded-lg">
             {TABS.map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
+                className={`px-3 md:px-4 py-1.5 md:py-2 text-xs md:text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
                   activeTab === tab.key
                     ? "text-white bg-[#8F4B2B]"
                     : "text-[#6E5B4E] hover:text-[#8F4B2B] hover:bg-gray-50"
@@ -250,36 +227,49 @@ export function ProductTabs() {
               ))}
             </div>
           ) : products.length > 0 ? (
-            <div className="relative">
+            <div className="relative -mx-4 px-4">
               <div
                 ref={scrollRef}
-                className="flex gap-4 overflow-x-scroll scrollbar-hide pb-4 cursor-grab active:cursor-grabbing"
-                onMouseDown={handleMouseDown}
-                onMouseLeave={handleMouseLeave}
-                onMouseUp={handleMouseUp}
-                onMouseMove={handleMouseMove}
+                className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scroll-smooth touch-pan-x select-none scrollbar-hide"
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
               >
                 {products.map((product) => (
-                  <div key={product.id} className="flex-shrink-0 w-[280px]">
+                  <div
+                    key={product.id}
+                    className="flex-shrink-0 w-[280px] snap-start"
+                  >
                     <ProductCard product={product} />
                   </div>
                 ))}
               </div>
 
-              {/* Scroll indicators */}
-              <div className="flex justify-center mt-4 gap-2">
-                {Array.from({ length: Math.ceil(products.length / 1) }).map((_, dotIndex) => (
-                  <div
-                    key={dotIndex}
-                    className={`w-2 h-2 rounded-full transition-colors ${
-                      dotIndex === currentIndex ? 'bg-[#8F4B2B]' : 'bg-gray-300'
-                    }`}
-                  />
-                ))}
-              </div>
+              {/* Scroll indicators - only show if there are multiple products */}
+              {products.length > 1 && products.length <= 10 && (
+                <div className="flex justify-center mt-4 gap-1.5">
+                  {products.map((_, dotIndex) => (
+                    <button
+                      key={dotIndex}
+                      onClick={() => {
+                        if (scrollRef.current) {
+                          const cardWidth = 280 + 16; // card width + gap
+                          scrollRef.current.scrollTo({
+                            left: dotIndex * cardWidth,
+                            behavior: 'smooth'
+                          });
+                        }
+                      }}
+                      className={`h-1.5 rounded-full transition-all duration-300 ${
+                        dotIndex === currentIndex
+                          ? 'bg-[#8F4B2B] w-8'
+                          : 'bg-gray-300 w-1.5'
+                      }`}
+                      aria-label={`Go to product ${dotIndex + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-8">

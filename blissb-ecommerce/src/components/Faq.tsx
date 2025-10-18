@@ -6,36 +6,48 @@ import { motion } from "framer-motion";
 
 const FAQ_DATA = [
   {
-    question: "Cookies Care",
-    answer: "Our cookies can be kept in their original sealed packaging for up to one week at room temperature. For longer storage, freeze in an airtight container for up to 2 months."
+    question: "How do I place an order?",
+    answer: "Orders can be placed online through our website from Tuesday to Friday. Just add your favorite treats to your cart and check out! Please note: there's a minimum of 6 cookies per order."
   },
   {
-    question: "How can I place an order online?",
-    answer: "You can place an order directly through our website by adding items to your cart and proceeding to checkout. We accept all major credit cards and PayPal."
+    question: "When will my order ship?",
+    answer: "We ship every Monday to ensure freshness and quality. Make sure to place your order before the shipping cutoff to get it in time!"
   },
   {
-    question: "Do you offer personalized or themed orders?",
-    answer: "Yes! We offer custom cookie decorating for special events, corporate gifts, and themed celebrations. Contact us at least 48 hours in advance for custom orders."
+    question: "Do you offer same-day orders or local delivery?",
+    answer: "We currently do not offer same-day orders or local delivery. All orders are made fresh and shipped straight to your door anywhere in the USA."
   },
   {
-    question: "Do you offer home delivery?",
-    answer: "We offer local delivery within 25 miles of our bakery. For orders outside this area, we ship nationwide via FedEx with temperature-controlled packaging."
+    question: "Can I pick up my order?",
+    answer: "Yes! Pickup is available in Braselton, GA 30517. Once your order is confirmed, you'll receive pickup instructions by email."
   },
   {
-    question: "Promotions & discounts",
-    answer: "We regularly offer seasonal promotions and bulk order discounts. Sign up for our newsletter to be the first to know about special offers and new product launches."
+    question: "What happens if I miss my pickup?",
+    answer: "Please email us at blissbdesserts@gmail.com and we'll do our best to help."
   },
   {
-    question: "What payment methods do you accept?",
-    answer: "We accept Visa, MasterCard, American Express, Discover, PayPal, Apple Pay, and Google Pay. All transactions are processed securely through our encrypted payment system."
+    question: "How long do the cookies stay fresh?",
+    answer: "Our cookies are made with premium, fresh ingredients and no preservatives. They stay fresh for up to 5 days in a sealed container at room temperature. Do not refrigerate. For a soft and gooey texture, microwave for 5–10 seconds, or reheat briefly in a preheated oven."
   },
   {
-    question: "Who can I contact for questions or support?",
-    answer: "You can reach our customer service team at support@bliss-b.com or call us at (555) 123-COOKIES. We're available Monday-Friday 9am-6pm EST."
+    question: "Are your products made fresh?",
+    answer: "Yes! All of our desserts are baked to order using premium ingredients, with no preservatives or artificial additives. We're committed to delivering the best flavor and quality in every bite."
   },
   {
-    question: "Others",
-    answer: "For any other questions not covered here, please don't hesitate to contact us. We're here to help make your cookie experience as sweet as possible!"
+    question: "Do you offer catering for events?",
+    answer: "Absolutely! We cater for weddings, business events, birthdays, baby showers, and more. Fill out the Catering Request Form on our website at least 2 weeks before your event, and we'll respond within 2 business days."
+  },
+  {
+    question: "Can I customize my order?",
+    answer: "We do not offer custom options for individual treats, but customization is available for catering orders."
+  },
+  {
+    question: "Do you accept collaborations or work with businesses?",
+    answer: "Yes! We welcome wholesale inquiries and creative collaborations. Reach out to us at blissbdesserts@gmail.com."
+  },
+  {
+    question: "Do your products contain allergens?",
+    answer: "Our desserts are made with ingredients like wheat, dairy, eggs, soy, and nuts. While we do our best to avoid cross-contamination, all items are made in the same kitchen using shared equipment. If you have a severe allergy, please consider this before ordering."
   }
 ];
 
@@ -103,7 +115,7 @@ export function FAQ() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
           {/* Primera columna */}
           <div>
-            {FAQ_DATA.slice(0, 4).map((faq, index) => (
+            {FAQ_DATA.slice(0, 6).map((faq, index) => (
               <FAQItem
                 key={index}
                 question={faq.question}
@@ -116,13 +128,13 @@ export function FAQ() {
 
           {/* Segunda columna */}
           <div>
-            {FAQ_DATA.slice(4).map((faq, index) => (
+            {FAQ_DATA.slice(6).map((faq, index) => (
               <FAQItem
-                key={index + 4}
+                key={index + 6}
                 question={faq.question}
                 answer={faq.answer}
-                isOpen={openItems.includes(index + 4)}
-                onToggle={() => toggleItem(index + 4)}
+                isOpen={openItems.includes(index + 6)}
+                onToggle={() => toggleItem(index + 6)}
               />
             ))}
           </div>

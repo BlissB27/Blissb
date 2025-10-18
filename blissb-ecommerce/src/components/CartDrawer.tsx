@@ -183,27 +183,40 @@ export function CartDrawer() {
                     </div>
 
                     {/* Quantity Controls */}
-                    <div className="flex items-center justify-center mt-3">
+                    <div className="flex flex-col items-center mt-3 gap-1">
                       <div className="flex items-center bg-[#F8F4F0] rounded-full">
                         <button
                           onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                          className="p-2 hover:bg-[#E6D7CB] rounded-full"
+                          className="p-2 hover:bg-[#E6D7CB] rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
                           disabled={item.quantity <= (item.product.category === 'cookies' ? 4 : 1)}
                         >
                           <Minus className="w-4 h-4 text-[#8F4B2B]" />
                         </button>
-                        
+
                         <span className="px-4 py-2 text-[#3B2A22] font-medium min-w-[3rem] text-center">
                           {item.quantity}
                         </span>
-                        
+
                         <button
                           onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          className="p-2 hover:bg-[#E6D7CB] rounded-full"
+                          className="p-2 hover:bg-[#E6D7CB] rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={item.quantity >= (item.product.stock ?? 0)}
                         >
                           <Plus className="w-4 h-4 text-[#8F4B2B]" />
                         </button>
                       </div>
+
+                      {/* Stock warning when at or near limit */}
+                      {item.product.stock !== undefined && item.quantity >= item.product.stock && (
+                        <span className="text-xs text-orange-600 font-medium">
+                          Max stock reached
+                        </span>
+                      )}
+                      {item.product.stock !== undefined && item.quantity === item.product.stock - 1 && item.product.stock <= 3 && (
+                        <span className="text-xs text-orange-600">
+                          Only {item.product.stock - item.quantity} more available
+                        </span>
+                      )}
                     </div>
                   </motion.div>
                 ))}

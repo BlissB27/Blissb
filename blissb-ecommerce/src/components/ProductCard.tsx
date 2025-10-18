@@ -19,10 +19,9 @@ type ProductCardProps = {
 
 // Sabores disponibles para cakes (ahora desde product.flavors)
 export function ProductCard({ product }: ProductCardProps) {
-  const { addItem, getItemQuantity } = useCartStore();
-  // const currentQuantity = getItemQuantity(product.id);
+  const { addItem } = useCartStore();
   const [currentQuantity, setCurrentQuantity] = useState(0);
-  const [isMounted, setIsMounted] = useState(false);
+  const [isMounted] = useState(false);
   const [quantity, setQuantity] = useState<number>(1);
   const [selectedFlavor, setSelectedFlavor] = useState<string>("");
   const [showFlavorRequired, setShowFlavorRequired] = useState(false);
@@ -150,22 +149,20 @@ export function ProductCard({ product }: ProductCardProps) {
             )}
           </div>
 
-          {/* Stock availability indicator */}
-          <div className="flex items-center gap-2">
-            {product.stock !== undefined && (
-              <>
-                {product.stock > 0 ? (
-                  <span className={`text-xs ${product.stock <= 5 ? 'text-orange-600' : 'text-[#1E7A31]'}`}>
-                    {product.stock <= 5 ? `Only ${product.stock} left!` : `${product.stock} available`}
-                  </span>
-                ) : (
-                  <span className="text-xs text-red-600 font-medium">
-                    Out of stock
-                  </span>
-                )}
-              </>
-            )}
-          </div>
+          {/* Stock availability indicator - Only show when stock is low (≤2) or out of stock */}
+          {product.stock !== undefined && product.stock <= 2 && (
+            <div className="flex items-center gap-2">
+              {product.stock > 0 ? (
+                <span className="text-xs text-orange-600 font-medium">
+                  Only {product.stock} left!
+                </span>
+              ) : (
+                <span className="text-xs text-red-600 font-medium">
+                  Out of stock
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Flavor selector for cakes */}
           {product.category === 'cakes' && product.flavors && product.flavors.length > 0 && (

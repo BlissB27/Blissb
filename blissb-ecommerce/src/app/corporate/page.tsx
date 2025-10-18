@@ -1,11 +1,13 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { WaveDivider } from "@/components/WaveDivider";
 import { motion } from "framer-motion";
 
 export default function CorporatePage() {
+  const phoneNumber = "+14708835035"; // From contact page
   return (
     <div className="min-h-screen ">
       {/* Hero Section - Catering & Events */}
@@ -97,13 +99,24 @@ export default function CorporatePage() {
                   delay: 0.4,
                   duration: 0.6
                 }}
+                className="flex flex-col sm:flex-row gap-3"
               >
-                <Button
-                  variant="outline"
-                  className="border-[#C08552] text-[#C08552] hover:bg-[#C08552] hover:text-white text-sm md:text-base px-4 md:px-6 py-2 md:py-3"
-                >
-                  Hire us
-                </Button>
+                <Link href={`sms:${phoneNumber}?body=Hi! I'm interested in hiring Bliss-B for catering and events.`}>
+                  <Button
+                    variant="outline"
+                    className="border-[#C08552] text-[#C08552] hover:bg-[#C08552] hover:text-white text-sm md:text-base px-4 md:px-6 py-2 md:py-3 w-full sm:w-auto"
+                  >
+                    Text Us
+                  </Button>
+                </Link>
+                <Link href="/contact">
+                  <Button
+                    variant="outline"
+                    className="border-[#C08552] bg-[#C08552] text-white hover:bg-[#A66F42] text-sm md:text-base px-4 md:px-6 py-2 md:py-3 w-full sm:w-auto"
+                  >
+                    Contact Form
+                  </Button>
+                </Link>
               </motion.div>
             </motion.div>
 
@@ -162,12 +175,24 @@ export default function CorporatePage() {
                   option to save you time, and a concierge option if you're
                   looking for something bespoke.
                 </p>
-                <Button
-                variant="outline"
-                className="border-[#C08552] bg-[#F8EDE4] text-[#C08552] hover:bg-[#C08552] hover:text-white text-sm md:text-base px-4 md:px-6 py-2 md:py-3"
-              >
-                Talk with us
-              </Button>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Link href={`sms:${phoneNumber}?body=Hi! I'm interested in corporate gifting options from Bliss-B.`}>
+                    <Button
+                      variant="outline"
+                      className="border-[#C08552] bg-[#F8EDE4] text-[#C08552] hover:bg-[#C08552] hover:text-white text-sm md:text-base px-4 md:px-6 py-2 md:py-3 w-full sm:w-auto"
+                    >
+                      Text Us
+                    </Button>
+                  </Link>
+                  <Link href="/contact">
+                    <Button
+                      variant="outline"
+                      className="border-[#C08552] bg-[#C08552] text-white hover:bg-[#A66F42] text-sm md:text-base px-4 md:px-6 py-2 md:py-3 w-full sm:w-auto"
+                    >
+                      Contact Form
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
@@ -231,12 +256,24 @@ export default function CorporatePage() {
                 </div>
               </div>
 
-              <Button
-                variant="outline"
-                className="border-[#C08552] text-[#C08552] hover:bg-[#C08552] hover:text-white text-sm md:text-base px-4 md:px-6 py-2 md:py-3"
-              >
-                Talk with us
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link href={`sms:${phoneNumber}?body=Hi! I'm interested in the Bliss-B Cookie Cart Experience for my event.`}>
+                  <Button
+                    variant="outline"
+                    className="border-[#C08552] text-[#C08552] hover:bg-[#C08552] hover:text-white text-sm md:text-base px-4 md:px-6 py-2 md:py-3 w-full sm:w-auto"
+                  >
+                    Text Us
+                  </Button>
+                </Link>
+                <Link href="/contact">
+                  <Button
+                    variant="outline"
+                    className="border-[#C08552] bg-[#C08552] text-white hover:bg-[#A66F42] text-sm md:text-base px-4 md:px-6 py-2 md:py-3 w-full sm:w-auto"
+                  >
+                    Contact Form
+                  </Button>
+                </Link>
+              </div>
             </div>
 
             {/* Right Content - Cart Images */}

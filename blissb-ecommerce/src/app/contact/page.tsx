@@ -358,11 +358,10 @@ export default function ContactPage() {
             <Card className="bg-white border-[#E6D7CB]">
               <CardContent className="p-6">
                 <h3 className="font-semibold text-[#3B2A22] mb-2">
-                  How far in advance should I place my order?
+                  When will my order ship?
                 </h3>
                 <p className="text-[#6E5B4E] text-sm">
-                  Regular orders can be placed anytime, but custom cakes require 24-48 hours notice. 
-                  For large catering orders, we recommend 1 week advance notice.
+                  We ship every Monday to ensure freshness and quality. Make sure to place your order before the shipping cutoff to get it in time!
                 </p>
               </CardContent>
             </Card>
@@ -370,11 +369,10 @@ export default function ContactPage() {
             <Card className="bg-white border-[#E6D7CB]">
               <CardContent className="p-6">
                 <h3 className="font-semibold text-[#3B2A22] mb-2">
-                  Do you deliver nationwide?
+                  Can I pick up my order?
                 </h3>
                 <p className="text-[#6E5B4E] text-sm">
-                  Yes! We ship nationwide via FedEx with temperature-controlled packaging. 
-                  Local delivery is available within 25 miles of our bakery.
+                  Yes! Pickup is available in Braselton, GA 30517. Once your order is confirmed, you'll receive pickup instructions by email.
                 </p>
               </CardContent>
             </Card>
@@ -382,11 +380,10 @@ export default function ContactPage() {
             <Card className="bg-white border-[#E6D7CB]">
               <CardContent className="p-6">
                 <h3 className="font-semibold text-[#3B2A22] mb-2">
-                  Can I customize my order?
+                  Do you offer catering for events?
                 </h3>
                 <p className="text-[#6E5B4E] text-sm">
-                  Absolutely! We offer custom decorations, flavors, and packaging options. 
-                  Contact us to discuss your specific needs.
+                  Absolutely! We cater for weddings, business events, birthdays, baby showers, and more. Fill out the Catering Request Form on our website at least 2 weeks before your event.
                 </p>
               </CardContent>
             </Card>
@@ -394,11 +391,10 @@ export default function ContactPage() {
             <Card className="bg-white border-[#E6D7CB]">
               <CardContent className="p-6">
                 <h3 className="font-semibold text-[#3B2A22] mb-2">
-                  What about allergen information?
+                  Do your products contain allergens?
                 </h3>
                 <p className="text-[#6E5B4E] text-sm">
-                  All our products may contain nuts and other allergens. Please contact us 
-                  for detailed allergen information before placing your order.
+                  Our desserts are made with ingredients like wheat, dairy, eggs, soy, and nuts. While we do our best to avoid cross-contamination, all items are made in the same kitchen using shared equipment.
                 </p>
               </CardContent>
             </Card>
