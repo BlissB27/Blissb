@@ -111,7 +111,7 @@ export default function Header() {
               </div>
             </div>
 
-            {/* Center nav (desktop only) */}
+           
             <nav className="hidden md:flex gap-6 items-center">
               {NAV.map((item) => {
                 const isActive =
