@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 const FAQ_DATA = [
   {
     question: "How do I place an order?",
-    answer: "Orders can be placed online through our website from Tuesday to Friday. Just add your favorite treats to your cart and check out! Please note: there's a minimum of 6 cookies per order."
+    answer: "Orders can be placed online through our website from Tuesday to Friday. Just add your favorite treats to your cart and check out! Please note: there's a minimum of 4 cookies per order."
   },
   {
     question: "When will my order ship?",

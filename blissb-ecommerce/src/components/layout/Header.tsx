@@ -99,7 +99,7 @@ export default function Header() {
                 className="text-lg font-bold tracking-wide text-[#8F4B2B]"
               >
                 <Image
-                  src="/img/Bliss-B-logo.png"
+                  src="/img/logobb.png"
                   width={300}
                   height={200}
                   alt="logo"
