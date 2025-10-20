@@ -106,7 +106,6 @@ export default function Header() {
                 />
               </Link>
 
-              {/* Cart icon - visible on mobile only */}
               <div className="md:hidden">
                 <CartButton />
               </div>
