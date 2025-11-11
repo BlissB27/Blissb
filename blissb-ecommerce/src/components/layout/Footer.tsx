@@ -19,12 +19,36 @@ const NAVIGATION_LINKS = [
 
 export function Footer() {
   const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle newsletter signup
-    console.log("Newsletter signup:", email);
-    setEmail("");
+    setIsLoading(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: data.message || 'Successfully subscribed!' });
+        setEmail("");
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to subscribe' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Something went wrong. Please try again.' });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -70,14 +94,26 @@ export function Footer() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email address"
                 required
-                className="bg-white/10 border-white/30 text-white placeholder:text-white/70 focus-visible:ring-white/50 focus-visible:border-white rounded-md h-11"
+                disabled={isLoading}
+                className="bg-white/10 border-white/30 text-white placeholder:text-white/70 focus-visible:ring-white/50 focus-visible:border-white rounded-md h-11 disabled:opacity-50"
               />
               <Button
                 type="submit"
-                className="w-full bg-[#EFC596] text-[#8F4B2B] hover:bg-[#EFC596]/90 rounded-md font-medium py-2.5 transition-all duration-200 shadow-lg hover:shadow-xl"
+                disabled={isLoading}
+                className="w-full bg-[#EFC596] text-[#8F4B2B] hover:bg-[#EFC596]/90 rounded-md font-medium py-2.5 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50"
               >
-                Subscribe Now
+                {isLoading ? 'Subscribing...' : 'Subscribe Now'}
               </Button>
+
+              {message && (
+                <div className={`text-sm p-3 rounded-md ${
+                  message.type === 'success'
+                    ? 'bg-green-500/20 text-green-100 border border-green-500/30'
+                    : 'bg-red-500/20 text-red-100 border border-red-500/30'
+                }`}>
+                  {message.text}
+                </div>
+              )}
             </form>
           </div>
 
