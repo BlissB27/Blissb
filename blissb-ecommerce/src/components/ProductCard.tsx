@@ -104,7 +104,7 @@ export function ProductCard({ product }: ProductCardProps) {
               )}
               {product.isOnOffer && (
                 <Badge variant="secondary" className="bg-[#1E7A31] text-white text-xs">
-                  Offer
+                  Seasonal
                 </Badge>
               )}
             </div>

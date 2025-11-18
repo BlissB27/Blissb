@@ -153,7 +153,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                     )}
                     {product.isOnOffer && (
                       <span className="px-2 py-1 text-xs bg-[#8F4B2B] text-white rounded-full">
-                        Offer
+                        Seasonal
                       </span>
                     )}
                   </div>

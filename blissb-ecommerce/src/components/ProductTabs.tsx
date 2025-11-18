@@ -296,7 +296,7 @@ export function ProductTabs() {
               {activeTab === "all"
                 ? "Load More Products"
                 : activeTab === "featured"
-                ? "More Special Offers"
+                ? "More Seasonal Special"
                 : `More ${TABS.find(t => t.key === activeTab)?.label}`
               }
             </button>
