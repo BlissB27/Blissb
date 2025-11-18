@@ -16,7 +16,7 @@ type TabType = "all" | "featured" | "cookies" | "desserts" | "cakes";
 
 const TABS = [
   { key: "all" as TabType, label: "All Products" },
-  { key: "featured" as TabType, label: "Special Offer" },
+  { key: "featured" as TabType, label: "Seasonal Specials" },
   { key: "cookies" as TabType, label: "Cookies" },
   { key: "desserts" as TabType, label: "Desserts" },
   { key: "cakes" as TabType, label: "Cakes" },
