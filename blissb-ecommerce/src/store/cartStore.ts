@@ -225,7 +225,7 @@ export const useCartStore = create<CartStore>()(
       getShippingInfo: () => {
         // Solo contar cookies individuales (excluir cajas)
         const cookieItems = get().items.filter(item =>
-          item.product.category === 'cookies' && !item.product.isSoldInBox
+          item.product.category === 'cookies' && item.product.isSoldInBox !== true
         );
         const totalCookies = cookieItems.reduce((sum, item) => sum + item.quantity, 0);
         const dozensRequired = Math.ceil(totalCookies / COOKIES_PER_DOZEN);
@@ -260,7 +260,7 @@ export const useCartStore = create<CartStore>()(
       getMinimumCookiesInfo: () => {
         // Solo contar cookies individuales (excluir cajas)
         const cookieItems = get().items.filter(item =>
-          item.product.category === 'cookies' && !item.product.isSoldInBox
+          item.product.category === 'cookies' && item.product.isSoldInBox !== true
         );
         const currentCookies = cookieItems.reduce((total, item) => total + item.quantity, 0);
 
