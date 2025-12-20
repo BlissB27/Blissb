@@ -223,7 +223,10 @@ export const useCartStore = create<CartStore>()(
       },
       
       getShippingInfo: () => {
-        const cookieItems = get().items.filter(item => item.product.category === 'cookies');
+        // Solo contar cookies individuales (excluir cajas)
+        const cookieItems = get().items.filter(item =>
+          item.product.category === 'cookies' && !item.product.isSoldInBox
+        );
         const totalCookies = cookieItems.reduce((sum, item) => sum + item.quantity, 0);
         const dozensRequired = Math.ceil(totalCookies / COOKIES_PER_DOZEN);
         const shippingCost = dozensRequired * SHIPPING_COST_PER_DOZEN;
@@ -255,7 +258,10 @@ export const useCartStore = create<CartStore>()(
       },
 
       getMinimumCookiesInfo: () => {
-        const cookieItems = get().items.filter(item => item.product.category === 'cookies');
+        // Solo contar cookies individuales (excluir cajas)
+        const cookieItems = get().items.filter(item =>
+          item.product.category === 'cookies' && !item.product.isSoldInBox
+        );
         const currentCookies = cookieItems.reduce((total, item) => total + item.quantity, 0);
 
         // Si no hay galletas en el carrito, permitir continuar

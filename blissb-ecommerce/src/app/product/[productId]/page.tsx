@@ -92,8 +92,8 @@ export default function ProductPage({
     .slice(0, 4);
 
   const handleAddToCart = () => {
-    // Si es un cake con sabores disponibles y no se ha seleccionado sabor, mostrar error
-    if (product.category === 'cakes' && product.flavors && product.flavors.length > 0 && !selectedFlavor) {
+    // Si es un cake o cookie con sabores disponibles y no se ha seleccionado sabor, mostrar error
+    if ((product.category === 'cakes' || product.category === 'cookies') && product.flavors && product.flavors.length > 0 && !selectedFlavor) {
       setShowFlavorRequired(true);
       return;
     }
@@ -231,8 +231,8 @@ export default function ProductPage({
               {product.description || "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."}
             </p>
 
-            {/* Flavor Selection for Cakes */}
-            {product.category === 'cakes' && product.flavors && product.flavors.length > 0 && (
+            {/* Flavor Selection for Cakes and Cookies */}
+            {(product.category === 'cakes' || product.category === 'cookies') && product.flavors && product.flavors.length > 0 && (
               <div className="mb-6">
                 <p className="text-sm text-[#6E5B4E] mb-2">Flavor:</p>
                 <Select onValueChange={setSelectedFlavor} value={selectedFlavor}>
@@ -294,7 +294,7 @@ export default function ProductPage({
                   +
                 </button>
               </div>
-              {product.category === 'cookies' && (
+              {product.category === 'cookies' && !product.isSoldInBox && (
                 <p className="text-xs text-[#6E5B4E] mt-1">
                   If adding cookies, minimum 4 total required
                 </p>

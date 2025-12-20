@@ -239,7 +239,7 @@ export function ProductCard({ product }: ProductCardProps) {
           )}
 
           {/* Minimum cookies reminder */}
-          {product.category === 'cookies' && (
+          {product.category === 'cookies' && !product.isSoldInBox && (
             <p className="text-xs text-[#6E5B4E]">
               If adding cookies, minimum 4 total required
             </p>

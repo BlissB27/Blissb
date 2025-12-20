@@ -14,6 +14,7 @@ export type Product = {
   gallery?: string[]; // Galería de imágenes adicionales
   slug?: string; // URL slug para SEO friendly URLs
   stock?: number; // Cantidad disponible en inventario
+  isSoldInBox?: boolean; // Si es una caja/paquete (no aplica regla de mínimo 4 galletas)
 };
 
 export const PRODUCTS: Product[] = [
