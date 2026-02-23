@@ -68,6 +68,17 @@ export default function Header() {
         {/* Announcement */}
         <Carrusel/>
 
+        {/* Premio badge - solo visible en desktop, superpuesto al lado izquierdo */}
+        <div className="absolute left-4 top-[44px] z-[60] pointer-events-none hidden md:block">
+          <Image
+            src="/img/blisbpremio.png"
+            width={60}
+            height={80}
+            alt="Best of Georgia 2025"
+            className="w-[60px] h-auto drop-shadow-md"
+          />
+        </div>
+
         {/* Main nav */}
         <div className=" border-b-0.5 border-[#E6D7CB]">
           <div className="mx-auto flex max-w-[1200px] items-center justify-between px-4 py-4">

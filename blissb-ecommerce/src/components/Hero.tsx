@@ -8,6 +8,16 @@ import { motion } from "framer-motion";
 export function Hero() {
   return (
     <section className="bg-white relative">
+      {/* Premio badge - solo visible en móvil */}
+      <div className="absolute right-2 top-2 z-10 md:hidden">
+        <Image
+          src="/img/blisbpremio.png"
+          width={50}
+          height={67}
+          alt="Best of Georgia 2025"
+          className="w-[50px] h-auto drop-shadow-md"
+        />
+      </div>
       <div className="mx-auto max-w-[1600px] flex flex-col-reverse md:flex-row items-center justify-between">
         {/* Text left */}
         <motion.div
