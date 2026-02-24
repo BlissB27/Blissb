@@ -12,10 +12,10 @@ export function Hero() {
       <div className="absolute right-2 top-2 z-10 md:hidden">
         <Image
           src="/img/blisbpremio.png"
-          width={50}
+          width={100}
           height={67}
           alt="Best of Georgia 2025"
-          className="w-[50px] h-auto drop-shadow-md"
+          className="w-[100px] h-auto drop-shadow-md"
         />
       </div>
       <div className="mx-auto max-w-[1600px] flex flex-col-reverse md:flex-row items-center justify-between">

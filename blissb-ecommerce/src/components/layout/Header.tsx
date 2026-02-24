@@ -72,10 +72,10 @@ export default function Header() {
         <div className="absolute left-4 top-[44px] z-[60] pointer-events-none hidden md:block">
           <Image
             src="/img/blisbpremio.png"
-            width={60}
+            width={80}
             height={80}
             alt="Best of Georgia 2025"
-            className="w-[60px] h-auto drop-shadow-md"
+            className="w-[100px] h-auto drop-shadow-md"
           />
         </div>
 
