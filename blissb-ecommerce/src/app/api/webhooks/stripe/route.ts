@@ -3,7 +3,7 @@ import Stripe from 'stripe';
 import { sendOrderEmails } from '@/lib/email';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-06-20',
+  apiVersion: '2025-08-27.basil',
 });
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -79,14 +79,14 @@ export async function POST(request: NextRequest) {
       const total = (session.amount_total || 0) / 100;
 
       // Obtener dirección de envío
-      const shippingDetails = session.shipping_details || session.shipping;
+      const shippingDetails = session.collected_information?.shipping_details;
       const shippingAddress = {
         street: shippingDetails?.address?.line1 || metadata.deliveryAddress || '',
         city: shippingDetails?.address?.city || '',
         state: shippingDetails?.address?.state || '',
         zipCode: shippingDetails?.address?.postal_code || metadata.zipCode || '',
         country: shippingDetails?.address?.country || 'US',
-        phone: shippingDetails?.phone || metadata.customerPhone,
+        phone: session.customer_details?.phone || metadata.customerPhone,
       };
 
       const orderNumber = `BLISS-${session.id.slice(-8).toUpperCase()}`;
@@ -109,6 +109,9 @@ export async function POST(request: NextRequest) {
         shippingAddress,
         paymentMethod: 'Stripe',
         paymentId: session.payment_intent as string,
+        deliveryType: metadata.deliveryType || '',
+        deliveryDate: metadata.deliveryDate || '',
+        deliveryTime: metadata.deliveryTime || '',
       });
 
       console.log('Email results:', emailResult);

@@ -26,6 +26,9 @@ export function generateOrderConfirmationHTML(data: {
   shipping: number;
   total: number;
   shippingAddress: ShippingAddress;
+  deliveryType?: string;
+  deliveryDate?: string;
+  deliveryTime?: string;
 }) {
   const productsHTML = data.products
     .map(
@@ -71,6 +74,9 @@ export function generateOrderConfirmationHTML(data: {
     <div style="background: #f9fafb; padding: 15px; border-radius: 6px; margin: 20px 0;">
       <p style="margin: 5px 0;"><strong style="color: #667eea;">Order Number:</strong> ${data.orderNumber}</p>
       <p style="margin: 5px 0;"><strong style="color: #667eea;">Date:</strong> ${data.orderDate}</p>
+      ${data.deliveryType ? `<p style="margin: 5px 0;"><strong style="color: #667eea;">Delivery Method:</strong> ${data.deliveryType.charAt(0).toUpperCase() + data.deliveryType.slice(1)}</p>` : ''}
+      ${data.deliveryDate ? `<p style="margin: 5px 0;"><strong style="color: #667eea;">Delivery Date:</strong> ${data.deliveryDate}</p>` : ''}
+      ${data.deliveryTime ? `<p style="margin: 5px 0;"><strong style="color: #667eea;">Delivery Time:</strong> ${data.deliveryTime}</p>` : ''}
     </div>
 
     <h2>Order Summary</h2>
@@ -132,6 +138,9 @@ export function generateAdminOrderHTML(data: {
   shippingAddress: ShippingAddress;
   paymentMethod: string;
   paymentId: string;
+  deliveryType?: string;
+  deliveryDate?: string;
+  deliveryTime?: string;
 }) {
   const productsHTML = data.products
     .map(
@@ -194,6 +203,12 @@ export function generateAdminOrderHTML(data: {
       <div style="padding: 10px; background: white; border-radius: 4px; margin-top: 15px;">
         <strong>Payment ID:</strong> <span style="font-family: monospace; font-size: 13px;">${data.paymentId}</span>
       </div>
+      ${data.deliveryType || data.deliveryDate ? `
+      <div style="padding: 10px; background: white; border-radius: 4px; margin-top: 15px;">
+        ${data.deliveryType ? `<p style="margin: 4px 0;"><strong>Delivery Method:</strong> ${data.deliveryType.charAt(0).toUpperCase() + data.deliveryType.slice(1)}</p>` : ''}
+        ${data.deliveryDate ? `<p style="margin: 4px 0;"><strong>Requested Delivery Date:</strong> ${data.deliveryDate}</p>` : ''}
+        ${data.deliveryTime ? `<p style="margin: 4px 0;"><strong>Requested Delivery Time:</strong> ${data.deliveryTime}</p>` : ''}
+      </div>` : ''}
     </div>
 
     <div style="margin: 25px 0; padding: 20px; background: #f9fafb; border-radius: 6px;">

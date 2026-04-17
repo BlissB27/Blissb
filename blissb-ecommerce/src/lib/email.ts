@@ -37,6 +37,9 @@ interface OrderEmailData {
   shippingAddress: ShippingAddress;
   paymentMethod?: string;
   paymentId?: string;
+  deliveryType?: string;
+  deliveryDate?: string;
+  deliveryTime?: string;
 }
 
 /**
@@ -53,6 +56,9 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData) {
       shipping: data.shipping,
       total: data.total,
       shippingAddress: data.shippingAddress,
+      deliveryType: data.deliveryType,
+      deliveryDate: data.deliveryDate,
+      deliveryTime: data.deliveryTime,
     });
 
     const result = await resend.emails.send({
@@ -86,6 +92,9 @@ export async function sendAdminOrderNotification(data: OrderEmailData) {
       shippingAddress: data.shippingAddress,
       paymentMethod: data.paymentMethod || 'Stripe',
       paymentId: data.paymentId || '',
+      deliveryType: data.deliveryType,
+      deliveryDate: data.deliveryDate,
+      deliveryTime: data.deliveryTime,
     });
 
     const adminEmail = process.env.ADMIN_EMAIL || 'blissbdesserts@gmail.com';
