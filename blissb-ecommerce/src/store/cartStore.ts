@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Product } from '@/data/products';
+import { getProductImageSrc } from '@/lib/productImage';
 
 export type CartItem = {
   id: string;
@@ -63,36 +64,41 @@ export const useCartStore = create<CartStore>()(
       isOpen: false,
       
       addItem: (product, quantity = 1, flavor, customMessage) => {
+        const normalizedProduct = {
+          ...product,
+          image: getProductImageSrc(product.image),
+        };
+
         // Validar producto antes de agregar
-        const productValidation = get().validateProduct(product, flavor);
+        const productValidation = get().validateProduct(normalizedProduct, flavor);
         if (!productValidation.isValid) {
           console.error(productValidation.error);
           return;
         }
 
         // Validar cantidad mínima
-        const quantityValidation = get().validateMinimumQuantity(product, quantity);
+        const quantityValidation = get().validateMinimumQuantity(normalizedProduct, quantity);
         if (!quantityValidation.isValid) {
           console.error(quantityValidation.error);
           return;
         }
 
         // Validar stock disponible
-        const stock = product.stock ?? 0;
+        const stock = normalizedProduct.stock ?? 0;
         if (stock <= 0) {
-          console.error(`${product.name} is out of stock`);
+          console.error(`${normalizedProduct.name} is out of stock`);
           return;
         }
 
         set((state) => {
           // Para productos con sabor o desserts con mensaje, crear un ID único
-          let itemId = product.id;
+          let itemId = normalizedProduct.id;
           if (flavor) {
             // Cualquier producto con sabor seleccionado
-            itemId = `${product.id}-${flavor}`;
+            itemId = `${normalizedProduct.id}-${flavor}`;
           } else if (customMessage) {
             // Para productos con mensaje personalizado, crear ID único
-            itemId = `${product.id}-${Date.now()}`;
+            itemId = `${normalizedProduct.id}-${Date.now()}`;
           }
 
           const existingItem = state.items.find(item => item.id === itemId);
@@ -133,7 +139,7 @@ export const useCartStore = create<CartStore>()(
           return {
             items: [...state.items, {
               id: itemId,
-              product,
+              product: normalizedProduct,
               quantity,
               flavor,
               customMessage

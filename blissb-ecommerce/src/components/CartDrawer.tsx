@@ -4,8 +4,8 @@ import { useCartStore } from "@/store/cartStore";
 import { useDeliveryStore } from "@/store/deliveryStore";
 import { Button } from "@/components/ui/button";
 import { X, Plus, Minus, Trash2, ShoppingBag, Clock, MapPin, AlertTriangle } from "lucide-react";
-import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
+import { getProductImageSrc } from "@/lib/productImage";
 
 export function CartDrawer() {
   const {
@@ -141,12 +141,10 @@ export function CartDrawer() {
                     <div className="flex gap-3">
                       {/* Product Image */}
                       <div className="relative w-16 h-16 bg-[#F8F4F0] rounded-lg overflow-hidden flex-shrink-0">
-                        <Image
-                          src={item.product.image}
+                        <img
+                          src={getProductImageSrc(item.product.image)}
                           alt={item.product.name}
-                          fill
-                          className="object-contain"
-                          sizes="64px"
+                          className="h-full w-full object-contain"
                         />
                       </div>
 

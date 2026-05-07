@@ -13,8 +13,8 @@ import { AlertCircle, CreditCard, Lock, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import { loadStripe } from "@stripe/stripe-js";
 import Link from "next/link";
-import Image from "next/image";
 import { calculateProcessingFee } from "@/lib/orderFees";
+import { getProductImageSrc } from "@/lib/productImage";
 
 // Initialize Stripe
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
@@ -450,11 +450,9 @@ export default function CheckoutPage() {
                     <div key={item.id} className="flex items-center gap-3">
                       <div className="relative">
                         <div className="w-12 h-12 bg-[#F8F4F0] rounded-lg overflow-hidden">
-                          <Image
-                            src={item.product.image}
+                          <img
+                            src={getProductImageSrc(item.product.image)}
                             alt={item.product.name}
-                            width={48}
-                            height={48}
                             className="object-contain w-full h-full"
                           />
                         </div>

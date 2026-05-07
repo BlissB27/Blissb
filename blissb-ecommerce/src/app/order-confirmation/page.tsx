@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CheckCircle, ShoppingBag, ArrowRight, Lock, Phone, Truck} from "lucide-react";
 import { DeliverySelector } from "@/components/DeliverySelector";
-import Image from "next/image";
 import { calculateProcessingFee } from "@/lib/orderFees";
+import { getProductImageSrc } from "@/lib/productImage";
 
 export default function OrderConfirmationPage() {
   const router = useRouter();
@@ -130,12 +130,10 @@ export default function OrderConfirmationPage() {
             {items.map((item) => (
               <div key={item.id} className="flex items-center gap-4 p-4 bg-[#F8F4F0] rounded-lg">
                 <div className="relative w-16 h-16 bg-white rounded-lg overflow-hidden flex-shrink-0">
-                  <Image
-                    src={item.product.image}
+                  <img
+                    src={getProductImageSrc(item.product.image)}
                     alt={item.product.name}
-                    fill
-                    className="object-contain"
-                    sizes="64px"
+                    className="h-full w-full object-contain"
                   />
                 </div>
                 
