@@ -72,11 +72,13 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
       zipCode: session.metadata?.zipCode,
       totalAmount: session.amount_total ? session.amount_total / 100 : 0,
       currency: session.currency?.toUpperCase(),
-      items: lineItems.data.map(item => ({
-        name: item.description || 'Unknown Product',
-        quantity: item.quantity,
-        amount: item.amount_total ? item.amount_total / 100 : 0
-      })),
+      items: lineItems.data
+        .filter((item) => !['Shipping', 'Delivery Fee', 'Fees'].includes(item.description || ''))
+        .map(item => ({
+          name: item.description || 'Unknown Product',
+          quantity: item.quantity,
+          amount: item.amount_total ? item.amount_total / 100 : 0
+        })),
       paymentStatus: session.payment_status,
       createdAt: new Date(session.created * 1000)
     };

@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { CheckCircle, ShoppingBag, ArrowRight, Lock, Phone, Truck} from "lucide-react";
 import { DeliverySelector } from "@/components/DeliverySelector";
 import Image from "next/image";
+import { calculateProcessingFee } from "@/lib/orderFees";
 
 export default function OrderConfirmationPage() {
   const router = useRouter();
@@ -48,7 +49,8 @@ export default function OrderConfirmationPage() {
 
   const deliveryFee = getDeliveryFeeForType();
   const subtotal = getTotalPrice();
-  const finalTotal = subtotal + deliveryFee;
+  const processingFee = calculateProcessingFee(subtotal + deliveryFee);
+  const finalTotal = subtotal + deliveryFee + processingFee;
 
   // Wait for hydration and add delay before checking
   useEffect(() => {
@@ -185,6 +187,12 @@ export default function OrderConfirmationPage() {
               </span>
               <span className="font-medium text-[#3B2A22]">
                 {deliveryFee > 0 ? `$${deliveryFee.toFixed(2)}` : 'Free'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-[#6E5B4E]">Fees:</span>
+              <span className="font-medium text-[#3B2A22]">
+                ${processingFee.toFixed(2)}
               </span>
             </div>
             <div className="flex justify-between items-center text-lg font-bold border-t pt-2">

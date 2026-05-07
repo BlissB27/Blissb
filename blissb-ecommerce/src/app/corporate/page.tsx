@@ -279,7 +279,7 @@ export default function CorporatePage() {
             {/* Right Content - Cart Images */}
             <div className="relative w-full h-[300px] md:h-[400px] lg:h-[500px] order-1 lg:order-2">
               <Image
-                src="/img/cart.png"
+                src="/img/carrito.jpeg"
                 alt="Bliss-B Cookie Cart at Event"
                 fill
                 className="object-cover rounded-lg"

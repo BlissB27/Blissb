@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getProductByIdAsync } from '@/data/products';
+import { calculateProcessingFee } from '@/lib/orderFees';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-08-27.basil',
@@ -46,6 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 🔒 VALIDAR CADA PRODUCTO CON STRAPI
+    let validatedSubtotal = 0;
     const validatedLineItems = await Promise.all(
       items.map(async (item: any) => {
         try {
@@ -73,6 +75,7 @@ export async function POST(request: NextRequest) {
 
           // Validar cantidad (entre 1 y 100)
           const validQuantity = Math.max(1, Math.min(100, item.quantity));
+          validatedSubtotal += realPrice * validQuantity;
 
           if (validQuantity !== item.quantity) {
             console.warn(`Quantity adjusted for ${item.product.id}: ${item.quantity} -> ${validQuantity}`);
@@ -126,6 +129,7 @@ export async function POST(request: NextRequest) {
             description: deliveryInfo.type === 'shipping'
               ? 'Nationwide shipping'
               : `Delivery to ${deliveryInfo.zipCode}`,
+            images: [],
           },
           unit_amount: Math.round(validatedDeliveryFee * 100), // 🔒 FEE VALIDADO
         },
@@ -134,6 +138,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Crear sesión de checkout de Stripe con items validados
+    const processingFee = calculateProcessingFee(validatedSubtotal + validatedDeliveryFee);
+    if (processingFee > 0) {
+      validatedLineItems.push({
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: 'Fees',
+            description: undefined,
+            images: [],
+          },
+          unit_amount: Math.round(processingFee * 100),
+        },
+        quantity: 1,
+      });
+    }
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: validatedLineItems, // 🔒 ITEMS CON PRECIOS VALIDADOS
@@ -149,6 +169,7 @@ export async function POST(request: NextRequest) {
         deliveryTime: deliveryInfo.time || '',
         deliveryAddress: deliveryInfo.address || '',
         zipCode: deliveryInfo.zipCode || '',
+        processingFee: processingFee.toFixed(2),
       },
       shipping_address_collection: deliveryInfo.type === 'shipping' || deliveryInfo.type === 'delivery'
         ? { allowed_countries: ['US'] }

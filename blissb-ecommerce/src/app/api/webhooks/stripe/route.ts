@@ -46,7 +46,11 @@ export async function POST(request: NextRequest) {
       const products = lineItems
         .filter((item) => {
           const productData = item.price?.product as Stripe.Product | null;
-          return productData?.name !== 'Shipping' && productData?.name !== 'Delivery Fee';
+          return (
+            productData?.name !== 'Shipping' &&
+            productData?.name !== 'Delivery Fee' &&
+            productData?.name !== 'Fees'
+          );
         })
         .map((item) => {
           const productData = item.price?.product as Stripe.Product;
@@ -72,6 +76,11 @@ export async function POST(request: NextRequest) {
       });
 
       const shipping = shippingItem ? (shippingItem.amount_total || 0) / 100 : 0;
+      const feeItem = lineItems.find((item) => {
+        const productData = item.price?.product as Stripe.Product | null;
+        return productData?.name === 'Fees';
+      });
+      const processingFee = feeItem ? (feeItem.amount_total || 0) / 100 : 0;
       const subtotal = products.reduce(
         (sum, p) => sum + p.price * p.quantity,
         0
@@ -105,6 +114,7 @@ export async function POST(request: NextRequest) {
         products,
         subtotal,
         shipping,
+        processingFee,
         total,
         shippingAddress,
         paymentMethod: 'Stripe',

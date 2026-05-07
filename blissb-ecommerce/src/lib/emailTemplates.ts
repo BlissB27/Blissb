@@ -24,6 +24,7 @@ export function generateOrderConfirmationHTML(data: {
   products: Product[];
   subtotal: number;
   shipping: number;
+  processingFee?: number;
   total: number;
   shippingAddress: ShippingAddress;
   deliveryType?: string;
@@ -93,6 +94,10 @@ export function generateOrderConfirmationHTML(data: {
         <span>Shipping:</span>
         <span>$${data.shipping.toFixed(2)}</span>
       </div>
+      <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+        <span>Fees:</span>
+        <span>$${(data.processingFee || 0).toFixed(2)}</span>
+      </div>
       <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 18px; border-top: 2px solid #667eea; padding-top: 15px; margin-top: 10px; color: #667eea;">
         <span>Total:</span>
         <span>$${data.total.toFixed(2)}</span>
@@ -134,6 +139,7 @@ export function generateAdminOrderHTML(data: {
   products: Product[];
   subtotal: number;
   shipping: number;
+  processingFee?: number;
   total: number;
   shippingAddress: ShippingAddress;
   paymentMethod: string;
@@ -231,6 +237,10 @@ export function generateAdminOrderHTML(data: {
       <div style="display: flex; justify-content: space-between; padding: 10px 0; font-size: 15px;">
         <span>Shipping:</span>
         <span>$${data.shipping.toFixed(2)}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; padding: 10px 0; font-size: 15px;">
+        <span>Fees:</span>
+        <span>$${(data.processingFee || 0).toFixed(2)}</span>
       </div>
       <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 20px; border-top: 2px solid #10b981; padding-top: 15px; margin-top: 10px; color: #10b981;">
         <span>Total Paid:</span>

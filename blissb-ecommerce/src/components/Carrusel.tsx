@@ -1,7 +1,7 @@
 "use client";
 
 const ANNOUNCEMENTS = [
-  "Free delivery in select areas ",
+  "Free delivery in select areas",
   "Cookie & cake carts for events",
   "Corporate cookie boxes",
   "Shipping every Monday",

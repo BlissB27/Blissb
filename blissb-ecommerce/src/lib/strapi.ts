@@ -1,22 +1,35 @@
-// Use STRAPI_API_URL (server-side) or fallback to NEXT_PUBLIC_STRAPI_URL + /api (client-side)
-const STRAPI_URL = process.env.STRAPI_API_URL || (process.env.NEXT_PUBLIC_STRAPI_URL ? `${process.env.NEXT_PUBLIC_STRAPI_URL}/api` : '');
 const STRAPI_TOKEN = process.env.STRAPI_API_TOKEN;
+
+function getStrapiApiUrl() {
+  const serverUrl = typeof window === 'undefined' ? process.env.STRAPI_API_URL : undefined;
+  const publicUrl = process.env.NEXT_PUBLIC_STRAPI_URL;
+  const baseUrl = serverUrl || (publicUrl ? `${publicUrl}/api` : '');
+
+  if (!baseUrl) {
+    throw new Error(
+      'Missing Strapi URL. Set NEXT_PUBLIC_STRAPI_URL in blissb-ecommerce/.env and restart the Next dev server.'
+    );
+  }
+
+  return baseUrl.replace(/\/$/, '');
+}
 
 // Helper function for Strapi API requests
 async function strapiRequest(path: string, options: RequestInit = {}) {
-  const url = `${STRAPI_URL}${path}`;
+  const strapiUrl = getStrapiApiUrl();
+  const url = `${strapiUrl}${path}`;
 
   console.log(`Making Strapi request to: ${url}`);
-  console.log(`STRAPI_URL: ${STRAPI_URL}`);
+  console.log(`STRAPI_URL: ${strapiUrl}`);
   console.log(`Has token: ${!!STRAPI_TOKEN}`);
 
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...options.headers,
+    ...(options.headers as Record<string, string> | undefined),
   };
 
   // Add authorization token if available
-  if (STRAPI_TOKEN) {
+  if (typeof window === 'undefined' && STRAPI_TOKEN) {
     headers['Authorization'] = `Bearer ${STRAPI_TOKEN}`;
   }
 

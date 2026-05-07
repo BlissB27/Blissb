@@ -66,7 +66,7 @@ const DELIVERY_SCHEDULE = {
     ],
   },
   pickup: {
-    days: ["tuesday", "thursday"], // Solo martes y jueves
+    days: ["tuesday", "thursday", "sunday"], // Martes, jueves y domingo
     timeSlots: [
       { time: "4:00 PM", available: true },
       { time: "5:00 PM", available: true },
@@ -109,14 +109,14 @@ const DELIVERY_OPTIONS: DeliveryOption[] = [
     type: "delivery",
     label: "Schedule Delivery",
     description: "Local delivery within 25 miles",
-    estimatedTime: "Same day or next day",
+    estimatedTime: "Same or next-day delivery (if available)",
     fee: 15,
   },
   {
     type: "pickup",
     label: "Schedule Pickup",
     description: "Pick up at our bakery location",
-    estimatedTime: "Same day available",
+    estimatedTime: "Same-day pickup (if available)",
     fee: 0,
   },
 ];

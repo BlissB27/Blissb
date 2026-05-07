@@ -33,6 +33,7 @@ interface OrderEmailData {
   products: Product[];
   subtotal: number;
   shipping: number;
+  processingFee?: number;
   total: number;
   shippingAddress: ShippingAddress;
   paymentMethod?: string;
@@ -54,6 +55,7 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData) {
       products: data.products,
       subtotal: data.subtotal,
       shipping: data.shipping,
+      processingFee: data.processingFee,
       total: data.total,
       shippingAddress: data.shippingAddress,
       deliveryType: data.deliveryType,
@@ -88,6 +90,7 @@ export async function sendAdminOrderNotification(data: OrderEmailData) {
       products: data.products,
       subtotal: data.subtotal,
       shipping: data.shipping,
+      processingFee: data.processingFee,
       total: data.total,
       shippingAddress: data.shippingAddress,
       paymentMethod: data.paymentMethod || 'Stripe',

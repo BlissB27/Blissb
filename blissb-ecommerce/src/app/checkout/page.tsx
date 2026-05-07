@@ -14,6 +14,7 @@ import { motion } from "framer-motion";
 import { loadStripe } from "@stripe/stripe-js";
 import Link from "next/link";
 import Image from "next/image";
+import { calculateProcessingFee } from "@/lib/orderFees";
 
 // Initialize Stripe
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
@@ -59,7 +60,8 @@ export default function CheckoutPage() {
   };
 
   const deliveryFee = getDeliveryFeeForType();
-  const total = subtotal + deliveryFee;
+  const processingFee = calculateProcessingFee(subtotal + deliveryFee);
+  const total = subtotal + deliveryFee + processingFee;
 
   // Redirect if cart is empty or delivery not selected
   useEffect(() => {
@@ -502,6 +504,11 @@ export default function CheckoutPage() {
                     <span>
                       {deliveryFee > 0 ? `$${deliveryFee.toFixed(2)}` : 'Free'}
                     </span>
+                  </div>
+
+                  <div className="flex justify-between text-[#6E5B4E]">
+                    <span>Fees</span>
+                    <span>${processingFee.toFixed(2)}</span>
                   </div>
 
                   <Separator className="my-2" />

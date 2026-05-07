@@ -83,11 +83,18 @@ export async function getProductsByCategory(category: Product['category']): Prom
 // Get single product by ID (using documentId for Strapi v5)
 export async function getProductById(id: string): Promise<Product | null> {
   try {
-    const response: any = await strapiGet(`/products/${id}`, {
-      'populate': '*'
-    });
+    const isNumericId = /^\d+$/.test(id);
+    const response: any = isNumericId
+      ? await strapiGet('/products', {
+          'filters[id][$eq]': id,
+          'populate': '*'
+        })
+      : await strapiGet(`/products/${id}`, {
+          'populate': '*'
+        });
 
-    return transformStrapiProduct(response.data);
+    const product = Array.isArray(response.data) ? response.data[0] : response.data;
+    return product ? transformStrapiProduct(product) : null;
   } catch (error) {
     console.error(`Error fetching product ${id}:`, error);
     return null;
