@@ -4,7 +4,6 @@ import "./globals.css";
 import Header from "@/components/layout/Header";
 import { CartDrawer } from "@/components/CartDrawer";
 import { Footer } from "@/components/layout/Footer";
-import { ServiceNoticePopup } from "@/components/ServiceNoticePopup";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,7 +32,6 @@ export default function RootLayout({
         <main className="mx-auto  ">{children}</main>
         <Footer/>
         <CartDrawer/>
-        <ServiceNoticePopup />
       </body>
     </html>
   );
