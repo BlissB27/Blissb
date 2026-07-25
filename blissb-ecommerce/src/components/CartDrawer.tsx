@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 import { useDeliveryStore } from "@/store/deliveryStore";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getProductImageSrc } from "@/lib/productImage";
 
 export function CartDrawer() {
+  const router = useRouter();
   const {
     items,
     isOpen,
@@ -17,7 +19,7 @@ export function CartDrawer() {
     getTotalPrice,
     clearCart,
     getShippingInfo,
-    getMinimumCookiesInfo
+    getMinimumOrderInfo
   } = useCartStore();
 
   const {
@@ -29,7 +31,7 @@ export function CartDrawer() {
   } = useDeliveryStore();
 
   const shippingInfo = getShippingInfo();
-  const cookiesInfo = getMinimumCookiesInfo();
+  const orderInfo = getMinimumOrderInfo();
   const deliveryOptions = getDeliveryOptions();
 
   return (
@@ -60,11 +62,11 @@ export function CartDrawer() {
             className="fixed right-0 top-0 h-full w-full max-w-md bg-[#F8F4F0] z-50 shadow-xl"
           >
         <div className="flex flex-col h-full">
-          {/* Minimum cookies warning - solo mostrar si hay galletas pero no suficientes */}
-          {items.length > 0 && cookiesInfo.currentCookies > 0 && !cookiesInfo.hasEnoughCookies && (
+          {/* Minimum order warning */}
+          {items.length > 0 && !orderInfo.hasMinimumOrder && (
             <div className="bg-[#EFCCB8] border-l-4 border-[#C08552] p-3 text-center">
               <p className="text-[#8F4B2B] text-sm">
-                Your cart must contain a minimum of {cookiesInfo.minimumRequired} cookies (currently {cookiesInfo.currentCookies}).
+                Your cart subtotal must be at least ${orderInfo.minimumRequired.toFixed(2)} to check out (currently ${orderInfo.currentTotal.toFixed(2)}).
               </p>
             </div>
           )}
@@ -158,6 +160,11 @@ export function CartDrawer() {
                             Flavor: {item.flavor}
                           </p>
                         )}
+                        {item.boxFlavors && item.boxFlavors.length > 0 && (
+                          <p className="text-xs text-[#8F4B2B] mb-1">
+                            Flavors: {item.boxFlavors.map(f => `${f.flavor} x${f.quantity}`).join(', ')}
+                          </p>
+                        )}
                         {item.customMessage && (
                           <p className="text-xs text-[#1E7A31] italic mb-1 bg-[#1E7A31]/5 px-2 py-1 rounded">
                             "{item.customMessage}"
@@ -182,42 +189,31 @@ export function CartDrawer() {
                       </button>
                     </div>
 
-                    {/* Quantity Controls */}
-                    <div className="flex flex-col items-center mt-3 gap-1">
-                      <div className="flex items-center bg-[#F8F4F0] rounded-full">
-                        <button
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                          className="p-2 hover:bg-[#E6D7CB] rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
-                          disabled={item.quantity <= (item.product.category === 'cookies' ? 4 : 1)}
-                        >
-                          <Minus className="w-4 h-4 text-[#8F4B2B]" />
-                        </button>
+                    {/* Quantity Controls - box items have a fixed quantity from their flavor split */}
+                    {!item.boxFlavors && (
+                      <div className="flex flex-col items-center mt-3 gap-1">
+                        <div className="flex items-center bg-[#F8F4F0] rounded-full">
+                          <button
+                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            className="p-2 hover:bg-[#E6D7CB] rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={item.quantity <= 1}
+                          >
+                            <Minus className="w-4 h-4 text-[#8F4B2B]" />
+                          </button>
 
-                        <span className="px-4 py-2 text-[#3B2A22] font-medium min-w-[3rem] text-center">
-                          {item.quantity}
-                        </span>
+                          <span className="px-4 py-2 text-[#3B2A22] font-medium min-w-[3rem] text-center">
+                            {item.quantity}
+                          </span>
 
-                        <button
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          className="p-2 hover:bg-[#E6D7CB] rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
-                          disabled={item.quantity >= (item.product.stock ?? 0)}
-                        >
-                          <Plus className="w-4 h-4 text-[#8F4B2B]" />
-                        </button>
+                          <button
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            className="p-2 hover:bg-[#E6D7CB] rounded-full"
+                          >
+                            <Plus className="w-4 h-4 text-[#8F4B2B]" />
+                          </button>
+                        </div>
                       </div>
-
-                      {/* Stock warning when at or near limit */}
-                      {item.product.stock !== undefined && item.quantity >= item.product.stock && (
-                        <span className="text-xs text-orange-600 font-medium">
-                          Max stock reached
-                        </span>
-                      )}
-                      {item.product.stock !== undefined && item.quantity === item.product.stock - 1 && item.product.stock <= 3 && (
-                        <span className="text-xs text-orange-600">
-                          Only {item.product.stock - item.quantity} more available
-                        </span>
-                      )}
-                    </div>
+                    )}
                   </motion.div>
                 ))}
                 </AnimatePresence>
@@ -304,13 +300,13 @@ export function CartDrawer() {
               )}
 
               {/* Continue Button */}
-              <Button 
+              <Button
                 className="w-full bg-[#1E7A31] hover:bg-[#166426] text-white font-medium py-3 rounded-md"
                 size="lg"
-                disabled={!cookiesInfo.hasEnoughCookies}
+                disabled={!orderInfo.hasMinimumOrder}
                 onClick={() => {
                   closeCart();
-                  window.location.href = '/order-confirmation';
+                  router.push('/order-confirmation');
                 }}
               >
                 Continue

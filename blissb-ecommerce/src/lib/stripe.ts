@@ -3,7 +3,7 @@ import { loadStripe } from '@stripe/stripe-js';
 
 // Server-side Stripe instance (para API routes)
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2025-08-27.basil',
   appInfo: {
     name: 'Blissb Bakery',
     version: '1.0.0',

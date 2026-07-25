@@ -9,8 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useCartStore } from "@/store/cartStore";
+import type { BoxFlavor } from "@/store/cartStore";
 import { getProductByIdAsync, getProductBySlug, getAllProducts, type Product } from "@/data/products";
 import { ProductCard } from "@/components/ProductCard";
+import { BoxFlavorSelector } from "@/components/BoxFlavorSelector";
 
 export default function ProductPage({
   params,
@@ -31,6 +33,7 @@ export default function ProductPage({
   const [selectedFlavor, setSelectedFlavor] = useState<string>("");
   const [showFlavorRequired, setShowFlavorRequired] = useState(false);
   const [customMessage, setCustomMessage] = useState<string>("");
+  const [boxFlavors, setBoxFlavors] = useState<BoxFlavor[] | null>(null);
 
   // Load product data
   useEffect(() => {
@@ -92,31 +95,21 @@ export default function ProductPage({
     .slice(0, 4);
 
   const handleAddToCart = () => {
+    if (product.isSoldInBox) {
+      if (!boxFlavors) return; // BoxFlavorSelector ya muestra el estado inválido
+      addItem(product, { boxFlavors });
+      return;
+    }
+
     // Si es un cake o cookie con sabores disponibles y no se ha seleccionado sabor, mostrar error
     if ((product.category === 'cakes' || product.category === 'cookies') && product.flavors && product.flavors.length > 0 && !selectedFlavor) {
       setShowFlavorRequired(true);
       return;
     }
 
-    // Verificar disponibilidad de stock
-    const stock = product.stock ?? 0;
-    if (stock <= 0) {
-      return; // No agregar si no hay stock
-    }
-
-    // Verificar que la cantidad no exceda el stock disponible
-    if (selectedQuantity > stock) {
-      return; // No agregar si la cantidad excede el stock
-    }
-
-    addItem(product, selectedQuantity, selectedFlavor || undefined, customMessage || undefined);
+    addItem(product, { quantity: selectedQuantity, flavor: selectedFlavor || undefined, customMessage: customMessage || undefined });
     setShowFlavorRequired(false);
     setCustomMessage(""); // Limpiar mensaje después de agregar
-  };
-
-  const handleRelatedProductAdd = (relatedProduct: any) => {
-    // Para productos relacionados, agregar con cantidad 1 y sin sabor por ahora
-    addItem(relatedProduct, 1);
   };
 
   // Imágenes del producto: imagen principal + galería
@@ -205,21 +198,6 @@ export default function ProductPage({
               )}
             </div>
 
-            {/* Stock availability */}
-            {product.stock !== undefined && (
-              <div className="mb-4">
-                {product.stock > 0 ? (
-                  <p className={`text-sm font-medium ${product.stock <= 5 ? 'text-orange-600' : 'text-[#1E7A31]'}`}>
-                    {product.stock <= 5 ? `Only ${product.stock} left in stock!` : `In stock (${product.stock} available)`}
-                  </p>
-                ) : (
-                  <p className="text-sm font-medium text-red-600">
-                    Out of stock
-                  </p>
-                )}
-              </div>
-            )}
-
             <p className="text-[#6E5B4E] mb-2">
               <Link href="#shipping" className="underline hover:text-[#8F4B2B]">
                 Shipping
@@ -231,8 +209,13 @@ export default function ProductPage({
               {product.description || "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."}
             </p>
 
+            {/* Box flavor selection (ex: Mini Cookie Box) */}
+            {product.isSoldInBox && (
+              <BoxFlavorSelector product={product} onSelectionChange={setBoxFlavors} />
+            )}
+
             {/* Flavor Selection for Cakes and Cookies */}
-            {(product.category === 'cakes' || product.category === 'cookies') && product.flavors && product.flavors.length > 0 && (
+            {!product.isSoldInBox && (product.category === 'cakes' || product.category === 'cookies') && product.flavors && product.flavors.length > 0 && (
               <div className="mb-6">
                 <p className="text-sm text-[#6E5B4E] mb-2">Flavor:</p>
                 <Select onValueChange={setSelectedFlavor} value={selectedFlavor}>
@@ -273,48 +256,40 @@ export default function ProductPage({
             )}
 
             {/* Quantity Selection */}
-            <div className="mb-6">
-              <p className="text-sm text-[#6E5B4E] mb-2">Quantity:</p>
-              <div className="flex items-center border border-[#E6D7CB] rounded-lg w-fit">
-                <button
-                  onClick={() => setSelectedQuantity(Math.max(1, selectedQuantity - 1))}
-                  className="p-2 hover:bg-gray-50 hover:rounded-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={selectedQuantity <= 1 || (product.stock ?? 0) <= 0}
-                >
-                  −
-                </button>
-                <span className="px-4 py-2 min-w-[3rem] text-center">
-                  {selectedQuantity}
-                </span>
-                <button
-                  onClick={() => setSelectedQuantity(Math.min((product.stock ?? 0), selectedQuantity + 1))}
-                  className="p-2 hover:bg-gray-50 hover:rounded-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={(product.stock ?? 0) <= 0 || selectedQuantity >= (product.stock ?? 0)}
-                >
-                  +
-                </button>
+            {!product.isSoldInBox && (
+              <div className="mb-6">
+                <p className="text-sm text-[#6E5B4E] mb-2">Quantity:</p>
+                <div className="flex items-center border border-[#E6D7CB] rounded-lg w-fit">
+                  <button
+                    onClick={() => setSelectedQuantity(Math.max(1, selectedQuantity - 1))}
+                    className="p-2 hover:bg-gray-50 hover:rounded-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={selectedQuantity <= 1}
+                  >
+                    −
+                  </button>
+                  <span className="px-4 py-2 min-w-[3rem] text-center">
+                    {selectedQuantity}
+                  </span>
+                  <button
+                    onClick={() => setSelectedQuantity(selectedQuantity + 1)}
+                    className="p-2 hover:bg-gray-50 hover:rounded-lg cursor-pointer"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
-              {product.category === 'cookies' && !product.isSoldInBox && (
-                <p className="text-xs text-[#6E5B4E] mt-1">
-                  If adding cookies, minimum 4 total required
-                </p>
-              )}
-            </div>
+            )}
 
             {/* Add to Cart Button */}
             <Button
               onClick={handleAddToCart}
-              disabled={(product.stock ?? 0) <= 0}
+              disabled={product.isSoldInBox ? !boxFlavors : false}
               className="w-full bg-[#1E7A31] hover:bg-[#166728] text-white py-3 mb-6 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               size="lg"
             >
-              {(product.stock ?? 0) <= 0 ? 'Out of Stock' : (
-                <>
-                  Add to cart
-                  {selectedFlavor && (
-                    <span className="ml-1">- {selectedFlavor.charAt(0).toUpperCase() + selectedFlavor.slice(1)}</span>
-                  )}
-                </>
+              Add to cart
+              {selectedFlavor && !product.isSoldInBox && (
+                <span className="ml-1">- {selectedFlavor.charAt(0).toUpperCase() + selectedFlavor.slice(1)}</span>
               )}
             </Button>
 
@@ -339,36 +314,17 @@ export default function ProductPage({
               </p>
             </div>
 
-            {/* Related Product Preview */}
-            <div>
-              <h3 className="font-medium text-[#3B2A22] mb-3">
-                Maybe you'd like to also try this:
-              </h3>
-              {relatedProducts[0] && (
-                <div className="flex items-center gap-3 p-3 border border-[#E6D7CB] rounded-lg">
-                  <div className="relative w-12 h-12 bg-[#F8F4F0] rounded">
-                    <Image
-                      src={relatedProducts[0].image}
-                      alt={relatedProducts[0].name}
-                      fill
-                      className="object-contain"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-medium text-sm">{relatedProducts[0].name}</h4>
-                    <p className="text-xs text-[#8F4B2B]">${relatedProducts[0].price.toFixed(2)}</p>
-                  </div>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => handleRelatedProductAdd(relatedProducts[0])}
-                    className="border-[#8F4B2B] text-[#8F4B2B] hover:bg-[#8F4B2B] hover:text-white"
-                  >
-                    Add to cart
-                  </Button>
+            {/* Related Product Preview - reuses ProductCard so flavor selection/validation works */}
+            {relatedProducts[0] && (
+              <div>
+                <h3 className="font-medium text-[#3B2A22] mb-3">
+                  Maybe you'd like to also try this:
+                </h3>
+                <div className="max-w-xs">
+                  <ProductCard product={relatedProducts[0]} />
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
 

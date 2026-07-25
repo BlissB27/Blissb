@@ -13,8 +13,9 @@ export type Product = {
   allowCustomMessage?: boolean; // Si permite mensaje personalizado (ej: cakes, algunos desserts)
   gallery?: string[]; // Galería de imágenes adicionales
   slug?: string; // URL slug para SEO friendly URLs
-  stock?: number; // Cantidad disponible en inventario
-  isSoldInBox?: boolean; // Si es una caja/paquete (no aplica regla de mínimo 4 galletas)
+  stock?: number; // Cantidad disponible en inventario (uso interno, no se muestra en la tienda)
+  isSoldInBox?: boolean; // Si es una caja/paquete con reparto de sabores (ej. Mini Cookie Box)
+  boxSize?: number; // Cantidad total de unidades que debe sumar el reparto de sabores de la caja
 };
 
 export const PRODUCTS: Product[] = [

@@ -85,6 +85,10 @@
     "isSoldInBox": {
       "type": "boolean",
       "default": false
+    },
+    "boxSize": {
+      "type": "integer",
+      "min": 1
     }
   }
 }

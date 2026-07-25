@@ -10,8 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useCartStore } from "@/store/cartStore";
+import type { BoxFlavor } from "@/store/cartStore";
 import type { Product } from "@/data/products";
 import { motion } from "framer-motion";
+import { BoxFlavorSelector } from "@/components/BoxFlavorSelector";
 
 type ProductCardProps = {
   product: Product;
@@ -26,9 +28,17 @@ export function ProductCard({ product }: ProductCardProps) {
   const [selectedFlavor, setSelectedFlavor] = useState<string>("");
   const [showFlavorRequired, setShowFlavorRequired] = useState(false);
   const [customMessage, setCustomMessage] = useState<string>("");
+  const [boxFlavors, setBoxFlavors] = useState<BoxFlavor[] | null>(null);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
+
+    if (product.isSoldInBox) {
+      if (!boxFlavors) return; // BoxFlavorSelector ya muestra el estado inválido
+      addItem(product, { boxFlavors });
+      setCurrentQuantity(prev => prev + boxFlavors.reduce((sum, f) => sum + f.quantity, 0));
+      return;
+    }
 
     // Si el producto tiene sabores disponibles y no se ha seleccionado sabor, mostrar error
     if (product.flavors && product.flavors.length > 0 && !selectedFlavor) {
@@ -36,24 +46,12 @@ export function ProductCard({ product }: ProductCardProps) {
       return;
     }
 
-    // Verificar disponibilidad de stock
-    const stock = product.stock ?? 0;
-    if (stock <= 0) {
-      return; // No agregar si no hay stock
-    }
-
-    // Verificar que la cantidad no exceda el stock disponible
-    if (quantity > stock) {
-      return; // No agregar si la cantidad excede el stock
-    }
-
     // Agregar al carrito con sabor y/o mensaje personalizado
-    addItem(
-      product,
+    addItem(product, {
       quantity,
-      selectedFlavor || undefined,
-      customMessage || undefined
-    );
+      flavor: selectedFlavor || undefined,
+      customMessage: customMessage || undefined,
+    });
 
     // Actualizar la cantidad mostrada inmediatamente
     setCurrentQuantity(prev => prev + quantity);
@@ -64,9 +62,7 @@ export function ProductCard({ product }: ProductCardProps) {
   };
 
   const handleQuantityChange = (increment: number) => {
-    const stock = product.stock ?? 0;
-    const newQuantity = Math.max(1, Math.min(stock, quantity + increment));
-    setQuantity(newQuantity);
+    setQuantity(Math.max(1, quantity + increment));
   };
 
   return (
@@ -114,7 +110,7 @@ export function ProductCard({ product }: ProductCardProps) {
               <Button
                 size="sm"
                 onClick={handleAddToCart}
-                disabled={(product.stock ?? 0) <= 0}
+                disabled={product.isSoldInBox ? !boxFlavors : false}
                 className="bg-white text-[#8F4B2B] border border-[#8F4B2B] rounded-full cursor-pointer hover:bg-[#8F4B2B] hover:text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus />
@@ -149,23 +145,13 @@ export function ProductCard({ product }: ProductCardProps) {
             )}
           </div>
 
-          {/* Stock availability indicator - Only show when stock is low (≤2) or out of stock */}
-          {product.stock !== undefined && product.stock <= 2 && (
-            <div className="flex items-center gap-2">
-              {product.stock > 0 ? (
-                <span className="text-xs text-orange-600 font-medium">
-                  Only {product.stock} left!
-                </span>
-              ) : (
-                <span className="text-xs text-red-600 font-medium">
-                  Out of stock
-                </span>
-              )}
-            </div>
+          {/* Box flavor selector (ex: Mini Cookie Box) */}
+          {product.isSoldInBox && (
+            <BoxFlavorSelector product={product} onSelectionChange={setBoxFlavors} />
           )}
 
           {/* Flavor selector for products with flavors (cakes, desserts, etc.) */}
-          {product.flavors && product.flavors.length > 0 && (
+          {!product.isSoldInBox && product.flavors && product.flavors.length > 0 && (
             <div className="space-y-1">
               <Select onValueChange={setSelectedFlavor} value={selectedFlavor}>
                 <SelectTrigger className="w-full text-sm">
@@ -185,35 +171,36 @@ export function ProductCard({ product }: ProductCardProps) {
             </div>
           )}
 
-          {/* Quantity selector for all products */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-[#6E5B4E]">Quantity:</span>
-            <div className="flex items-center border border-[#E6D7CB] rounded-md">
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleQuantityChange(-1);
-                }}
-                className="px-2 py-1 text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={quantity <= 1 || (product.stock ?? 0) <= 0}
-              >
-                -
-              </button>
-              <span className="px-3 py-1 text-sm border-x border-[#E6D7CB]">
-                {quantity}
-              </span>
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleQuantityChange(1);
-                }}
-                className="px-2 py-1 text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={(product.stock ?? 0) <= 0 || quantity >= (product.stock ?? 0)}
-              >
-                +
-              </button>
+          {/* Quantity selector - not shown for box products (quantity comes from flavor split) */}
+          {!product.isSoldInBox && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-[#6E5B4E]">Quantity:</span>
+              <div className="flex items-center border border-[#E6D7CB] rounded-md">
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleQuantityChange(-1);
+                  }}
+                  className="px-2 py-1 text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={quantity <= 1}
+                >
+                  -
+                </button>
+                <span className="px-3 py-1 text-sm border-x border-[#E6D7CB]">
+                  {quantity}
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleQuantityChange(1);
+                  }}
+                  className="px-2 py-1 text-sm hover:bg-gray-50"
+                >
+                  +
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Custom message input for products that allow it */}
           {product.allowCustomMessage && (
@@ -238,21 +225,14 @@ export function ProductCard({ product }: ProductCardProps) {
             </div>
           )}
 
-          {/* Minimum cookies reminder */}
-          {product.category === 'cookies' && !product.isSoldInBox && (
-            <p className="text-xs text-[#6E5B4E]">
-              If adding cookies, minimum 4 total required
-            </p>
-          )}
-
           {/* Full width add button for mobile */}
           <Button
             onClick={handleAddToCart}
-            disabled={(product.stock ?? 0) <= 0}
+            disabled={product.isSoldInBox ? !boxFlavors : false}
             className="w-full md:hidden bg-[#8F4B2B] hover:bg-[#6f3a22] text-white disabled:opacity-50 disabled:cursor-not-allowed"
             size="sm"
           >
-            {(product.stock ?? 0) <= 0 ? 'Out of Stock' : `Add to Cart (${quantity})`}
+            {product.isSoldInBox ? 'Add to Cart' : `Add to Cart (${quantity})`}
           </Button>
         </div>
       </Card>

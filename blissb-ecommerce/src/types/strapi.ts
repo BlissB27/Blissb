@@ -89,35 +89,3 @@ export interface StrapiCategoryAttributes {
 export interface StrapiCategory extends StrapiEntity {
   attributes: StrapiCategoryAttributes;
 }
-
-// Order types for Strapi
-export interface StrapiOrderAttributes {
-  customerName: string;
-  customerEmail: string;
-  customerPhone?: string;
-  shippingAddress: {
-    street: string;
-    city: string;
-    state: string;
-    zipCode: string;
-    country: string;
-  };
-  items: {
-    productId: number;
-    productName: string;
-    quantity: number;
-    price: number;
-    flavor?: string;
-  }[];
-  totalAmount: number;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  stripeSessionId?: string;
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-  publishedAt?: string;
-}
-
-export interface StrapiOrder extends StrapiEntity {
-  attributes: StrapiOrderAttributes;
-}

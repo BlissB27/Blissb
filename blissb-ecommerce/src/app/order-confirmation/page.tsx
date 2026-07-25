@@ -21,7 +21,7 @@ export default function OrderConfirmationPage() {
     items,
     getTotalPrice,
     getShippingInfo,
-    getMinimumCookiesInfo
+    getMinimumOrderInfo
   } = useCartStore();
 
   const {
@@ -33,7 +33,7 @@ export default function OrderConfirmationPage() {
   } = useDeliveryStore();
 
   const shippingInfo = getShippingInfo();
-  const cookiesInfo = getMinimumCookiesInfo();
+  const orderInfo = getMinimumOrderInfo();
 
   // Calcular delivery fee dinámicamente
   const getDeliveryFeeForType = () => {
@@ -67,15 +67,15 @@ export default function OrderConfirmationPage() {
       }
       
       // Only redirect if doesn't meet minimum after hydration
-      if (!cookiesInfo.hasEnoughCookies) {
-        console.log("Not enough cookies, redirecting to home");
+      if (!orderInfo.hasMinimumOrder) {
+        console.log("Order below minimum, redirecting to home");
         router.push('/');
         return;
       }
     }, 500); // Give 500ms for everything to load
-    
+
     return () => clearTimeout(timer);
-  }, [hydrated, items.length, cookiesInfo.hasEnoughCookies, router]);
+  }, [hydrated, items.length, orderInfo.hasMinimumOrder, router]);
 
   // Show loading while checking
   if (!hydrated || isLoading) {
@@ -90,7 +90,7 @@ export default function OrderConfirmationPage() {
   }
 
   // Show nothing if redirecting
-  if (items.length === 0 || !cookiesInfo.hasEnoughCookies) {
+  if (items.length === 0 || !orderInfo.hasMinimumOrder) {
     return (
       <div className="min-h-screen bg-[#F8F4F0] flex items-center justify-center">
         <div className="text-center">
@@ -141,6 +141,14 @@ export default function OrderConfirmationPage() {
                   <h3 className="font-medium text-[#3B2A22]">
                     {item.product.name}
                   </h3>
+                  {item.flavor && (
+                    <p className="text-sm text-[#8F4B2B]">Flavor: {item.flavor}</p>
+                  )}
+                  {item.boxFlavors && item.boxFlavors.length > 0 && (
+                    <p className="text-sm text-[#8F4B2B]">
+                      Flavors: {item.boxFlavors.map(f => `${f.flavor} x${f.quantity}`).join(', ')}
+                    </p>
+                  )}
                   <p className="text-sm text-[#6E5B4E]">
                     Quantity: {item.quantity}
                   </p>
@@ -219,13 +227,19 @@ export default function OrderConfirmationPage() {
             onClick={() => router.push('/checkout')}
             className="w-full bg-[#1E7A31] hover:bg-[#166426] text-white font-medium py-4 text-lg"
             size="lg"
-            disabled={!isValidSelection() || !isConfirmed}
+            disabled={!isValidSelection() || !isConfirmed || !orderInfo.hasMinimumOrder}
           >
             Proceed to Checkout
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
 
-          {(!isValidSelection() || !isConfirmed) && (
+          {!orderInfo.hasMinimumOrder && (
+            <div className="text-center text-sm text-[#6E5B4E] bg-yellow-50 p-3 rounded-md border border-yellow-200">
+              Your cart subtotal must be at least ${orderInfo.minimumRequired.toFixed(2)} to check out (currently ${orderInfo.currentTotal.toFixed(2)}).
+            </div>
+          )}
+
+          {orderInfo.hasMinimumOrder && (!isValidSelection() || !isConfirmed) && (
             <div className="text-center text-sm text-[#6E5B4E] bg-yellow-50 p-3 rounded-md border border-yellow-200">
               Please confirm your delivery method selection to proceed
             </div>

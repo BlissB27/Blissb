@@ -21,7 +21,7 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, getTotalPrice, getShippingInfo } = useCartStore();
+  const { items, getTotalPrice, getShippingInfo, getMinimumOrderInfo } = useCartStore();
   const {
     selectedType,
     selectedDate,
@@ -46,6 +46,7 @@ export default function CheckoutPage() {
 
   const subtotal = getTotalPrice();
   const shippingInfo = getShippingInfo();
+  const orderInfo = getMinimumOrderInfo();
 
   // Calculate delivery fee based on selected type
   const getDeliveryFeeForType = () => {
@@ -63,17 +64,17 @@ export default function CheckoutPage() {
   const processingFee = calculateProcessingFee(subtotal + deliveryFee);
   const total = subtotal + deliveryFee + processingFee;
 
-  // Redirect if cart is empty or delivery not selected
+  // Redirect if cart is empty, order below minimum, or delivery not selected
   useEffect(() => {
     if (items.length === 0) {
       router.push('/');
       return;
     }
-    if (!isValidSelection()) {
+    if (!orderInfo.hasMinimumOrder || !isValidSelection()) {
       router.push('/order-confirmation');
       return;
     }
-  }, [items.length, isValidSelection, router]);
+  }, [items.length, orderInfo.hasMinimumOrder, isValidSelection, router]);
 
   const validateForm = () => {
     const errors: string[] = [];
@@ -388,7 +389,7 @@ export default function CheckoutPage() {
               {/* Submit Button */}
               <Button
                 type="submit"
-                disabled={isProcessing}
+                disabled={isProcessing || !orderInfo.hasMinimumOrder}
                 className="w-full bg-[#1E7A31] hover:bg-[#166728] text-white py-3 font-medium text-lg"
                 size="lg"
               >
@@ -468,6 +469,11 @@ export default function CheckoutPage() {
                         {item.flavor && (
                           <p className="text-xs text-[#6E5B4E]">
                             Flavor: {item.flavor}
+                          </p>
+                        )}
+                        {item.boxFlavors && item.boxFlavors.length > 0 && (
+                          <p className="text-xs text-[#6E5B4E]">
+                            Flavors: {item.boxFlavors.map(f => `${f.flavor} x${f.quantity}`).join(', ')}
                           </p>
                         )}
                         {item.customMessage && (

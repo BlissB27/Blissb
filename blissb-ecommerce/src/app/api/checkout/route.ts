@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
+import { stripe } from '@/lib/stripe';
 import { getProductByIdAsync } from '@/data/products';
 import { calculateProcessingFee } from '@/lib/orderFees';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-08-27.basil',
-});
 
 // Configuración de delivery zones (debe coincidir con deliveryStore.ts)
 const FREE_DELIVERY_ZIP_CODES = [
@@ -73,22 +69,53 @@ export async function POST(request: NextRequest) {
             // En producción, podrías rechazar la transacción o notificar al usuario
           }
 
-          // Validar cantidad (entre 1 y 100)
-          const validQuantity = Math.max(1, Math.min(100, item.quantity));
+          // 🔒 VALIDAR CAJAS CON REPARTO DE SABORES (ej. Mini Cookie Box)
+          if (strapiProduct.isSoldInBox) {
+            const boxFlavors = item.boxFlavors as { flavor: string; quantity: number }[] | undefined;
+            const uniqueFlavors = new Set((boxFlavors ?? []).map((f) => f.flavor));
+            const total = (boxFlavors ?? []).reduce((sum, f) => sum + f.quantity, 0);
+
+            if (
+              !strapiProduct.boxSize ||
+              !boxFlavors ||
+              boxFlavors.length === 0 ||
+              boxFlavors.length > 3 ||
+              uniqueFlavors.size !== boxFlavors.length ||
+              total !== strapiProduct.boxSize
+            ) {
+              throw new Error(`Invalid flavor selection for ${strapiProduct.name}`);
+            }
+          }
+
+          // Validar cantidad — para cajas, la cantidad es la suma del reparto de sabores
+          const requestedQuantity = strapiProduct.isSoldInBox
+            ? (item.boxFlavors as { flavor: string; quantity: number }[]).reduce((sum, f) => sum + f.quantity, 0)
+            : item.quantity;
+          const validQuantity = Math.max(1, Math.min(100, requestedQuantity));
           validatedSubtotal += realPrice * validQuantity;
 
-          if (validQuantity !== item.quantity) {
-            console.warn(`Quantity adjusted for ${item.product.id}: ${item.quantity} -> ${validQuantity}`);
+          // 🔒 Disponibilidad real (sin exponer cantidades de stock al cliente)
+          const availableStock = strapiProduct.stock ?? 0;
+          if (validQuantity > availableStock) {
+            throw new Error('One or more items in your cart are currently unavailable. Please remove them and try again.');
           }
+
+          const description = item.boxFlavors?.length
+            ? `Flavors: ${item.boxFlavors.map((f: { flavor: string; quantity: number }) => `${f.flavor} x${f.quantity}`).join(', ')}`
+            : item.flavor
+            ? `Flavor: ${item.flavor}`
+            : item.customMessage
+            ? `Message: "${item.customMessage}"`
+            : undefined;
 
           return {
             price_data: {
               currency: 'usd',
               product_data: {
                 name: strapiProduct.name,
-                description: item.flavor ? `Flavor: ${item.flavor}` :
-                           item.customMessage ? `Message: "${item.customMessage}"` : undefined,
+                description,
                 images: strapiProduct.image ? [strapiProduct.image] : [],
+                metadata: { productId: strapiProduct.id },
               },
               unit_amount: Math.round(realPrice * 100), // 🔒 PRECIO VALIDADO DE STRAPI
             },
@@ -96,10 +123,18 @@ export async function POST(request: NextRequest) {
           };
         } catch (error) {
           console.error(`Error validating product ${item.product.id}:`, error);
-          throw new Error(`Unable to validate product: ${item.product.name}`);
+          throw error instanceof Error ? error : new Error(`Unable to validate product: ${item.product.name}`);
         }
       })
     );
+
+    // 🔒 MÍNIMO DE ORDEN
+    if (validatedSubtotal < 20) {
+      return NextResponse.json(
+        { error: 'Your cart subtotal must be at least $20 to check out.' },
+        { status: 400 }
+      );
+    }
 
     // 🔒 VALIDAR DELIVERY FEE EN EL BACKEND
     const validatedDeliveryFee = validateDeliveryFee(
@@ -130,6 +165,7 @@ export async function POST(request: NextRequest) {
               ? 'Nationwide shipping'
               : `Delivery to ${deliveryInfo.zipCode}`,
             images: [],
+            metadata: { productId: '' },
           },
           unit_amount: Math.round(validatedDeliveryFee * 100), // 🔒 FEE VALIDADO
         },
@@ -147,6 +183,7 @@ export async function POST(request: NextRequest) {
             name: 'Fees',
             description: undefined,
             images: [],
+            metadata: { productId: '' },
           },
           unit_amount: Math.round(processingFee * 100),
         },

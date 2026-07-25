@@ -1,13 +1,11 @@
-import { strapiGet, getStrapiMediaUrl } from '@/lib/strapi';
+import { strapiGet, strapiPut, getStrapiMediaUrl } from '@/lib/strapi';
 import { StrapiResponse, StrapiProduct } from '@/types/strapi';
 import type { Product } from '@/data/products';
 
 // Convert Strapi product to our app's product format
 export function transformStrapiProduct(strapiProduct: any): Product {
-  console.log('Transforming Strapi product:', strapiProduct);
-
   // Strapi v5 format - no attributes wrapper, direct fields
-  const transformed = {
+  return {
     id: strapiProduct.documentId || strapiProduct.id.toString(),
     name: strapiProduct.name || '',
     price: strapiProduct.price || 0,
@@ -27,10 +25,9 @@ export function transformStrapiProduct(strapiProduct: any): Product {
     gallery: strapiProduct.gallery?.map((img: any) => getStrapiMediaUrl(img.url)) || [],
     slug: strapiProduct.slug || '',
     stock: strapiProduct.stock ?? 0,
+    isSoldInBox: strapiProduct.isSoldInBox ?? false,
+    boxSize: strapiProduct.boxSize ?? undefined,
   };
-
-  console.log('Transformed product:', transformed);
-  return transformed;
 }
 
 // Get all products
@@ -52,30 +49,17 @@ export async function getAllProducts(): Promise<Product[]> {
 // Get products by category
 export async function getProductsByCategory(category: Product['category']): Promise<Product[]> {
   try {
-    console.log(`Fetching products for category: ${category}`);
-    console.log(`Strapi URL: ${process.env.NEXT_PUBLIC_STRAPI_URL}`);
-
     // Get all products first
     const response: any = await strapiGet('/products', {
       'populate': '*',
       'sort': 'createdAt:desc'
     });
 
-    console.log(`Found ${response.data?.length || 0} total products`);
-
-    // Transform all products
+    // Transform all products and filter by category on client side
     const allProducts = response.data.map(transformStrapiProduct);
-
-    // Filter by category on client side
-    const filteredProducts = allProducts.filter((product: Product) => product.category === category);
-
-    console.log(`Found ${filteredProducts.length} products for category ${category}`);
-    console.log('Filtered products:', filteredProducts);
-
-    return filteredProducts;
+    return allProducts.filter((product: Product) => product.category === category);
   } catch (error) {
     console.error(`Error fetching ${category} products:`, error);
-    console.error('Full error details:', JSON.stringify(error, null, 2));
     return [];
   }
 }
@@ -135,6 +119,22 @@ export async function getFeaturedProducts(): Promise<Product[]> {
   } catch (error) {
     console.error('Error fetching featured products:', error);
     return [];
+  }
+}
+
+// Descuenta stock tras un pago exitoso. Best-effort: si falla, no debe tumbar el webhook
+// que la llama (el pago ya se cobró) — el caller es responsable de atrapar errores.
+export async function decrementProductStock(productId: string, quantity: number): Promise<boolean> {
+  try {
+    const response: any = await strapiGet(`/products/${productId}`);
+    const currentStock = response?.data?.stock ?? 0;
+    const newStock = Math.max(0, currentStock - quantity);
+
+    await strapiPut(`/products/${productId}`, { data: { stock: newStock } });
+    return true;
+  } catch (error) {
+    console.error(`Error decrementing stock for product ${productId}:`, error);
+    return false;
   }
 }
 

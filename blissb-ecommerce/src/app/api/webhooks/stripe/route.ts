@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { stripe } from '@/lib/stripe';
 import { sendOrderEmails } from '@/lib/email';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-08-27.basil',
-});
+import { decrementProductStock } from '@/services/products';
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
@@ -56,15 +54,26 @@ export async function POST(request: NextRequest) {
           const productData = item.price?.product as Stripe.Product;
           return {
             id: parseInt(item.id.slice(-8), 16), // Generar ID numérico
+            productId: productData.metadata?.productId,
             name: productData.name,
             price: (item.amount_total || 0) / 100 / (item.quantity || 1),
             quantity: item.quantity || 1,
             image: productData.images?.[0],
-            size: item.description?.includes('Flavor:')
-              ? item.description.split('Flavor: ')[1]
+            size: item.description?.includes('Flavor')
+              ? item.description.split(/Flavors?: /)[1]
               : undefined,
           };
         });
+
+      // Descontar inventario (best-effort, no debe fallar el webhook si algo sale mal)
+      // TODO: consolidar cuando haya acceso a Stripe para saber si este webhook o el de
+      // api/webhook/route.ts es el que está realmente registrado en el dashboard.
+      for (const p of products) {
+        if (!p.productId) continue;
+        await decrementProductStock(p.productId, p.quantity).catch((err) =>
+          console.error(`Failed to decrement stock for product ${p.productId}:`, err)
+        );
+      }
 
       // Calcular totales
       const shippingItem = lineItems.find((item) => {

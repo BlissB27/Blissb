@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { stripe } from '@/lib/stripe';
 import { headers } from 'next/headers';
 import { Resend } from 'resend';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-06-20',
-});
+import { decrementProductStock } from '@/services/products';
 
 // Temporarily disable Resend until we configure it
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
@@ -59,6 +57,15 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
     });
 
     // Extract order information
+    const purchasedItems = lineItems.data
+      .filter((item) => !['Shipping', 'Delivery Fee', 'Fees'].includes(item.description || ''))
+      .map(item => ({
+        name: item.description || 'Unknown Product',
+        quantity: item.quantity,
+        amount: item.amount_total ? item.amount_total / 100 : 0,
+        productId: (item.price?.product as Stripe.Product | null)?.metadata?.productId,
+      }));
+
     const orderInfo = {
       sessionId: session.id,
       orderNumber: `BLISS-${session.id.slice(-8).toUpperCase()}`,
@@ -72,16 +79,20 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
       zipCode: session.metadata?.zipCode,
       totalAmount: session.amount_total ? session.amount_total / 100 : 0,
       currency: session.currency?.toUpperCase(),
-      items: lineItems.data
-        .filter((item) => !['Shipping', 'Delivery Fee', 'Fees'].includes(item.description || ''))
-        .map(item => ({
-          name: item.description || 'Unknown Product',
-          quantity: item.quantity,
-          amount: item.amount_total ? item.amount_total / 100 : 0
-        })),
+      items: purchasedItems,
       paymentStatus: session.payment_status,
       createdAt: new Date(session.created * 1000)
     };
+
+    // Descontar inventario (best-effort, no debe fallar el webhook si algo sale mal)
+    // TODO: consolidar cuando haya acceso a Stripe para saber si este webhook o el de
+    // api/webhooks/stripe/route.ts es el que está realmente registrado en el dashboard.
+    for (const item of purchasedItems) {
+      if (!item.productId || !item.quantity) continue;
+      await decrementProductStock(item.productId, item.quantity).catch((err) =>
+        console.error(`Failed to decrement stock for product ${item.productId}:`, err)
+      );
+    }
 
     // Send email notification
     await sendOrderNotification(orderInfo);
