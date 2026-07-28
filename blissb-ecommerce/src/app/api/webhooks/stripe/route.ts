@@ -66,8 +66,6 @@ export async function POST(request: NextRequest) {
         });
 
       // Descontar inventario (best-effort, no debe fallar el webhook si algo sale mal)
-      // TODO: consolidar cuando haya acceso a Stripe para saber si este webhook o el de
-      // api/webhook/route.ts es el que está realmente registrado en el dashboard.
       for (const p of products) {
         if (!p.productId) continue;
         await decrementProductStock(p.productId, p.quantity).catch((err) =>

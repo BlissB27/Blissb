@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { strapiPost } from '@/lib/strapi';
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,6 +20,13 @@ export async function POST(request: NextRequest) {
         { error: 'Invalid email format' },
         { status: 400 }
       );
+    }
+
+    // Guardar en Strapi para que sea visible en el admin (best-effort, no bloquea MailerLite)
+    try {
+      await strapiPost('/subscribers', { data: { email } });
+    } catch (strapiError) {
+      console.error('Failed to save subscriber to Strapi:', strapiError);
     }
 
     const apiToken = process.env.MAILERLITE_API_TOKEN;
