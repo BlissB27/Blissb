@@ -1,12 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Skip TypeScript and ESLint checks during build for faster deployment
+  // Skip TypeScript checks during build for faster deployment
   typescript: {
     ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
   },
 
   // 🔒 HEADERS DE SEGURIDAD

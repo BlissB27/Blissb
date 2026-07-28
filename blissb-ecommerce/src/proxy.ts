@@ -31,7 +31,7 @@ const MAINTENANCE_HTML = `<!DOCTYPE html>
 </body>
 </html>`;
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   if (process.env.MAINTENANCE_MODE !== 'true') {
     return NextResponse.next();
   }
