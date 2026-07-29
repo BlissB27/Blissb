@@ -1,68 +1,80 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Plus } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { AddToCartButton } from "@/components/AddToCartButton";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { useCartStore } from "@/store/cartStore";
 import type { BoxFlavor } from "@/store/cartStore";
 import type { Product } from "@/data/products";
 import { motion } from "framer-motion";
-import { BoxFlavorSelector } from "@/components/BoxFlavorSelector";
+import { FlavorSelector } from "@/components/FlavorSelector";
 
 type ProductCardProps = {
   product: Product;
 };
 
-// Sabores disponibles para cakes (ahora desde product.flavors)
 export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCartStore();
   const [currentQuantity, setCurrentQuantity] = useState(0);
-  const [isMounted] = useState(false);
-  const [quantity, setQuantity] = useState<number>(1);
-  const [selectedFlavor, setSelectedFlavor] = useState<string>("");
-  const [showFlavorRequired, setShowFlavorRequired] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const [customMessage, setCustomMessage] = useState<string>("");
   const [boxFlavors, setBoxFlavors] = useState<BoxFlavor[] | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isOptionsOpen, setIsOptionsOpen] = useState(false);
 
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
-    if (product.isSoldInBox) {
-      if (!boxFlavors) return; // BoxFlavorSelector ya muestra el estado inválido
-      addItem(product, { boxFlavors });
-      setCurrentQuantity(prev => prev + boxFlavors.reduce((sum, f) => sum + f.quantity, 0));
-      return;
+  const hasFlavorSelector = !!product.flavors && product.flavors.length > 0;
+  const isUnconfiguredBox = product.isSoldInBox && !product.boxSize;
+  const needsOptions = (hasFlavorSelector && !isUnconfiguredBox) || product.allowCustomMessage;
+
+  const finishAdd = (options: { boxFlavors?: BoxFlavor[]; customMessage?: string }): boolean => {
+    setErrorMessage(null);
+    const addedQuantity = options.boxFlavors
+      ? options.boxFlavors.reduce((sum, f) => sum + f.quantity, 0)
+      : 1;
+
+    const result = addItem(product, { quantity: 1, ...options });
+    if (!result.success) {
+      setErrorMessage(result.error ?? "Couldn't add this item to your cart.");
+      return false;
     }
-
-    // Si el producto tiene sabores disponibles y no se ha seleccionado sabor, mostrar error
-    if (product.flavors && product.flavors.length > 0 && !selectedFlavor) {
-      setShowFlavorRequired(true);
-      return;
-    }
-
-    // Agregar al carrito con sabor y/o mensaje personalizado
-    addItem(product, {
-      quantity,
-      flavor: selectedFlavor || undefined,
-      customMessage: customMessage || undefined,
-    });
-
-    // Actualizar la cantidad mostrada inmediatamente
-    setCurrentQuantity(prev => prev + quantity);
-
-    // Reset states
-    setShowFlavorRequired(false);
-    setCustomMessage(""); // Limpiar mensaje después de agregar
+    setCurrentQuantity((prev) => prev + addedQuantity);
+    setCustomMessage("");
+    setBoxFlavors(null);
+    return true;
   };
 
-  const handleQuantityChange = (increment: number) => {
-    setQuantity(Math.max(1, quantity + increment));
+  const handleAddToCart = (e: React.MouseEvent<HTMLButtonElement>): boolean => {
+    e.preventDefault();
+    if (isUnconfiguredBox) return false;
+
+    if (needsOptions) {
+      setIsOptionsOpen(true);
+      return false;
+    }
+
+    return finishAdd({});
+  };
+
+  const handleConfirmOptions = (): boolean => {
+    if (hasFlavorSelector && !boxFlavors) return false; // FlavorSelector shows the invalid state
+    return finishAdd({
+      boxFlavors: hasFlavorSelector ? boxFlavors ?? undefined : undefined,
+      customMessage: customMessage || undefined,
+    });
   };
 
   return (
@@ -70,172 +82,126 @@ export function ProductCard({ product }: ProductCardProps) {
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-100px" }}
-      transition={{
-        type: "spring",
-        damping: 25,
-        stiffness: 300,
-        duration: 0.4
-      }}
-      whileHover={{ y: -5 }}
+      transition={{ type: "spring", damping: 25, stiffness: 300, duration: 0.4 }}
+      className="h-full"
     >
-      <Card className="overflow-hidden group hover:shadow-lg transition-shadow duration-200 h-full">
-        {/* Image container */}
-        <Link href={`/product/${product.slug || product.id}`}>
-          <div className="relative aspect-square cursor-pointer">
+      <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-brand-border bg-white transition-shadow duration-200 hover:shadow-lg">
+        {/* Image */}
+        <div className="relative aspect-square bg-brand-bg">
+          <Link href={`/product/${product.slug || product.id}`} className="absolute inset-0">
             <Image
               src={product.image}
               alt={product.name}
               fill
-              className="object-cover transition-transform duration-200 group-hover:scale-105 -mt-6"
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
               priority={false}
             />
+          </Link>
 
-            {/* Badges */}
-            <div className="absolute top-2 left-2 flex flex-col gap-1">
-              {product.isNew && (
-                <Badge variant="secondary" className="bg-[#1E7A31] text-white text-xs">
-                  New flavor
-                </Badge>
-              )}
-              {product.isOnOffer && (
-                <Badge variant="secondary" className="bg-[#1E7A31] text-white text-xs">
-                  Seasonal
-                </Badge>
-              )}
-            </div>
-
-            {/* Add to cart button (overlay) - Desktop only */}
-            <div className="hidden md:block absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              <Button
-                size="sm"
-                onClick={handleAddToCart}
-                disabled={product.isSoldInBox ? !boxFlavors : false}
-                className="bg-white text-[#8F4B2B] border border-[#8F4B2B] rounded-full cursor-pointer hover:bg-[#8F4B2B] hover:text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Plus />
-              </Button>
-            </div>
-          </div>
-        </Link>
-
-        {/* Product info */}
-        <div className="p-2 space-y-2 -mt-10">
-          <h3 className="font-medium text-[#3B2A22] text-lg">
-            {product.name}
-          </h3>
-          
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-[#8F4B2B] font-semibold">
-                ${product.price.toFixed(2)}
-              </span>
-              {product.isOnOffer && product.originalPrice && (
-                <span className="text-gray-400 line-through text-sm">
-                  ${product.originalPrice.toFixed(2)}
-                </span>
-              )}
-            </div>
-
-            {/* Quantity indicator - Solo mostrar cuando está montado en el cliente */}
-            {isMounted && currentQuantity > 0 && (
-              <span className="text-xs text-[#1E7A31] bg-[#1E7A31]/10 px-2 py-1 rounded-full">
-                {currentQuantity} in cart
-              </span>
+          <div className="pointer-events-none absolute top-3 left-3 flex flex-col gap-1.5">
+            {product.isNew && (
+              <Badge className="bg-brand-success text-white text-xs font-medium">New flavor</Badge>
+            )}
+            {product.isOnOffer && (
+              <Badge className="bg-brand-accent text-white text-xs font-medium">Seasonal</Badge>
             )}
           </div>
 
-          {/* Box flavor selector (ex: Mini Cookie Box) */}
-          {product.isSoldInBox && (
-            <BoxFlavorSelector product={product} onSelectionChange={setBoxFlavors} />
+          {isMounted && currentQuantity > 0 && (
+            <span className="absolute top-3 right-3 rounded-full bg-brand-success px-2.5 py-1 text-xs font-medium text-white shadow-sm">
+              {currentQuantity} in cart
+            </span>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="flex flex-1 flex-col gap-2 p-4">
+          <Link href={`/product/${product.slug || product.id}`}>
+            <h3 className="font-display text-base font-semibold text-brand-text line-clamp-1 hover:text-brand-brown transition-colors">
+              {product.name}
+            </h3>
+          </Link>
+
+          <span className="font-display text-lg font-bold text-brand-brown">
+            ${product.price.toFixed(2)}
+            {product.isOnOffer && product.originalPrice && (
+              <span className="ml-2 text-sm font-normal text-brand-muted line-through">
+                ${product.originalPrice.toFixed(2)}
+              </span>
+            )}
+          </span>
+
+          {product.description && (
+            <p className="text-sm text-brand-muted line-clamp-2">{product.description}</p>
           )}
 
-          {/* Flavor selector for products with flavors (cakes, desserts, etc.) */}
-          {!product.isSoldInBox && product.flavors && product.flavors.length > 0 && (
-            <div className="space-y-1">
-              <Select onValueChange={setSelectedFlavor} value={selectedFlavor}>
-                <SelectTrigger className="w-full text-sm">
-                  <SelectValue placeholder="Choose flavor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {product.flavors.map((flavor) => (
-                    <SelectItem key={flavor} value={flavor.toLowerCase()}>
-                      {flavor}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {showFlavorRequired && (
-                <p className="text-xs text-red-500">Please select a flavor</p>
+          {isUnconfiguredBox ? (
+            <p className="text-xs text-brand-muted mt-auto">
+              This box isn&apos;t available online yet — please contact us directly to order it.
+            </p>
+          ) : (
+            <div className="mt-auto pt-2">
+              <AddToCartButton onAdd={handleAddToCart} className="w-full" size="sm">
+                Add to Cart
+              </AddToCartButton>
+              {errorMessage && (
+                <p role="alert" className="text-xs text-red-600 mt-2">
+                  {errorMessage}
+                </p>
               )}
             </div>
           )}
+        </div>
+      </div>
 
-          {/* Quantity selector - not shown for box products (quantity comes from flavor split) */}
-          {!product.isSoldInBox && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-[#6E5B4E]">Quantity:</span>
-              <div className="flex items-center border border-[#E6D7CB] rounded-md">
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleQuantityChange(-1);
-                  }}
-                  className="px-2 py-1 text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={quantity <= 1}
-                >
-                  -
-                </button>
-                <span className="px-3 py-1 text-sm border-x border-[#E6D7CB]">
-                  {quantity}
-                </span>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleQuantityChange(1);
-                  }}
-                  className="px-2 py-1 text-sm hover:bg-gray-50"
-                >
-                  +
-                </button>
-              </div>
-            </div>
+      {/* Options modal — flavor split and/or custom message, kept out of the card so every card looks the same */}
+      <Dialog open={isOptionsOpen} onOpenChange={setIsOptionsOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-brand-brown">{product.name}</DialogTitle>
+            <DialogDescription>Choose your options before adding this to your cart.</DialogDescription>
+          </DialogHeader>
+
+          {hasFlavorSelector && (
+            <FlavorSelector
+              flavors={product.flavors ?? []}
+              fixedTarget={!!product.isSoldInBox}
+              targetQuantity={product.isSoldInBox ? (product.boxSize as number) : undefined}
+              onSelectionChange={setBoxFlavors}
+            />
           )}
 
-          {/* Custom message input for products that allow it */}
           {product.allowCustomMessage && (
             <div className="space-y-1">
-              <label className="text-sm text-[#6E5B4E]">
-                Special message (optional)
-              </label>
+              <label className="text-sm text-brand-muted">Special message (optional)</label>
               <Input
                 placeholder="e.g., Happy Birthday John!"
                 maxLength={50}
                 value={customMessage}
-                onChange={(e) => {
-                  e.preventDefault();
-                  setCustomMessage(e.target.value);
-                }}
-                onClick={(e) => e.preventDefault()}
-                className="text-sm border-[#E6D7CB] focus:border-[#8F4B2B]"
+                onChange={(e) => setCustomMessage(e.target.value)}
+                className="text-sm border-brand-border focus:border-brand-brown"
               />
-              <p className="text-xs text-[#6E5B4E]">
-                Max 50 characters
-              </p>
+              <p className="text-xs text-brand-muted">Max 50 characters</p>
             </div>
           )}
 
-          {/* Full width add button for mobile */}
-          <Button
-            onClick={handleAddToCart}
-            disabled={product.isSoldInBox ? !boxFlavors : false}
-            className="w-full md:hidden bg-[#8F4B2B] hover:bg-[#6f3a22] text-white disabled:opacity-50 disabled:cursor-not-allowed"
-            size="sm"
+          {errorMessage && (
+            <p role="alert" className="text-sm text-red-600">
+              {errorMessage}
+            </p>
+          )}
+
+          <AddToCartButton
+            onAdd={handleConfirmOptions}
+            onAnimationComplete={() => setIsOptionsOpen(false)}
+            disabled={hasFlavorSelector ? !boxFlavors : false}
+            className="w-full"
           >
-            {product.isSoldInBox ? 'Add to Cart' : `Add to Cart (${quantity})`}
-          </Button>
-        </div>
-      </Card>
+            Add to Cart
+          </AddToCartButton>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }

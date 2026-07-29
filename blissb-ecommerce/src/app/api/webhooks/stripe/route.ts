@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       const shipping = shippingItem ? (shippingItem.amount_total || 0) / 100 : 0;
       const feeItem = lineItems.find((item) => {
         const productData = item.price?.product as Stripe.Product | null;
-        return productData?.name === 'Fees';
+        return productData?.name === 'Card processing fee';
       });
       const processingFee = feeItem ? (feeItem.amount_total || 0) / 100 : 0;
       const subtotal = products.reduce(

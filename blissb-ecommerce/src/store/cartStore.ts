@@ -24,12 +24,17 @@ export type AddItemOptions = {
   boxFlavors?: BoxFlavor[];
 };
 
+export type AddItemResult = {
+  success: boolean;
+  error?: string;
+};
+
 type CartStore = {
   items: CartItem[];
   isOpen: boolean;
 
   // Actions
-  addItem: (product: Product, options?: AddItemOptions) => void;
+  addItem: (product: Product, options?: AddItemOptions) => AddItemResult;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
@@ -87,8 +92,7 @@ export const useCartStore = create<CartStore>()(
         // Validar producto antes de agregar
         const productValidation = get().validateProduct(normalizedProduct, flavor, boxFlavors);
         if (!productValidation.isValid) {
-          console.error(productValidation.error);
-          return;
+          return { success: false, error: productValidation.error };
         }
 
         // Cajas: la cantidad total la define la suma de boxFlavors, no el parámetro quantity
@@ -100,8 +104,7 @@ export const useCartStore = create<CartStore>()(
         if (!boxFlavors) {
           const quantityValidation = get().validateMinimumQuantity(normalizedProduct, effectiveQuantity);
           if (!quantityValidation.isValid) {
-            console.error(quantityValidation.error);
-            return;
+            return { success: false, error: quantityValidation.error };
           }
         }
 
@@ -155,8 +158,10 @@ export const useCartStore = create<CartStore>()(
             isOpen: true,
           };
         });
+
+        return { success: true };
       },
-      
+
       removeItem: (productId) => {
         set((state) => ({
           items: state.items.filter(item => item.id !== productId),
@@ -287,16 +292,9 @@ export const useCartStore = create<CartStore>()(
       },
 
       validateProduct: (product, flavor, boxFlavors) => {
-        // Cajas con reparto de sabores (ej. Mini Cookie Box): reglas propias
-        if (product.isSoldInBox === true) {
-          if (!product.boxSize) {
-            return {
-              isValid: false,
-              error: `${product.name} is not available yet — box configuration is pending.`,
-            };
-          }
-
-          if (!boxFlavors || boxFlavors.length === 0) {
+        // Reparto de sabores por checkboxes (cajas y productos regulares con flavors)
+        if (boxFlavors) {
+          if (boxFlavors.length === 0) {
             return {
               isValid: false,
               error: `Please select at least one flavor for ${product.name}`,
@@ -319,14 +317,35 @@ export const useCartStore = create<CartStore>()(
           }
 
           const total = boxFlavors.reduce((sum, f) => sum + f.quantity, 0);
-          if (total !== product.boxSize) {
+
+          if (product.isSoldInBox) {
+            if (!product.boxSize) {
+              return {
+                isValid: false,
+                error: `${product.name} is not available yet — box configuration is pending.`,
+              };
+            }
+            if (total !== product.boxSize) {
+              return {
+                isValid: false,
+                error: `Selected flavor quantities must add up to ${product.boxSize} for ${product.name}`,
+              };
+            }
+          } else if (total < 1) {
             return {
               isValid: false,
-              error: `Selected flavor quantities must add up to ${product.boxSize} for ${product.name}`,
+              error: `Please select at least 1 item for ${product.name}`,
             };
           }
 
           return { isValid: true };
+        }
+
+        if (product.isSoldInBox) {
+          return {
+            isValid: false,
+            error: `Please select flavors for ${product.name}`,
+          };
         }
 
         // Validar que los productos con flavors disponibles tengan sabor especificado

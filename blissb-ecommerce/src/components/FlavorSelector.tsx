@@ -2,28 +2,30 @@
 
 import { useEffect, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { Product } from "@/data/products";
 import type { BoxFlavor } from "@/store/cartStore";
 
 const MAX_FLAVORS = 3;
 
-type BoxFlavorSelectorProps = {
-  product: Product;
-  onSelectionChange: (boxFlavors: BoxFlavor[] | null) => void;
+type FlavorSelectorProps = {
+  flavors: string[];
+  /** Box products (fixed size, e.g. a 50-count box): the split must sum exactly to this. */
+  targetQuantity?: number;
+  /** true for box products with a fixed size; false lets the customer build the total from the flavors themselves. */
+  fixedTarget: boolean;
+  onSelectionChange: (selection: BoxFlavor[] | null) => void;
 };
 
-export function BoxFlavorSelector({ product, onSelectionChange }: BoxFlavorSelectorProps) {
-  const flavors = product.flavors ?? [];
-  const boxSize = product.boxSize;
-
+export function FlavorSelector({ flavors, targetQuantity, fixedTarget, onSelectionChange }: FlavorSelectorProps) {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
 
   const selectedFlavors = Object.keys(quantities);
   const total = Object.values(quantities).reduce((sum, q) => sum + q, 0);
-  const isValid = !!boxSize && selectedFlavors.length > 0 && selectedFlavors.length <= MAX_FLAVORS && total === boxSize;
+  const isValid = fixedTarget
+    ? !!targetQuantity && targetQuantity > 0 && selectedFlavors.length > 0 && selectedFlavors.length <= MAX_FLAVORS && total === targetQuantity
+    : selectedFlavors.length > 0 && selectedFlavors.length <= MAX_FLAVORS && total >= 1;
 
   useEffect(() => {
-    if (!isValid || !boxSize) {
+    if (!isValid) {
       onSelectionChange(null);
       return;
     }
@@ -32,24 +34,15 @@ export function BoxFlavorSelector({ product, onSelectionChange }: BoxFlavorSelec
       selectedFlavors.map((flavor) => ({ flavor, quantity: quantities[flavor] }))
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quantities, isValid, boxSize]);
-
-  if (!boxSize) {
-    return (
-      <div className="mb-6 rounded-lg border border-[#E6D7CB] bg-[#F8F4F0] p-4">
-        <p className="text-sm text-[#6E5B4E]">
-          This box isn&apos;t available online yet — please contact us directly to order it.
-        </p>
-      </div>
-    );
-  }
+  }, [quantities, isValid, targetQuantity]);
 
   const toggleFlavor = (flavor: string, checked: boolean) => {
     setQuantities((prev) => {
       const next = { ...prev };
       if (checked) {
         if (Object.keys(next).length >= MAX_FLAVORS) return prev;
-        next[flavor] = 0;
+        // Free-form mode: a newly checked flavor starts at 1, so it's never a "phantom" empty slot.
+        next[flavor] = fixedTarget ? 0 : 1;
       } else {
         delete next[flavor];
       }
@@ -57,14 +50,22 @@ export function BoxFlavorSelector({ product, onSelectionChange }: BoxFlavorSelec
     });
   };
 
+  const floor = fixedTarget ? 0 : 1;
   const setQuantity = (flavor: string, quantity: number) => {
-    setQuantities((prev) => ({ ...prev, [flavor]: Math.max(0, quantity) }));
+    setQuantities((prev) => ({ ...prev, [flavor]: Math.max(floor, quantity) }));
   };
+
+  const statusText = fixedTarget
+    ? `${total} / ${targetQuantity} selected${selectedFlavors.length > 0 && total !== targetQuantity ? " — quantities must add up exactly to the quantity selected" : ""}`
+    : `${total} total selected`;
+  const statusIsGood = fixedTarget ? total === targetQuantity : total >= 1;
 
   return (
     <div className="mb-6">
-      <p className="text-sm text-[#6E5B4E] mb-2">
-        Choose up to {MAX_FLAVORS} flavors and split the {boxSize} cookies between them:
+      <p className="text-sm text-brand-muted mb-2">
+        {fixedTarget
+          ? `Choose up to ${MAX_FLAVORS} flavors and split the ${targetQuantity} between them:`
+          : `Choose up to ${MAX_FLAVORS} flavors and set the quantity for each:`}
       </p>
 
       <div className="space-y-2">
@@ -76,7 +77,7 @@ export function BoxFlavorSelector({ product, onSelectionChange }: BoxFlavorSelec
             <div
               key={flavor}
               className={`flex items-center justify-between gap-3 rounded-lg border p-3 ${
-                isChecked ? "border-[#8F4B2B] bg-[#8F4B2B]/5" : "border-[#E6D7CB]"
+                isChecked ? "border-brand-brown bg-brand-brown/5" : "border-brand-border"
               } ${isDisabled ? "opacity-50" : ""}`}
             >
               <label className="flex items-center gap-2 cursor-pointer flex-1">
@@ -85,15 +86,17 @@ export function BoxFlavorSelector({ product, onSelectionChange }: BoxFlavorSelec
                   disabled={isDisabled}
                   onCheckedChange={(checked) => toggleFlavor(flavor, checked === true)}
                 />
-                <span className="text-sm text-[#3B2A22]">{flavor}</span>
+                <span className="text-sm text-brand-text">{flavor}</span>
               </label>
 
               {isChecked && (
-                <div className="flex items-center border border-[#E6D7CB] rounded-lg">
+                <div className="flex items-center border border-brand-border rounded-lg">
                   <button
                     type="button"
+                    aria-label={`Decrease ${flavor} quantity`}
                     onClick={() => setQuantity(flavor, quantities[flavor] - 1)}
-                    className="px-3 py-1 hover:bg-gray-50"
+                    disabled={quantities[flavor] <= floor}
+                    className="px-3 py-1 hover:bg-brand-bg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     −
                   </button>
@@ -102,8 +105,9 @@ export function BoxFlavorSelector({ product, onSelectionChange }: BoxFlavorSelec
                   </span>
                   <button
                     type="button"
+                    aria-label={`Increase ${flavor} quantity`}
                     onClick={() => setQuantity(flavor, quantities[flavor] + 1)}
-                    className="px-3 py-1 hover:bg-gray-50"
+                    className="px-3 py-1 hover:bg-brand-bg"
                   >
                     +
                   </button>
@@ -114,9 +118,8 @@ export function BoxFlavorSelector({ product, onSelectionChange }: BoxFlavorSelec
         })}
       </div>
 
-      <p className={`text-sm mt-2 ${total === boxSize ? "text-[#1E7A31]" : "text-[#6E5B4E]"}`}>
-        {total} / {boxSize} selected
-        {selectedFlavors.length > 0 && total !== boxSize && " — quantities must add up exactly to the box size"}
+      <p aria-live="polite" className={`text-sm mt-2 ${statusIsGood ? "text-brand-success" : "text-brand-muted"}`}>
+        {statusText}
       </p>
     </div>
   );

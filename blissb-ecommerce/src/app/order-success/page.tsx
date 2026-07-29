@@ -10,39 +10,80 @@ import { useCartStore } from '@/store/cartStore';
 import { useDeliveryStore } from '@/store/deliveryStore';
 import { motion } from 'framer-motion';
 
+type VerifyState = 'verifying' | 'confirmed' | 'unconfirmed' | 'no-session';
+
 function OrderSuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
   const { clearCart } = useCartStore();
   const { resetDelivery } = useDeliveryStore();
   const [orderNumber, setOrderNumber] = useState<string>('');
+  const [status, setStatus] = useState<VerifyState>(sessionId ? 'verifying' : 'no-session');
 
+  // Real server-side confirmation: ask Stripe directly whether this session actually
+  // completed, instead of trusting a client-side flag that a canceled/abandoned
+  // attempt could leave stale.
   useEffect(() => {
-    const paymentInProgress = sessionStorage.getItem('payment_in_progress');
-    const storedSessionId = sessionStorage.getItem('stripe_session_id');
+    if (!sessionId) return;
 
-    // Solo limpiar si realmente viene de un pago exitoso
-    if (sessionId && (paymentInProgress === 'true' || storedSessionId === sessionId)) {
-      // Generar número de orden basado en session ID
-      const orderNum = `BLISS-${sessionId.slice(-8).toUpperCase()}`;
-      setOrderNumber(orderNum);
-
-      // Limpiar carrito y delivery info
-      clearCart();
-      resetDelivery();
-
-      // Limpiar session storage
-      sessionStorage.removeItem('payment_in_progress');
-      sessionStorage.removeItem('stripe_session_id');
-    } else if (sessionId) {
-      // Si hay sessionId pero no hay evidencia de pago, solo mostrar el número de orden
-      const orderNum = `BLISS-${sessionId.slice(-8).toUpperCase()}`;
-      setOrderNumber(orderNum);
-    }
+    fetch(`/api/verify-order?session_id=${encodeURIComponent(sessionId)}`)
+      .then((res) => res.json())
+      .then((data: { paid: boolean; orderNumber: string | null }) => {
+        if (data.paid) {
+          setOrderNumber(data.orderNumber ?? `BLISS-${sessionId.slice(-8).toUpperCase()}`);
+          setStatus('confirmed');
+          clearCart();
+          resetDelivery();
+        } else {
+          setStatus('unconfirmed');
+        }
+      })
+      .catch(() => setStatus('unconfirmed'));
   }, [sessionId, clearCart, resetDelivery]);
 
+  if (status === 'verifying') {
+    return (
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-brown mx-auto mb-4" />
+          <p className="text-brand-muted">Confirming your order...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'unconfirmed' || status === 'no-session') {
+    return (
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center p-4">
+        <Card className="bg-white border-brand-border shadow-lg max-w-lg w-full">
+          <CardContent className="p-8 text-center">
+            <h1 className="text-2xl font-bold text-brand-text mb-4">
+              We couldn&apos;t confirm this order
+            </h1>
+            <p className="text-brand-muted mb-6">
+              {status === 'no-session'
+                ? "We don't have a payment session to check. If you completed a payment, check your email for confirmation, or contact us if you were charged."
+                : "This order hasn't been confirmed as paid. If you completed a payment, check your email for confirmation, or contact us if you were charged."}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button asChild variant="outline" className="border-brand-brown text-brand-brown hover:bg-brand-brown hover:text-white">
+                <Link href="/" className="flex items-center gap-2">
+                  <ArrowLeft className="w-4 h-4" />
+                  Continue Shopping
+                </Link>
+              </Button>
+              <Button asChild className="bg-brand-brown hover:bg-brand-brown-hover text-white">
+                <Link href="/contact">Contact Us</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#F8F4F0] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-brand-bg flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
@@ -54,7 +95,7 @@ function OrderSuccessContent() {
         }}
         className="max-w-2xl w-full"
       >
-        <Card className="bg-white border-[#E6D7CB] shadow-lg">
+        <Card className="bg-white border-brand-border shadow-lg">
           <CardContent className="p-8 text-center">
             <motion.div
               initial={{ scale: 0 }}
@@ -66,7 +107,7 @@ function OrderSuccessContent() {
                 delay: 0.3,
                 duration: 0.5
               }}
-              className="w-20 h-20 bg-[#1E7A31] rounded-full flex items-center justify-center mx-auto mb-6"
+              className="w-20 h-20 bg-brand-success rounded-full flex items-center justify-center mx-auto mb-6"
             >
               <CheckCircle className="w-12 h-12 text-white" />
             </motion.div>
@@ -81,7 +122,7 @@ function OrderSuccessContent() {
                 delay: 0.5,
                 duration: 0.6
               }}
-              className="text-3xl md:text-4xl font-bold text-[#1E7A31] mb-4"
+              className="text-3xl md:text-4xl font-bold text-brand-success mb-4"
             >
               Order Confirmed!
             </motion.h1>
@@ -98,18 +139,18 @@ function OrderSuccessContent() {
               }}
               className="space-y-4 mb-8"
             >
-              <p className="text-lg text-[#6E5B4E]">
+              <p className="text-lg text-brand-muted">
                 Thank you for your order! Your sweet treats are on their way.
               </p>
 
               {orderNumber && (
-                <div className="bg-[#F8F4F0] rounded-lg p-4">
-                  <p className="text-sm text-[#6E5B4E] mb-1">Order Number:</p>
-                  <p className="text-xl font-bold text-[#8F4B2B]">{orderNumber}</p>
+                <div className="bg-brand-bg rounded-lg p-4">
+                  <p className="text-sm text-brand-muted mb-1">Order Number:</p>
+                  <p className="text-xl font-bold text-brand-brown">{orderNumber}</p>
                 </div>
               )}
 
-              <div className="text-sm text-[#6E5B4E] space-y-2">
+              <div className="text-sm text-brand-muted space-y-2">
                 <p>
                   A confirmation email has been sent to your email address with all the order details.
                 </p>
@@ -129,28 +170,28 @@ function OrderSuccessContent() {
                 delay: 0.9,
                 duration: 0.6
               }}
-              className="border-t border-[#E6D7CB] pt-6 mb-6"
+              className="border-t border-brand-border pt-6 mb-6"
             >
-              <h3 className="font-semibold text-[#3B2A22] mb-4">
+              <h3 className="font-semibold text-brand-text mb-4">
                 What's Next?
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div className="flex items-start gap-3 p-3 bg-[#F8F4F0] rounded-lg">
-                  <Mail className="w-5 h-5 text-[#8F4B2B] flex-shrink-0 mt-0.5" />
+                <div className="flex items-start gap-3 p-3 bg-brand-bg rounded-lg">
+                  <Mail className="w-5 h-5 text-brand-brown flex-shrink-0 mt-0.5" />
                   <div className="text-left">
-                    <p className="font-medium text-[#3B2A22]">Check Your Email</p>
-                    <p className="text-[#6E5B4E]">
+                    <p className="font-medium text-brand-text">Check Your Email</p>
+                    <p className="text-brand-muted">
                       Order confirmation and tracking details
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 p-3 bg-[#F8F4F0] rounded-lg">
-                  <Phone className="w-5 h-5 text-[#8F4B2B] flex-shrink-0 mt-0.5" />
+                <div className="flex items-start gap-3 p-3 bg-brand-bg rounded-lg">
+                  <Phone className="w-5 h-5 text-brand-brown flex-shrink-0 mt-0.5" />
                   <div className="text-left">
-                    <p className="font-medium text-[#3B2A22]">Questions?</p>
-                    <p className="text-[#6E5B4E]">
+                    <p className="font-medium text-brand-text">Questions?</p>
+                    <p className="text-brand-muted">
                       Contact us at +1 (470) 883-5035
                     </p>
                   </div>
@@ -173,7 +214,7 @@ function OrderSuccessContent() {
               <Button
                 asChild
                 variant="outline"
-                className="border-[#8F4B2B] text-[#8F4B2B] hover:bg-[#8F4B2B] hover:text-white"
+                className="border-brand-brown text-brand-brown hover:bg-brand-brown hover:text-white"
               >
                 <Link href="/" className="flex items-center gap-2">
                   <ArrowLeft className="w-4 h-4" />
@@ -183,7 +224,7 @@ function OrderSuccessContent() {
 
               <Button
                 asChild
-                className="bg-[#8F4B2B] hover:bg-[#6f3a22] text-white"
+                className="bg-brand-brown hover:bg-brand-brown-hover text-white"
               >
                 <Link href="/contact">
                   Contact Us
@@ -198,11 +239,15 @@ function OrderSuccessContent() {
                 delay: 1.3,
                 duration: 0.6
               }}
-              className="mt-8 p-4 bg-[#FFF9F5] rounded-lg border border-[#E6D7CB]"
+              className="mt-8 p-4 bg-brand-bg rounded-lg border border-brand-border"
             >
-              <p className="text-xs text-[#6E5B4E]">
+              <p className="text-xs text-brand-muted">
                 <strong>Allergy Notice:</strong> All products may contain tree nuts and food allergens.
-                Please visit our allergens info page for full details.
+                Please visit our{" "}
+                <Link href="/allergens" className="underline hover:text-brand-brown">
+                  allergen information
+                </Link>{" "}
+                page for full details.
               </p>
             </motion.div>
           </CardContent>
@@ -215,10 +260,10 @@ function OrderSuccessContent() {
 export default function OrderSuccessPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-[#F8F4F0] flex items-center justify-center">
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#8F4B2B] mx-auto mb-4"></div>
-          <p className="text-[#6E5B4E]">Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-brown mx-auto mb-4"></div>
+          <p className="text-brand-muted">Loading...</p>
         </div>
       </div>
     }>

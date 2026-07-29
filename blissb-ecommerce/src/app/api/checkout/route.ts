@@ -2,29 +2,43 @@ import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { getProductByIdAsync } from '@/data/products';
 import { calculateProcessingFee } from '@/lib/orderFees';
+import { getDrivingMilesFromOrigin } from '@/lib/googleMaps';
+import { getDeliveryQuote } from '@/lib/deliveryPricing';
+import { validateCoupon } from '@/lib/coupons';
 
-// Configuración de delivery zones (debe coincidir con deliveryStore.ts)
-const FREE_DELIVERY_ZIP_CODES = [
-  '30517', '30548', '30519', '30542', '30011', '30507',
-  '30522', '30563', '30537', '30601', '30512', '30534',
-  '30043', '30518', '30024'
-];
-const STANDARD_DELIVERY_FEE = 20;
+// Ensures a real Stripe Coupon object exists for a given percent-off, reusing it across
+// orders (stable, deterministic id) instead of creating a new one per checkout.
+async function getOrCreateStripeCoupon(percentOff: number): Promise<string> {
+  const id = `welcome-${percentOff}-percent`;
+  try {
+    await stripe.coupons.retrieve(id);
+  } catch {
+    await stripe.coupons.create({ id, percent_off: percentOff, duration: 'once' });
+  }
+  return id;
+}
+
 const SHIPPING_COST = 15;
 
-// Función para validar delivery fee
-function validateDeliveryFee(type: string, zipCode: string): number {
-  if (type === 'pickup') return 0;
-  if (type === 'shipping') return SHIPPING_COST;
+// Re-validates delivery fee server-side — the client's mileage-based quote is never trusted
+// on its own, same principle already applied to product price/stock.
+async function validateDeliveryFee(
+  type: string,
+  address: string,
+  subtotal: number
+): Promise<{ fee: number; eligible: boolean }> {
+  if (type === 'pickup') return { fee: 0, eligible: true };
+  if (type === 'shipping') return { fee: SHIPPING_COST, eligible: true };
   if (type === 'delivery') {
-    return FREE_DELIVERY_ZIP_CODES.includes(zipCode) ? 0 : STANDARD_DELIVERY_FEE;
+    const miles = await getDrivingMilesFromOrigin(address);
+    return getDeliveryQuote(miles, subtotal);
   }
-  return 0;
+  return { fee: 0, eligible: true };
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { items, customerInfo, deliveryInfo } = await request.json();
+    const { items, customerInfo, deliveryInfo, couponCode } = await request.json();
 
     // Validar que haya items
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -69,27 +83,33 @@ export async function POST(request: NextRequest) {
             // En producción, podrías rechazar la transacción o notificar al usuario
           }
 
-          // 🔒 VALIDAR CAJAS CON REPARTO DE SABORES (ej. Mini Cookie Box)
-          if (strapiProduct.isSoldInBox) {
-            const boxFlavors = item.boxFlavors as { flavor: string; quantity: number }[] | undefined;
-            const uniqueFlavors = new Set((boxFlavors ?? []).map((f) => f.flavor));
-            const total = (boxFlavors ?? []).reduce((sum, f) => sum + f.quantity, 0);
+          // 🔒 VALIDAR REPARTO DE SABORES POR CHECKBOXES (cajas y productos regulares con flavors)
+          const boxFlavors = item.boxFlavors as { flavor: string; quantity: number }[] | undefined;
+          if (boxFlavors) {
+            const uniqueFlavors = new Set(boxFlavors.map((f) => f.flavor));
+            const total = boxFlavors.reduce((sum, f) => sum + f.quantity, 0);
+            const validFlavorNames = new Set(strapiProduct.flavors ?? []);
 
-            if (
-              !strapiProduct.boxSize ||
-              !boxFlavors ||
+            const basicInvalid =
               boxFlavors.length === 0 ||
               boxFlavors.length > 3 ||
               uniqueFlavors.size !== boxFlavors.length ||
-              total !== strapiProduct.boxSize
-            ) {
+              boxFlavors.some((f) => !validFlavorNames.has(f.flavor)) ||
+              total < 1;
+
+            const boxInvalid =
+              strapiProduct.isSoldInBox && (!strapiProduct.boxSize || total !== strapiProduct.boxSize);
+
+            if (basicInvalid || boxInvalid) {
               throw new Error(`Invalid flavor selection for ${strapiProduct.name}`);
             }
+          } else if (strapiProduct.isSoldInBox) {
+            throw new Error(`Invalid flavor selection for ${strapiProduct.name}`);
           }
 
-          // Validar cantidad — para cajas, la cantidad es la suma del reparto de sabores
-          const requestedQuantity = strapiProduct.isSoldInBox
-            ? (item.boxFlavors as { flavor: string; quantity: number }[]).reduce((sum, f) => sum + f.quantity, 0)
+          // Validar cantidad — con reparto de sabores, la cantidad es la suma del reparto
+          const requestedQuantity = boxFlavors
+            ? boxFlavors.reduce((sum, f) => sum + f.quantity, 0)
             : item.quantity;
           const validQuantity = Math.max(1, Math.min(100, requestedQuantity));
           validatedSubtotal += realPrice * validQuantity;
@@ -136,11 +156,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 🔒 VALIDAR DELIVERY FEE EN EL BACKEND
-    const validatedDeliveryFee = validateDeliveryFee(
-      deliveryInfo.type,
-      deliveryInfo.zipCode || ''
-    );
+    // 🔒 VALIDAR DELIVERY FEE EN EL BACKEND (millas reales vía Google Maps para delivery)
+    let validatedDeliveryFee: number;
+    try {
+      const quote = await validateDeliveryFee(
+        deliveryInfo.type,
+        deliveryInfo.address || '',
+        validatedSubtotal
+      );
+      if (!quote.eligible) {
+        return NextResponse.json(
+          { error: 'This address is outside our 25-mile delivery radius. Please choose shipping or in-store pickup instead.' },
+          { status: 400 }
+        );
+      }
+      validatedDeliveryFee = quote.fee;
+    } catch (error) {
+      console.error('Error validating delivery fee:', error);
+      return NextResponse.json(
+        { error: 'Could not calculate delivery for this address. Please double-check it or choose shipping/pickup instead.' },
+        { status: 400 }
+      );
+    }
 
     // Verificar si el fee del frontend coincide con el calculado
     const frontendFee = deliveryInfo.fee || 0;
@@ -149,7 +186,7 @@ export async function POST(request: NextRequest) {
         frontend: frontendFee,
         validated: validatedDeliveryFee,
         type: deliveryInfo.type,
-        zipCode: deliveryInfo.zipCode,
+        address: deliveryInfo.address,
       });
       // Usar el fee validado del backend
     }
@@ -163,7 +200,7 @@ export async function POST(request: NextRequest) {
             name: deliveryInfo.type === 'shipping' ? 'Shipping' : 'Delivery Fee',
             description: deliveryInfo.type === 'shipping'
               ? 'Nationwide shipping'
-              : `Delivery to ${deliveryInfo.zipCode}`,
+              : `Delivery to ${deliveryInfo.address}`,
             images: [],
             metadata: { productId: '' },
           },
@@ -180,7 +217,7 @@ export async function POST(request: NextRequest) {
         price_data: {
           currency: 'usd',
           product_data: {
-            name: 'Fees',
+            name: 'Card processing fee',
             description: undefined,
             images: [],
             metadata: { productId: '' },
@@ -191,21 +228,34 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // 🔒 CUPÓN — validado contra la lista fija del servidor, nunca se confía en el % que mande el cliente
+    let discounts: { coupon: string }[] | undefined;
+    let appliedCouponCode: string | undefined;
+    if (couponCode) {
+      const { valid, percentOff } = validateCoupon(couponCode);
+      if (!valid) {
+        return NextResponse.json({ error: 'That discount code is not valid.' }, { status: 400 });
+      }
+      discounts = [{ coupon: await getOrCreateStripeCoupon(percentOff) }];
+      appliedCouponCode = couponCode.trim().toUpperCase();
+    }
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: validatedLineItems, // 🔒 ITEMS CON PRECIOS VALIDADOS
       mode: 'payment',
+      discounts,
       success_url: `${request.nextUrl.origin}/order-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${request.nextUrl.origin}/checkout`,
+      cancel_url: `${request.nextUrl.origin}/checkout?canceled=1`,
       customer_email: customerInfo.email,
       metadata: {
         customerName: customerInfo.name,
         customerPhone: customerInfo.phone || '',
+        couponCode: appliedCouponCode || '',
         deliveryType: deliveryInfo.type,
         deliveryDate: deliveryInfo.date || '',
         deliveryTime: deliveryInfo.time || '',
         deliveryAddress: deliveryInfo.address || '',
-        zipCode: deliveryInfo.zipCode || '',
         processingFee: processingFee.toFixed(2),
       },
       shipping_address_collection: deliveryInfo.type === 'shipping' || deliveryInfo.type === 'delivery'

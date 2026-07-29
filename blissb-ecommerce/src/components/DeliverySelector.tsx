@@ -1,144 +1,134 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { useDeliveryStore, type DeliveryType } from "@/store/deliveryStore";
-import { Calendar, Clock, AlertCircle, CheckCircle2, MapPin, Package, Truck, ShoppingBag } from "lucide-react";
+import { getFulfillmentOptions } from "@/lib/deliverySchedule";
+import { AlertCircle, CheckCircle2, MapPin, Package, ShoppingBag, Truck, type LucideIcon } from "lucide-react";
 
-const deliveryIcons = {
+export type DeliveryQuote = { eligible: boolean; fee: number; miles: number };
+
+type DeliverySelectorProps = {
+  subtotal: number;
+  shippingCost: number;
+  onDeliveryFeeChange: (fee: number) => void;
+};
+
+const TYPE_ICONS: Record<DeliveryType, LucideIcon> = {
   shipping: Package,
   delivery: Truck,
   pickup: ShoppingBag,
 };
 
-interface DeliverySelectorProps {
-  showConfirmation?: boolean;
-  onConfirm?: () => void;
+function formatWindowDate(dateISO: string, isToday: boolean) {
+  const date = new Date(`${dateISO}T12:00:00Z`);
+  const formatted = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "long", month: "short", day: "numeric" }).format(date);
+  return isToday ? `Today, ${formatted}` : formatted;
 }
 
-export function DeliverySelector({ showConfirmation = false, onConfirm }: DeliverySelectorProps) {
-  const {
-    selectedType,
-    selectedDate,
-    selectedTime,
-    selectedZipCode,
-    isConfirmed,
-    setDeliveryType,
-    setSelectedDate,
-    setSelectedTime,
-    setSelectedZipCode,
-    confirmSelection,
-    getAvailableDays,
-    getTimeSlots,
-    isValidSelection,
-    getDeliveryOptions,
-    getDeliveryFee,
-    isZipCodeInFreeZone
-  } = useDeliveryStore();
+export function DeliverySelector({ subtotal, shippingCost, onDeliveryFeeChange }: DeliverySelectorProps) {
+  const { selectedType, address, setDeliveryType, setAddress } = useDeliveryStore();
+  const [quote, setQuote] = useState<DeliveryQuote | null>(null);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
+  const [isQuoting, setIsQuoting] = useState(false);
 
-  const deliveryOptions = getDeliveryOptions();
-  const availableDays = getAvailableDays(selectedType);
-  const timeSlots = selectedDate ? getTimeSlots(selectedDate, selectedType) : [];
+  const fulfillment = getFulfillmentOptions();
 
-  const handleTypeChange = (type: DeliveryType) => {
-    setDeliveryType(type);
-  };
-
-  const handleDateSelect = (date: string) => {
-    setSelectedDate(date);
-  };
-
-  const handleTimeSelect = (time: string) => {
-    setSelectedTime(time);
-  };
-
-  const handleZipCodeChange = (zipCode: string) => {
-    setSelectedZipCode(zipCode);
-  };
-
-  const handleConfirm = () => {
-    confirmSelection();
-    onConfirm?.();
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  const getSelectedOption = () => {
-    const option = deliveryOptions.find(option => option.type === selectedType);
-    if (!option) return null;
-
-    // Para delivery, calcular fee basado en zip code
-    if (option.type === 'delivery') {
-      const dynamicFee = getDeliveryFee(selectedZipCode);
-      return { ...option, fee: dynamicFee };
+  useEffect(() => {
+    if (selectedType !== "delivery" || address.trim().length < 8) {
+      setQuote(null);
+      setQuoteError(null);
+      setIsQuoting(false);
+      return;
     }
 
-    return option;
-  };
+    setIsQuoting(true);
+    const timer = setTimeout(() => {
+      fetch("/api/delivery-quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address, subtotal }),
+      })
+        .then(async (res) => {
+          const data = await res.json();
+          if (!res.ok) {
+            setQuoteError(data.error ?? "Couldn't calculate delivery for this address.");
+            setQuote(null);
+          } else {
+            setQuote(data);
+            setQuoteError(null);
+          }
+        })
+        .catch(() => {
+          setQuoteError("Couldn't calculate delivery for this address. Check your connection and try again.");
+          setQuote(null);
+        })
+        .finally(() => setIsQuoting(false));
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [address, selectedType, subtotal]);
+
+  useEffect(() => {
+    if (selectedType === "delivery") {
+      onDeliveryFeeChange(quote?.eligible ? quote.fee : 0);
+    } else if (selectedType === "shipping") {
+      onDeliveryFeeChange(shippingCost);
+    } else {
+      onDeliveryFeeChange(0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quote, selectedType, shippingCost]);
+
+  const options: { type: DeliveryType; label: string; description: string }[] = [
+    { type: "shipping", label: "Shipping", description: "Nationwide, 3-5 business days" },
+    { type: "delivery", label: "Local Delivery", description: "Within 25 miles of Braselton, GA" },
+    { type: "pickup", label: "Pickup", description: "At the bakery, or Saturday at the farmers market" },
+  ];
 
   return (
     <div className="space-y-6">
-      {/* Delivery Options */}
       <div>
-        <h3 className="text-lg font-semibold text-[#8F4B2B] mb-4">
-          Choose Your Delivery Method
-        </h3>
+        <h3 className="text-lg font-semibold text-brand-brown mb-4">Choose Your Delivery Method</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {deliveryOptions.map((option) => {
-            // Para delivery, mostrar fee dinámico basado en zip code
-            let displayFee = option.fee;
-            let feeLabel = displayFee && displayFee > 0 ? `$${displayFee}` : 'Free';
-
-            if (option.type === 'delivery' && selectedZipCode) {
-              displayFee = getDeliveryFee(selectedZipCode);
-              feeLabel = displayFee > 0 ? `$${displayFee}` : 'Free';
-            } else if (option.type === 'delivery' && !selectedZipCode) {
-              feeLabel = 'Enter zip code';
+          {options.map((option) => {
+            const Icon = TYPE_ICONS[option.type];
+            const isSelected = selectedType === option.type;
+            let feeLabel = "Free";
+            if (option.type === "shipping" && shippingCost > 0) feeLabel = `$${shippingCost.toFixed(2)}`;
+            if (option.type === "delivery") {
+              if (!address.trim()) feeLabel = "Enter address";
+              else if (isQuoting) feeLabel = "Calculating…";
+              else if (quoteError) feeLabel = "—";
+              else if (quote) feeLabel = quote.eligible ? (quote.fee > 0 ? `$${quote.fee.toFixed(2)}` : "Free") : "Out of range";
             }
-
-            const IconComponent = deliveryIcons[option.type];
 
             return (
               <Card
                 key={option.type}
                 className={`p-4 cursor-pointer transition-all duration-200 border-2 ${
-                  selectedType === option.type
-                    ? 'border-[#8F4B2B] bg-[#8F4B2B]/5'
-                    : 'border-gray-200 hover:border-[#8F4B2B]/50'
+                  isSelected ? "border-brand-brown bg-brand-brown/5" : "border-brand-border hover:border-brand-brown/50"
                 }`}
-                onClick={() => handleTypeChange(option.type)}
+                onClick={() => setDeliveryType(option.type)}
               >
                 <div className="text-center space-y-2">
                   <div className="flex justify-center">
-                    <IconComponent
-                      className={`w-10 h-10 ${
-                        selectedType === option.type
-                          ? 'text-[#8F4B2B]'
-                          : 'text-[#6E5B4E]'
-                      }`}
-                    />
+                    <Icon className={`w-10 h-10 ${isSelected ? "text-brand-brown" : "text-brand-muted"}`} />
                   </div>
-                  <h4 className="font-medium text-[#3B2A22]">{option.label}</h4>
-                  <p className="text-sm text-[#6E5B4E]">{option.description}</p>
-                  <p className="text-xs text-[#8F4B2B] font-medium">{option.estimatedTime}</p>
+                  <h4 className="font-medium text-brand-text">{option.label}</h4>
+                  <p className="text-sm text-brand-muted">{option.description}</p>
                   <Badge
                     variant="secondary"
                     className={
-                      feeLabel === 'Free'
-                        ? "bg-[#1E7A31] text-white"
-                        : feeLabel === 'Enter zip code'
-                        ? "bg-gray-200 text-gray-600"
-                        : "bg-[#EFC596] text-[#8F4B2B]"
+                      feeLabel === "Free"
+                        ? "bg-brand-success text-white"
+                        : feeLabel === "Enter address" || feeLabel === "Calculating…"
+                        ? "bg-brand-border text-brand-muted"
+                        : feeLabel === "Out of range"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-brand-accent text-brand-brown"
                     }
                   >
                     {feeLabel}
@@ -150,194 +140,53 @@ export function DeliverySelector({ showConfirmation = false, onConfirm }: Delive
         </div>
       </div>
 
-      {/* Zip Code Input for Delivery */}
-      {selectedType === 'delivery' && (
+      {selectedType === "delivery" && (
         <div>
-          <h3 className="text-lg font-semibold text-[#8F4B2B] mb-4 flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-brand-brown mb-4 flex items-center gap-2">
             <MapPin className="w-5 h-5" />
-            Enter Your Zip Code
+            Delivery Address
           </h3>
           <div className="max-w-md">
             <Input
               type="text"
-              placeholder="Enter your 5-digit zip code"
-              value={selectedZipCode}
-              onChange={(e) => handleZipCodeChange(e.target.value)}
-              className="border-[#E6D7CB] focus:border-[#8F4B2B]"
-              maxLength={5}
+              placeholder="Street address, city, state, ZIP"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              className="border-brand-border focus:border-brand-brown"
             />
-            {selectedZipCode && selectedZipCode.length === 5 && (
-              <div className="mt-2 text-sm">
-                {isZipCodeInFreeZone(selectedZipCode) ? (
-                  <div className="text-[#1E7A31] flex items-center gap-1">
-                    <CheckCircle2 className="w-4 h-4" />
-                    Free delivery to your area!
-                  </div>
-                ) : (
-                  <div className="text-[#8F4B2B] flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4" />
-                    Delivery fee: $20 to your area
-                  </div>
-                )}
+            {isQuoting && (
+              <p className="mt-2 text-sm text-brand-muted">Calculating delivery distance…</p>
+            )}
+            {!isQuoting && quoteError && (
+              <div className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                <AlertCircle className="w-4 h-4" />
+                {quoteError}
+              </div>
+            )}
+            {!isQuoting && quote?.eligible && (
+              <div className="mt-2 text-sm text-brand-success flex items-center gap-1">
+                <CheckCircle2 className="w-4 h-4" />
+                {quote.miles.toFixed(1)} miles away — {quote.fee > 0 ? `$${quote.fee.toFixed(2)} delivery fee` : "free delivery!"}
+              </div>
+            )}
+            {!isQuoting && quote && !quote.eligible && (
+              <div className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                <AlertCircle className="w-4 h-4" />
+                This address is outside our 25-mile delivery radius. Please choose shipping or pickup instead.
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Date Selection for Delivery/Pickup */}
-      {(selectedType === 'delivery' || selectedType === 'pickup') && (
-        <div>
-          <h3 className="text-lg font-semibold text-[#8F4B2B] mb-4 flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            Select Date
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {availableDays.map((day) => (
-              <Button
-                key={day.date}
-                variant={selectedDate === day.date ? "default" : "outline"}
-                className={`p-3 h-auto text-left ${
-                  selectedDate === day.date
-                    ? 'bg-[#8F4B2B] text-white'
-                    : 'border-gray-200 hover:border-[#8F4B2B]'
-                }`}
-                onClick={() => handleDateSelect(day.date)}
-              >
-                <div>
-                  <div className="font-medium text-sm">{day.dayName}</div>
-                  <div className="text-xs opacity-80">
-                    {formatDate(day.date).split(', ')[1]}
-                  </div>
-                </div>
-              </Button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Time Selection */}
-      {selectedDate && (selectedType === 'delivery' || selectedType === 'pickup') && (
-        <div>
-          <h3 className="text-lg font-semibold text-[#8F4B2B] mb-4 flex items-center gap-2">
-            <Clock className="w-5 h-5" />
-            Select Time
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {timeSlots.map((slot) => (
-              <Button
-                key={slot.time}
-                variant={selectedTime === slot.time ? "default" : "outline"}
-                className={`p-4 h-auto ${
-                  selectedTime === slot.time
-                    ? 'bg-[#8F4B2B] text-white'
-                    : slot.available
-                    ? 'border-gray-200 hover:border-[#8F4B2B]'
-                    : 'border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed'
-                }`}
-                onClick={() => slot.available && handleTimeSelect(slot.time)}
-                disabled={!slot.available}
-              >
-                <div className="text-center w-full">
-                  <div className="font-medium">{slot.time}</div>
-                </div>
-              </Button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Validation Warning */}
-      {(selectedType === 'delivery' || selectedType === 'pickup') && !isValidSelection() && (
-        <Card className="p-4 border-orange-200 bg-orange-50">
-          <div className="flex items-start gap-3 text-orange-800">
-            <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-            <div>
-              <h4 className="font-medium">Selection Required</h4>
-              <p className="text-sm">
-                {selectedType === 'delivery'
-                  ? 'Please enter your zip code and select both a date and time for delivery to continue.'
-                  : 'Please select both a date and time for pickup to continue.'
-                }
-              </p>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Confirmation Section */}
-      {showConfirmation && isValidSelection() && (
-        <Card className="p-6 border-[#8F4B2B] bg-[#8F4B2B]/5">
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-[#8F4B2B] flex items-center gap-2">
-              {isConfirmed ? (
-                <CheckCircle2 className="w-5 h-5" />
-              ) : (
-                <AlertCircle className="w-5 h-5" />
-              )}
-              Confirm Your Selection
-            </h3>
-
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-[#6E5B4E]">Delivery Method:</span>
-                <span className="font-medium text-[#3B2A22]">
-                  {getSelectedOption()?.label}
-                </span>
-              </div>
-
-              {selectedType === 'delivery' && selectedZipCode && (
-                <div className="flex justify-between">
-                  <span className="text-[#6E5B4E]">Zip Code:</span>
-                  <span className="font-medium text-[#3B2A22]">{selectedZipCode}</span>
-                </div>
-              )}
-
-              {selectedDate && (
-                <div className="flex justify-between">
-                  <span className="text-[#6E5B4E]">Date:</span>
-                  <span className="font-medium text-[#3B2A22]">
-                    {formatDate(selectedDate)}
-                  </span>
-                </div>
-              )}
-
-              {selectedTime && (
-                <div className="flex justify-between">
-                  <span className="text-[#6E5B4E]">Time:</span>
-                  <span className="font-medium text-[#3B2A22]">{selectedTime}</span>
-                </div>
-              )}
-
-              {getSelectedOption()?.fee && getSelectedOption()!.fee > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-[#6E5B4E]">Delivery Fee:</span>
-                  <span className="font-medium text-[#3B2A22]">
-                    ${getSelectedOption()!.fee}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {!isConfirmed && (
-              <Button
-                onClick={handleConfirm}
-                className="w-full bg-[#8F4B2B] hover:bg-[#6f3a22] text-white"
-                disabled={!isValidSelection()}
-              >
-                Confirm Selection
-              </Button>
-            )}
-
-            {isConfirmed && (
-              <div className="text-center">
-                <Badge className="bg-[#1E7A31] text-white flex items-center gap-1 justify-center w-fit mx-auto">
-                  <CheckCircle2 className="w-4 h-4" />
-                  Selection Confirmed
-                </Badge>
-              </div>
-            )}
-          </div>
+      {(selectedType === "delivery" || selectedType === "pickup") && (
+        <Card className="p-4 border-brand-border bg-brand-bg">
+          <p className="text-sm text-brand-muted">
+            {selectedType === "delivery" ? "Estimated delivery" : "Pickup"}:{" "}
+            <span className="font-medium text-brand-text">
+              {formatWindowDate(fulfillment[selectedType].date, fulfillment[selectedType].isToday)}, {fulfillment[selectedType].window}
+            </span>
+          </p>
         </Card>
       )}
     </div>

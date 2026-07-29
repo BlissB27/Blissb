@@ -5,7 +5,7 @@ const MAINTENANCE_HTML = `<!DOCTYPE html>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bliss-B Bakery — Coming Soon</title>
+  <title>Bliss-B Desserts — Coming Soon</title>
   <style>
     body {
       margin: 0;
@@ -25,7 +25,7 @@ const MAINTENANCE_HTML = `<!DOCTYPE html>
 </head>
 <body>
   <div>
-    <h1>Bliss-B Bakery</h1>
+    <h1>Bliss-B Desserts</h1>
     <p>We're baking something new. Back soon! 🍪</p>
   </div>
 </body>

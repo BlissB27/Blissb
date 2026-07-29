@@ -64,7 +64,7 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData) {
     });
 
     const result = await resend.emails.send({
-      from: 'Blissb Bakery <orders@blissbbakery.com>',
+      from: 'Bliss-B Desserts <orders@blissbbakery.com>',
       to: data.customerEmail,
       subject: `Order Confirmation #${data.orderNumber}`,
       html: emailHtml,
@@ -103,7 +103,7 @@ export async function sendAdminOrderNotification(data: OrderEmailData) {
     const adminEmail = process.env.ADMIN_EMAIL || 'blissbdesserts@gmail.com';
 
     const result = await resend.emails.send({
-      from: 'Blissb Bakery <orders@blissbbakery.com>',
+      from: 'Bliss-B Desserts <orders@blissbbakery.com>',
       to: adminEmail,
       subject: `🛍️ New Order #${data.orderNumber} - ${data.customerName}`,
       html: emailHtml,

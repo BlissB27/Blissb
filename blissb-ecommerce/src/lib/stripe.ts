@@ -5,7 +5,7 @@ import { loadStripe } from '@stripe/stripe-js';
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-08-27.basil',
   appInfo: {
-    name: 'Blissb Bakery',
+    name: 'Bliss-B Desserts',
     version: '1.0.0',
   },
 });

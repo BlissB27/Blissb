@@ -11,6 +11,7 @@ type Occasion = {
   description: string;
   imageSrc: string;
   href?: string;
+  ctaLabel: string;
   /** Color del panel de texto (lado sólido) */
   panelBg: string;
   panelText?: string;
@@ -27,71 +28,56 @@ function BannerCard({
   description,
   imageSrc,
   href = "#",
+  ctaLabel,
   panelBg,
   panelText = "#FFFFFF",
-  textFraction = "2fr",
-  imageFraction = "3fr",
+  textFraction = "1fr",
+  imageFraction = "1fr",
   objectPosition = "center",
 }: Occasion) {
   return (
     <div
-      className="
-        rounded-2xl overflow-hidden
-        shadow-[0_8px_20px_rgba(0,0,0,0.08)]
-        bg-transparent isolate
-        md:h-[355px]
-        md:w-full
-        w-[300px]
-        ml-10
-        md:ml-0
-
-      "
+      className="rounded-2xl overflow-hidden shadow-md bg-transparent isolate w-full"
       style={
         {
           // @ts-ignore - custom CSS vars para grid desktop
           "--text": textFraction,
           "--image": imageFraction,
+          "--panel-bg": panelBg,
+          "--panel-text": panelText,
         } as React.CSSProperties
       }
     >
-      {/* Mobile: stack  |  Desktop: grid 2 columnas que llenan 100% */}
-      <div className="flex flex-col md:grid md:grid-cols-[var(--text)_var(--image)] md:h-full">
+      {/* Mobile: stack | Desktop: grid 2 filas (imagen arriba, texto abajo) para que ninguna se vea recortada */}
+      <div className="flex flex-col md:h-full">
+        {/* Panel de imagen */}
+        <div className="relative w-full aspect-[4/3] md:aspect-auto md:h-[220px]">
+          <Image
+            src={imageSrc}
+            alt={title}
+            fill
+            className="object-cover"
+            style={{ objectPosition }}
+            sizes="(max-width: 768px) 100vw, 33vw"
+            priority={false}
+          />
+        </div>
+
         {/* Panel de texto */}
         <div
-          className="w-full p-4 md:p-8 flex flex-col justify-center gap-3 md:gap-4"
-          style={{ backgroundColor: panelBg, color: panelText }}
+          className="w-full flex-1 px-5 pt-2 pb-3 md:px-6 md:pt-3 md:pb-4 flex flex-col"
+          style={{ backgroundColor: "var(--panel-bg)", color: "var(--panel-text)" }}
         >
-          <h3 className="text-lg md:text-2xl font-semibold leading-tight">
+          <h3 className="text-lg md:text-xl font-semibold leading-tight font-display mb-1">
             {title}
           </h3>
-          <p className="text-xs md:text-base opacity-90 leading-relaxed">
+          <p className="text-sm opacity-90 leading-relaxed mb-2">
             {description}
           </p>
           <div>
-            <Button
-              asChild
-              variant="ghost"
-              className="rounded-md border px-4 py-1.5 text-xs md:px-5 md:py-2 md:text-sm hover:bg-[#3B2A22]"
-              style={{ borderColor: panelText, color: panelText }}
-            >
-              <a href={href}>See The Menu</a>
+            <Button asChild className="rounded-md bg-white px-4 py-1.5 text-xs text-brand-brown hover:bg-white/90 md:px-5 md:py-2 md:text-sm">
+              <a href={href}>{ctaLabel}</a>
             </Button>
-          </div>
-        </div>
-
-        {/* Panel de imagen */}
-        {/* Mobile: usa aspect ratio para evitar aplastado; Desktop: llena altura */}
-        <div className="relative w-full overflow-hidden md:h-full">
-          <div className="relative w-full aspect-[16/10] md:aspect-auto md:h-full">
-            <Image
-              src={imageSrc}
-              alt={title}
-              fill
-              className="object-cover"
-              style={{ objectPosition }}
-              sizes="(max-width: 768px) 100vw, 40vw"
-              priority={false}
-            />
           </div>
         </div>
       </div>
@@ -102,63 +88,60 @@ function BannerCard({
 /** Sección completa */
 export default function Banner() {
   return (
-    <section className="bg-[#F5EBDD] relative">
+    <section className="bg-[#ffeccf] relative">
       {/* Wave divider at the top */}
-      <WaveDivider direction="top" color="#ffff" className="absolute  left-0 right-0" />
+      <WaveDivider direction="top" color="#FFFFFF" className="absolute left-0 right-0" />
 
-      <div className="mx-auto max-w-[1200px] px-4 py-10 md:py-14 mt-12 md:mt-16">
+      <div className="mx-auto max-w-[1200px] px-4 py-10 md:py-14 my-12 md:my-16">
         {/* Título */}
-        <motion.h2
+        <motion.div
           initial={{ opacity: 0, y: 50 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
-          transition={{
-            type: "spring",
-            damping: 25,
-            stiffness: 300,
-            duration: 0.6
-          }}
-          className="text-center text-2xl md:text-4xl font-bold text-[#8F4B2B]"
+          transition={{ type: "spring", damping: 25, stiffness: 300, duration: 0.6 }}
+          className="text-center"
         >
-          Cookies for Every Occasion
-        </motion.h2>
+          <h2 className="text-2xl md:text-4xl font-bold text-brand-brown">
+            Cookies for Every Occasion
+          </h2>
+          <p className="mt-2 text-brand-muted max-w-xl mx-auto text-sm md:text-base">
+            From office thank-yous to wedding dessert tables, here&apos;s how Bliss-B shows up for your event.
+          </p>
+        </motion.div>
 
         {/* Grid de cards */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-50px" }}
-          transition={{
-            type: "spring",
-            damping: 25,
-            stiffness: 300,
-            delay: 0.2,
-            duration: 0.6
-          }}
+          transition={{ type: "spring", damping: 25, stiffness: 300, delay: 0.2, duration: 0.6 }}
           className="mt-8 grid grid-cols-1 gap-5 md:gap-6 md:grid-cols-3"
         >
           <BannerCard
             title="Events"
-            description="We set up on site with our cookie and cake carts, serving fresh desserts at your party."
+            description="We bring our cookie and cake carts on-site, serving fresh desserts at your party from start to finish."
             imageSrc="/img/carrito.jpeg"
-            href="/cookies"
-            panelBg="#9A4F2A"
+            href="/corporate?section=cookie-cart"
+            ctaLabel="Book Our Cart"
+            panelBg="#9B562C"
             objectPosition="center"
           />
           <BannerCard
             title="Corporate Gifts"
-            description="Share Bliss-B flavors with clients or teams through our cookie boxes, a sweet way to say thank you."
+            description="Share Bliss-B flavors with clients or teams through custom cookie boxes, a sweet thank-you."
             imageSrc="/img/corporate.jpeg"
-            href="/corporate"
-            panelBg="#EFC596"
+            href="/corporate?section=corporate-gifting"
+            ctaLabel="Get a Quote"
+            panelBg="#7A4522"
             objectPosition="center"
           />
           <BannerCard
             title="Catering"
             description="Order large quantities of cookies, brownies, and more, perfect for weddings, parties, and gatherings."
             imageSrc="/img/caterine.jpeg"
-            href="/corporate"
-            panelBg="#9A4F2A"
+            href="/corporate?section=catering"
+            ctaLabel="See Catering Options"
+            panelBg="#9B562C"
             objectPosition="center"
           />
         </motion.div>

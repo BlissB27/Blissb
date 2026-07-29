@@ -1,10 +1,5 @@
-
-"use client";
-
-import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Instagram } from "lucide-react";
 import { FaTiktok } from "react-icons/fa";
 
@@ -17,186 +12,65 @@ const NAVIGATION_LINKS = [
   { href: "/contact", label: "Contact Us" },
 ];
 
-export function Footer() {
-  const [email, setEmail] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setMessage(null);
-
-    try {
-      const response = await fetch('/api/subscribe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage({ type: 'success', text: data.message || 'Successfully subscribed!' });
-        setEmail("");
-      } else {
-        setMessage({ type: 'error', text: data.error || 'Failed to subscribe' });
-      }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Something went wrong. Please try again.' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+function FooterNavLink({ href, label }: { href: string; label: string }) {
   return (
-    <footer className="bg-[#8F4B2B] text-white">
-      <div className="mx-auto max-w-[1200px] px-4 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
-          {/* Left: Navigation */}
-          <div className="md:col-span-1">
-            <h3 className="text-xl font-bold mb-6 text-[#EFC596]">
-              Quick Links
-            </h3>
-            <nav className="grid grid-cols-2 md:grid-cols-1 gap-3">
-              {NAVIGATION_LINKS.map((link) => (
-                <Button
-                  key={link.href}
-                  asChild
-                  variant="ghost"
-                  className="text-white hover:text-[#EFC596] hover:bg-white/10 justify-start px-0 h-auto py-2 font-normal rounded-md transition-all duration-200"
-                >
-                  <Link href={link.href} className="text-sm">
-                    {link.label}
-                  </Link>
-                </Button>
-              ))}
-            </nav>
-          </div>
+    <Link href={href} className="group relative text-sm text-white/85 hover:text-white transition-colors">
+      {label}
+      <span className="absolute -bottom-1 left-0 right-0 h-0.5 rounded-full bg-white transition-[clip-path] duration-300 ease-out [clip-path:inset(0_100%_0_0)] group-hover:[clip-path:inset(0_0%_0_0)]" />
+    </Link>
+  );
+}
 
-          {/* Center: Newsletter Signup */}
-          <div className="md:col-span-1 lg:col-span-1">
-            <h3 className="text-xl font-bold mb-6 text-[#EFC596]">
-              Stay Sweet with Us
-            </h3>
-            <p className="text-white/90 text-sm mb-6 leading-relaxed">
-              Be the first to know about new cookie launches,
-              special promotions, and exclusive surprises we've
-              baked just for you.
-            </p>
+function SocialIcon({ href, label, children }: { href: string; label: string; children: React.ReactNode }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={label}
+      className="group relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-white/20"
+    >
+      <span className="absolute inset-0 origin-top scale-y-0 bg-white transition-transform duration-300 group-hover:scale-y-100" />
+      <span className="relative z-10 text-white transition-colors duration-300 group-hover:text-[#5C3319]">
+        {children}
+      </span>
+    </a>
+  );
+}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email address"
-                required
-                disabled={isLoading}
-                className="bg-white/10 border-white/30 text-white placeholder:text-white/70 focus-visible:ring-white/50 focus-visible:border-white rounded-md h-11 disabled:opacity-50"
-              />
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-[#EFC596] text-[#8F4B2B] hover:bg-[#EFC596]/90 rounded-md font-medium py-2.5 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50"
-              >
-                {isLoading ? 'Subscribing...' : 'Subscribe Now'}
-              </Button>
+export function Footer() {
+  return (
+    <footer className="bg-[#5C3319] text-white">
+      <div className="mx-auto max-w-[1200px] px-4 py-14 flex flex-col items-center text-center">
+        <Link href="/">
+          <Image src="/img/logo-white.png" alt="Bliss-B Desserts" width={1343} height={452} className="h-10 md:h-12 w-auto" />
+        </Link>
 
-              {message && (
-                <div className={`text-sm p-3 rounded-md ${
-                  message.type === 'success'
-                    ? 'bg-green-500/20 text-green-100 border border-green-500/30'
-                    : 'bg-red-500/20 text-red-100 border border-red-500/30'
-                }`}>
-                  {message.text}
-                </div>
-              )}
-            </form>
-          </div>
+        <p className="mt-4 max-w-md text-sm text-white/75">
+          Small-batch cookies, cakes, and desserts, handcrafted fresh in Braselton, GA.
+        </p>
 
-          {/* Right: Social Media */}
-          <div className="md:col-span-2 lg:col-span-1">
-            <h3 className="text-xl font-bold mb-6 text-[#EFC596]">
-              Follow Us
-            </h3>
-            <p className="text-white/90 text-sm mb-6 leading-relaxed">
-              Stay connected and see our latest creations on social media.
-            </p>
+        <nav className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
+          {NAVIGATION_LINKS.map((link) => (
+            <FooterNavLink key={link.href} href={link.href} label={link.label} />
+          ))}
+        </nav>
 
-            {/* Social Media Links */}
-            <div className="flex flex-col gap-4">
-              <Button
-                asChild
-                variant="outline"
-                className="w-full bg-white/10 border-white/30 hover:bg-white/20 hover:border-white/50 text-white h-auto py-4 rounded-md transition-all duration-200 group"
-              >
-                <Link
-                  href="https://instagram.com/blissb.bakery"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-3"
-                >
-                  <Instagram className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                  <div className="flex flex-col items-start">
-                    <span className="font-medium">Instagram</span>
-                    <span className="text-xs text-white/70">@blissb.bakery</span>
-                  </div>
-                </Link>
-              </Button>
-
-              <Button
-                asChild
-                variant="outline"
-                className="w-full bg-white/10 border-white/30 hover:bg-white/20 hover:border-white/50 text-white h-auto py-4 rounded-md transition-all duration-200 group"
-              >
-                <Link
-                  href="https://tiktok.com/@blissb.bakery"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-3"
-                >
-                  <FaTiktok className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                  <div className="flex flex-col items-start">
-                    <span className="font-medium">TikTok</span>
-                    <span className="text-xs text-white/70">@blissb.bakery</span>
-                  </div>
-                </Link>
-              </Button>
-            </div>
-          </div>
+        <div className="mt-8 flex items-center justify-center gap-3">
+          <SocialIcon href="https://instagram.com/blissb.bakery" label="Bliss-B Desserts on Instagram">
+            <Instagram className="h-4 w-4" strokeWidth={1.75} />
+          </SocialIcon>
+          <SocialIcon href="https://tiktok.com/@blissb.bakery" label="Bliss-B Desserts on TikTok">
+            <FaTiktok className="h-4 w-4" />
+          </SocialIcon>
         </div>
 
-        {/* Company Info Section */}
-        <div className="mt-12 pt-8 border-t border-white/20">
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-white mb-2">Bliss-B Bakery</h2>
-            <p className="text-white/80 text-sm max-w-md mx-auto">
-              Creating sweet moments and delicious memories, one cookie at a time.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Bar */}
-      <div className="bg-[#1E7A31] border-t border-[#1E7A31]/50">
-        <div className="mx-auto max-w-[1200px] px-4 py-6">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-center md:text-left text-sm text-white/90">
-              © 2025 Bliss-B Bakery. All rights reserved.
-            </p>
-            <div className="flex gap-4">
-              <Button
-                asChild
-                variant="ghost"
-                className="text-white/80 hover:text-white hover:bg-white/10 p-2 h-auto rounded-md text-xs"
-              >
-                <Link href="/policies">Shipping & Policies</Link>
-              </Button>
-            </div>
-          </div>
+        <div className="mt-10 flex flex-col items-center gap-2 border-t border-white/15 pt-6 text-xs text-white/70 sm:flex-row sm:justify-center sm:gap-4">
+          <p>© {new Date().getFullYear()} Bliss-B Desserts. All rights reserved.</p>
+          <span className="hidden sm:inline">•</span>
+          <Link href="/policies" className="hover:text-white transition-colors">
+            Shipping &amp; Policies
+          </Link>
         </div>
       </div>
     </footer>

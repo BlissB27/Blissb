@@ -47,21 +47,17 @@ export async function getAllProducts(): Promise<Product[]> {
 }
 
 // Get products by category
+// Note: does NOT swallow fetch errors into an empty array — callers must
+// distinguish "the fetch failed" from "this category genuinely has no products".
 export async function getProductsByCategory(category: Product['category']): Promise<Product[]> {
-  try {
-    // Get all products first
-    const response: any = await strapiGet('/products', {
-      'populate': '*',
-      'sort': 'createdAt:desc'
-    });
+  const response: any = await strapiGet('/products', {
+    'populate': '*',
+    'sort': 'createdAt:desc'
+  });
 
-    // Transform all products and filter by category on client side
-    const allProducts = response.data.map(transformStrapiProduct);
-    return allProducts.filter((product: Product) => product.category === category);
-  } catch (error) {
-    console.error(`Error fetching ${category} products:`, error);
-    return [];
-  }
+  // Transform all products and filter by category on client side
+  const allProducts = response.data.map(transformStrapiProduct);
+  return allProducts.filter((product: Product) => product.category === category);
 }
 
 // Get single product by ID (using documentId for Strapi v5)

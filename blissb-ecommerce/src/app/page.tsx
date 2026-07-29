@@ -1,19 +1,31 @@
 import { Hero } from "@/components/Hero";
 import Banner from "@/components/Banner";
-import { ProductCard } from "@/components/ProductCard";
-import { PRODUCTS } from "@/data/products";
-import { ProductTabs } from "@/components/ProductTabs";
-import { FAQ } from "@/components/Faq";
+import { CategoryShowcase } from "@/components/CategoryShowcase";
+import { CookieBoxBuilder } from "@/components/CookieBoxBuilder";
+import { CakesHighlight } from "@/components/CakesHighlight";
+import { InstagramGallery } from "@/components/InstagramGallery";
 import { Awards } from "@/components/Awards";
+import { FAQ } from "@/components/Faq";
 
 export default function Home() {
   return (
     <main className="min-h-screen">
       <Hero />
       <Banner />
-      <ProductTabs />
-      <FAQ />
+      <section className="bg-white">
+        <div className="max-w-[1200px] mx-auto px-4 py-12 md:py-16">
+          <CookieBoxBuilder />
+        </div>
+      </section>
+      <CakesHighlight />
+      <CategoryShowcase
+        category="desserts"
+        title="Decadent Desserts, Made Fresh Daily"
+        blurb="From rich tiramisu to creamy New York cheesecake, every dessert is handcrafted in small batches in Braselton, GA — the perfect sweet ending for any occasion."
+      />
+      <InstagramGallery />
       <Awards />
+      <FAQ />
     </main>
   );
 }
