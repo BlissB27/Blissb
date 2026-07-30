@@ -6,7 +6,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { AddToCartButton } from "@/components/AddToCartButton";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Clock, Flame, Snowflake, AlertTriangle } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import type { BoxFlavor } from "@/store/cartStore";
@@ -28,7 +27,6 @@ export default function ProductPage({
   const { addItem } = useCartStore();
   const [selectedQuantity, setSelectedQuantity] = useState<number>(1);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [customMessage, setCustomMessage] = useState<string>("");
   const [boxFlavors, setBoxFlavors] = useState<BoxFlavor[] | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -103,12 +101,11 @@ export default function ProductPage({
       return true;
     }
 
-    const result = addItem(product, { quantity: selectedQuantity, customMessage: customMessage || undefined });
+    const result = addItem(product, { quantity: selectedQuantity });
     if (!result.success) {
       setErrorMessage(result.error ?? "Couldn't add this item to your cart.");
       return false;
     }
-    setCustomMessage("");
     return true;
   };
 
@@ -191,20 +188,6 @@ export default function ProductPage({
                 <p className="text-sm text-brand-muted">
                   This box isn&apos;t available online yet — please contact us directly to order it.
                 </p>
-              </div>
-            )}
-
-            {product.category === "desserts" && (
-              <div className="mb-6">
-                <label className="text-sm text-brand-muted mb-2 block">Special message (optional)</label>
-                <Input
-                  placeholder="e.g., Happy Birthday John!"
-                  maxLength={50}
-                  value={customMessage}
-                  onChange={(e) => setCustomMessage(e.target.value)}
-                  className="border-brand-border focus:border-brand-brown"
-                />
-                <p className="text-xs text-brand-muted mt-1">Max 50 characters</p>
               </div>
             )}
 

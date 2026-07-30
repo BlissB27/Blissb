@@ -4,7 +4,7 @@ import { MotionConfig } from "framer-motion";
 import "./globals.css";
 import Header from "@/components/layout/Header";
 import { CartDrawer } from "@/components/CartDrawer";
-import { Footer } from "@/components/layout/Footer";
+import { ParallaxFooter } from "@/components/layout/ParallaxFooter";
 import { NewsletterDiscountModal } from "@/components/NewsletterDiscountModal";
 
 const bricolageGrotesque = Bricolage_Grotesque({
@@ -32,9 +32,10 @@ export default function RootLayout({
     <html lang="en-US">
       <body className={`${bricolageGrotesque.variable} ${inter.variable} min-h-screen bg-brand-bg text-brand-text font-sans antialiased`}>
         <MotionConfig reducedMotion="user">
-          <Header />
-          <main className="mx-auto  ">{children}</main>
-          <Footer/>
+          <ParallaxFooter>
+            <Header />
+            <main className="mx-auto  ">{children}</main>
+          </ParallaxFooter>
           <CartDrawer/>
           <NewsletterDiscountModal/>
         </MotionConfig>

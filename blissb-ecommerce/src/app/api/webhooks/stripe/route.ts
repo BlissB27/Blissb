@@ -129,6 +129,7 @@ export async function POST(request: NextRequest) {
         deliveryType: metadata.deliveryType || '',
         deliveryDate: metadata.deliveryDate || '',
         deliveryTime: metadata.deliveryTime || '',
+        specialMessage: metadata.specialMessage || '',
       });
 
       console.log('Email results:', emailResult);

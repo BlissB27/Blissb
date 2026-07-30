@@ -30,6 +30,7 @@ export function generateOrderConfirmationHTML(data: {
   deliveryType?: string;
   deliveryDate?: string;
   deliveryTime?: string;
+  specialMessage?: string;
 }) {
   const productsHTML = data.products
     .map(
@@ -111,6 +112,12 @@ export function generateOrderConfirmationHTML(data: {
       <p style="margin: 5px 0;">${data.shippingAddress.country}</p>
     </div>
 
+    ${data.specialMessage ? `
+    <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 6px; margin: 20px 0;">
+      <h3 style="margin-top: 0; color: #92400e;">Special Instructions</h3>
+      <p style="margin: 5px 0;">${data.specialMessage}</p>
+    </div>` : ''}
+
     <center>
       <a href="https://blissbbakery.com" style="display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 20px 0;">
         Continue Shopping
@@ -147,6 +154,7 @@ export function generateAdminOrderHTML(data: {
   deliveryType?: string;
   deliveryDate?: string;
   deliveryTime?: string;
+  specialMessage?: string;
 }) {
   const productsHTML = data.products
     .map(
@@ -193,6 +201,12 @@ export function generateAdminOrderHTML(data: {
     <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px;">
       <strong>⚡ Action Required:</strong> New order received and confirmed. Proceed with preparation and shipping process.
     </div>
+
+    ${data.specialMessage ? `
+    <div style="background: #fee2e2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0; border-radius: 4px;">
+      <strong style="color: #b91c1c;">📝 Special Instructions from customer:</strong>
+      <p style="margin: 8px 0 0 0; color: #7f1d1d;">${data.specialMessage}</p>
+    </div>` : ''}
 
     <div style="margin: 25px 0; padding: 20px; background: #f9fafb; border-radius: 6px;">
       <h2 style="margin-top: 0; color: #10b981; font-size: 18px; border-bottom: 2px solid #10b981; padding-bottom: 10px;">📋 Order Information</h2>

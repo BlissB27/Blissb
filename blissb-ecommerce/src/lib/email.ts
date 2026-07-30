@@ -41,6 +41,7 @@ interface OrderEmailData {
   deliveryType?: string;
   deliveryDate?: string;
   deliveryTime?: string;
+  specialMessage?: string;
 }
 
 /**
@@ -61,6 +62,7 @@ export async function sendOrderConfirmationEmail(data: OrderEmailData) {
       deliveryType: data.deliveryType,
       deliveryDate: data.deliveryDate,
       deliveryTime: data.deliveryTime,
+      specialMessage: data.specialMessage,
     });
 
     const result = await resend.emails.send({
@@ -98,6 +100,7 @@ export async function sendAdminOrderNotification(data: OrderEmailData) {
       deliveryType: data.deliveryType,
       deliveryDate: data.deliveryDate,
       deliveryTime: data.deliveryTime,
+      specialMessage: data.specialMessage,
     });
 
     const adminEmail = process.env.ADMIN_EMAIL || 'blissbdesserts@gmail.com';

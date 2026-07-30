@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
-import { FaqWaveDivider } from "./FaqWaveDivider";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
+import { FaqWaveDivider } from './FaqWaveDivider';
 
 export type FaqEntry = { question: string; answer: React.ReactNode };
 
@@ -13,52 +13,61 @@ const EMAIL_LINK = (
 
 export const FAQ_DATA: FaqEntry[] = [
   {
-    question: "How do I place an order?",
-    answer: "Orders can be placed online through our website from Tuesday to Friday. Just add your favorite treats to your cart and check out! Please note: there's a minimum of 4 cookies per order.",
+    question: 'How do I place an order?',
+    answer:
+      "Orders can be placed online through our website from Tuesday to Friday. Just add your favorite treats to your cart and check out! Please note: there's a minimum of 4 cookies per order.",
   },
   {
-    question: "When will my order ship?",
-    answer: "We ship every Monday to ensure freshness and quality. Make sure to place your order before the shipping cutoff to get it in time!",
+    question: 'When will my order ship?',
+    answer:
+      'We ship every Monday to ensure freshness and quality. Make sure to place your order before the shipping cutoff to get it in time!',
   },
   {
-    question: "Can I get same-day delivery or pickup?",
-    answer: "Yes! Order Tuesday–Friday before 2:00pm for same-day local delivery (2pm–6pm) or same-day pickup (6pm–8pm). Order after 2:00pm and it rolls to the next available day. Saturday is pickup-only at the Suwanee Farmers Market, 8am–12pm.",
+    question: 'Can I get same-day delivery or pickup?',
+    answer:
+      'Yes! Order Tuesday–Friday before 2:00pm for same-day local delivery (2pm–6pm) or same-day pickup (6pm–8pm). Order after 2:00pm and it rolls to the next available day. Saturday is pickup-only at the Suwanee Farmers Market, 8am–12pm.',
   },
   {
-    question: "How much does delivery cost?",
-    answer: "Delivery pricing is calculated automatically at checkout based on the distance between our kitchen and your address — you'll see the exact fee before you pay.",
+    question: 'How much does delivery cost?',
+    answer:
+      "Delivery pricing is calculated automatically at checkout based on the distance between our kitchen and your address — you'll see the exact fee before you pay.",
   },
   {
-    question: "Can I pick up my order?",
-    answer: "Yes! Pickup is available at 111 Manor Way, Braselton, GA 30517. Once your order is confirmed, you'll receive pickup instructions by email.",
+    question: 'Can I pick up my order?',
+    answer:
+      "Yes! Pickup is available at 111 Manor Way, Braselton, GA 30517. Once your order is confirmed, you'll receive pickup instructions by email.",
   },
   {
-    question: "What happens if I miss my pickup?",
+    question: 'What happens if I miss my pickup?',
     answer: <>Please email us at {EMAIL_LINK} and we&apos;ll do our best to help.</>,
   },
   {
-    question: "How long do the cookies stay fresh?",
-    answer: "Our cookies are made with premium, fresh ingredients and no preservatives. They stay fresh for up to 5 days in a sealed container at room temperature. Do not refrigerate. For a soft and gooey texture, microwave for 5–10 seconds, or reheat briefly in a preheated oven.",
+    question: 'How long do the cookies stay fresh?',
+    answer:
+      'Our cookies are made with premium, fresh ingredients and no preservatives. They stay fresh for up to 5 days in a sealed container at room temperature. Do not refrigerate. For a soft and gooey texture, microwave for 5–10 seconds, or reheat briefly in a preheated oven.',
   },
   {
-    question: "Are your products made fresh?",
-    answer: "Yes! All of our desserts are baked to order using premium ingredients, with no preservatives or artificial additives. We're committed to delivering the best flavor and quality in every bite.",
+    question: 'Are your products made fresh?',
+    answer:
+      "Yes! All of our desserts are baked to order using premium ingredients, with no preservatives or artificial additives. We're committed to delivering the best flavor and quality in every bite.",
   },
   {
-    question: "Do you offer catering for events?",
-    answer: "Absolutely! We cater for weddings, business events, birthdays, baby showers, and more. Use the \"Request a Catering Quote\" button on our Contact page at least 2 weeks before your event, and we'll respond within 2 business days.",
+    question: 'Do you offer catering for events?',
+    answer:
+      'Absolutely! We cater for weddings, business events, birthdays, baby showers, and more. Use the "Request a Catering Quote" button on our Contact page at least 2 weeks before your event, and we\'ll respond within 2 business days.',
   },
   {
-    question: "Can I customize my order?",
-    answer: "We do not offer custom options for individual treats, but customization is available for catering orders.",
+    question: 'Can I customize my order?',
+    answer: 'We do not offer custom options for individual treats, but customization is available for catering orders.',
   },
   {
-    question: "Do you work with other businesses?",
+    question: 'Do you work with other businesses?',
     answer: <>Yes! We welcome wholesale inquiries and creative collaborations. Reach out to us at {EMAIL_LINK}.</>,
   },
   {
-    question: "Do your products contain allergens?",
-    answer: "Our desserts are made with ingredients like wheat, dairy, eggs, soy, and nuts. While we do our best to avoid cross-contamination, all items are made in the same kitchen using shared equipment. If you have a severe allergy, please consider this before ordering.",
+    question: 'Do your products contain allergens?',
+    answer:
+      'Our desserts are made with ingredients like wheat, dairy, eggs, soy, and nuts. While we do our best to avoid cross-contamination, all items are made in the same kitchen using shared equipment. If you have a severe allergy, please consider this before ordering.',
   },
 ];
 
@@ -92,22 +101,24 @@ function FaqColumn({ entries }: { entries: FaqEntry[] }) {
   );
 }
 
-export function FAQ({ items = FAQ_DATA, limit, title = "Frequently Asked Questions", withWaveDivider = true, className }: FaqProps) {
+export function FAQ({
+  items = FAQ_DATA,
+  limit,
+  title = 'Frequently Asked Questions',
+  withWaveDivider = true,
+  className,
+}: FaqProps) {
   const entries = limit ? items.slice(0, limit) : items;
   const midpoint = Math.ceil(entries.length / 2);
   const leftColumn = entries.slice(0, midpoint);
   const rightColumn = entries.slice(midpoint);
 
   return (
-    <section className={`relative bg-[#ffeccf] py-16 pb-20 ${className ?? ""}`}>
-      {withWaveDivider && (
-        <FaqWaveDivider direction="top" color="#FFFFFF" className="top-0 left-0 right-0" />
-      )}
+    <section className={`relative bg-[#ffeccf] py-16 pb-24 ${className ?? ''}`}>
+      {withWaveDivider && <FaqWaveDivider direction="top" color="#FFFFFF" className="top-0 left-0 right-0" />}
 
-      <div className={`mx-auto max-w-5xl px-4 ${withWaveDivider ? "my-8 md:my-10" : ""}`}>
-        <h2 className="text-center text-3xl md:text-4xl font-bold text-brand-brown mb-12">
-          {title}
-        </h2>
+      <div className={`mx-auto max-w-5xl px-4 ${withWaveDivider ? 'my-8 md:my-10' : ''}`}>
+        <h2 className="text-center text-3xl md:text-4xl font-bold text-brand-brown mb-12">{title}</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
           <FaqColumn entries={leftColumn} />
@@ -115,9 +126,7 @@ export function FAQ({ items = FAQ_DATA, limit, title = "Frequently Asked Questio
         </div>
       </div>
 
-      {withWaveDivider && (
-        <FaqWaveDivider direction="bottom" color="#5C3319" className="bottom-0 left-0 right-0" />
-      )}
+      {withWaveDivider && <FaqWaveDivider direction="bottom" color="#5C3319" className="bottom-0 left-0 right-0" />}
     </section>
   );
 }

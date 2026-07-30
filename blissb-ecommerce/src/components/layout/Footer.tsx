@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Instagram } from "lucide-react";
 import { FaTiktok } from "react-icons/fa";
+import { FooterSubscribeForm } from "./FooterSubscribeForm";
 
 const NAVIGATION_LINKS = [
   { href: "/", label: "Home" },
@@ -56,13 +57,16 @@ export function Footer() {
           ))}
         </nav>
 
-        <div className="mt-8 flex items-center justify-center gap-3">
-          <SocialIcon href="https://instagram.com/blissb.bakery" label="Bliss-B Desserts on Instagram">
-            <Instagram className="h-4 w-4" strokeWidth={1.75} />
-          </SocialIcon>
-          <SocialIcon href="https://tiktok.com/@blissb.bakery" label="Bliss-B Desserts on TikTok">
-            <FaTiktok className="h-4 w-4" />
-          </SocialIcon>
+        <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center sm:gap-6">
+          <div className="flex items-center gap-3">
+            <SocialIcon href="https://instagram.com/blissb.bakery" label="Bliss-B Desserts on Instagram">
+              <Instagram className="h-4 w-4" strokeWidth={1.75} />
+            </SocialIcon>
+            <SocialIcon href="https://tiktok.com/@blissb.bakery" label="Bliss-B Desserts on TikTok">
+              <FaTiktok className="h-4 w-4" />
+            </SocialIcon>
+          </div>
+          <FooterSubscribeForm />
         </div>
 
         <div className="mt-10 flex flex-col items-center gap-2 border-t border-white/15 pt-6 text-xs text-white/70 sm:flex-row sm:justify-center sm:gap-4">

@@ -38,7 +38,7 @@ async function validateDeliveryFee(
 
 export async function POST(request: NextRequest) {
   try {
-    const { items, customerInfo, deliveryInfo, couponCode } = await request.json();
+    const { items, customerInfo, deliveryInfo, couponCode, specialMessage } = await request.json();
 
     // Validar que haya items
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -124,8 +124,6 @@ export async function POST(request: NextRequest) {
             ? `Flavors: ${item.boxFlavors.map((f: { flavor: string; quantity: number }) => `${f.flavor} x${f.quantity}`).join(', ')}`
             : item.flavor
             ? `Flavor: ${item.flavor}`
-            : item.customMessage
-            ? `Message: "${item.customMessage}"`
             : undefined;
 
           return {
@@ -257,6 +255,7 @@ export async function POST(request: NextRequest) {
         deliveryTime: deliveryInfo.time || '',
         deliveryAddress: deliveryInfo.address || '',
         processingFee: processingFee.toFixed(2),
+        specialMessage: typeof specialMessage === 'string' ? specialMessage.slice(0, 300) : '',
       },
       shipping_address_collection: deliveryInfo.type === 'shipping' || deliveryInfo.type === 'delivery'
         ? { allowed_countries: ['US'] }

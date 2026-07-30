@@ -24,7 +24,7 @@ export function InstagramGallery() {
     <section className="relative bg-brand-bg">
       <WaveDivider direction="top" color="#FFFFFF" className="absolute left-0 right-0" />
 
-      <div className="mx-auto max-w-[1200px] px-4 py-14 md:py-16 my-10 md:my-14">
+      <div className="mx-auto max-w-[1200px] px-4 py-8 md:py-8 my-8 md:my-8">
         <div className="text-center mb-6">
           <h2 className="text-2xl md:text-3xl font-bold text-brand-brown mb-2">
             Follow Along

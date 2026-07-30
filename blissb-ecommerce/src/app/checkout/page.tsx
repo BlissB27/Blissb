@@ -9,6 +9,7 @@ import { getFulfillmentOptions } from "@/lib/deliverySchedule";
 import { DeliverySelector } from "@/components/DeliverySelector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -31,6 +32,7 @@ function CheckoutContent() {
   const { selectedType, address } = useDeliveryStore();
 
   const [customerInfo, setCustomerInfo] = useState({ name: "", email: "", phone: "" });
+  const [specialMessage, setSpecialMessage] = useState("");
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -127,7 +129,13 @@ function CheckoutContent() {
       const response = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items, customerInfo, deliveryInfo, couponCode: appliedCoupon?.code }),
+        body: JSON.stringify({
+          items,
+          customerInfo,
+          deliveryInfo,
+          couponCode: appliedCoupon?.code,
+          specialMessage: specialMessage.trim() || undefined,
+        }),
       });
 
       const data = await response.json();
@@ -286,6 +294,24 @@ function CheckoutContent() {
                 </CardContent>
               </Card>
 
+              {/* Special instructions — order-level note, not tied to a specific item */}
+              <Card className="bg-white border-brand-border">
+                <CardContent className="p-6">
+                  <h2 className="text-lg font-semibold text-brand-brown mb-1">Special Instructions</h2>
+                  <p className="text-sm text-brand-muted mb-4">
+                    Anything we should know about your order? e.g. a birthday message, allergy note, or delivery instructions.
+                  </p>
+                  <Textarea
+                    value={specialMessage}
+                    onChange={(e) => setSpecialMessage(e.target.value)}
+                    maxLength={300}
+                    placeholder="Optional message for your order..."
+                    className="border-brand-border focus-visible:border-brand-brown"
+                  />
+                  <p className="text-xs text-brand-muted mt-1 text-right">{specialMessage.length}/300</p>
+                </CardContent>
+              </Card>
+
               {/* 3. Payment */}
               <Card className="bg-white border-brand-border">
                 <CardContent className="p-6">
@@ -359,9 +385,6 @@ function CheckoutContent() {
                           <p className="text-xs text-brand-muted">
                             Flavors: {item.boxFlavors.map((f) => `${f.flavor} x${f.quantity}`).join(", ")}
                           </p>
-                        )}
-                        {item.customMessage && (
-                          <p className="text-xs text-brand-success italic">&quot;{item.customMessage}&quot;</p>
                         )}
                       </div>
                       <div className="text-right">

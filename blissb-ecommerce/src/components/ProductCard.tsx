@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { AddToCartButton } from "@/components/AddToCartButton";
 import {
   Dialog,
@@ -27,7 +26,6 @@ export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCartStore();
   const [currentQuantity, setCurrentQuantity] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
-  const [customMessage, setCustomMessage] = useState<string>("");
   const [boxFlavors, setBoxFlavors] = useState<BoxFlavor[] | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
@@ -38,9 +36,9 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const hasFlavorSelector = !!product.flavors && product.flavors.length > 0;
   const isUnconfiguredBox = product.isSoldInBox && !product.boxSize;
-  const needsOptions = (hasFlavorSelector && !isUnconfiguredBox) || product.allowCustomMessage;
+  const needsOptions = hasFlavorSelector && !isUnconfiguredBox;
 
-  const finishAdd = (options: { boxFlavors?: BoxFlavor[]; customMessage?: string }): boolean => {
+  const finishAdd = (options: { boxFlavors?: BoxFlavor[] }): boolean => {
     setErrorMessage(null);
     const addedQuantity = options.boxFlavors
       ? options.boxFlavors.reduce((sum, f) => sum + f.quantity, 0)
@@ -52,7 +50,6 @@ export function ProductCard({ product }: ProductCardProps) {
       return false;
     }
     setCurrentQuantity((prev) => prev + addedQuantity);
-    setCustomMessage("");
     setBoxFlavors(null);
     return true;
   };
@@ -73,7 +70,6 @@ export function ProductCard({ product }: ProductCardProps) {
     if (hasFlavorSelector && !boxFlavors) return false; // FlavorSelector shows the invalid state
     return finishAdd({
       boxFlavors: hasFlavorSelector ? boxFlavors ?? undefined : undefined,
-      customMessage: customMessage || undefined,
     });
   };
 
@@ -155,7 +151,7 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
       </div>
 
-      {/* Options modal — flavor split and/or custom message, kept out of the card so every card looks the same */}
+      {/* Options modal — flavor split, kept out of the card so every card looks the same */}
       <Dialog open={isOptionsOpen} onOpenChange={setIsOptionsOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -170,20 +166,6 @@ export function ProductCard({ product }: ProductCardProps) {
               targetQuantity={product.isSoldInBox ? (product.boxSize as number) : undefined}
               onSelectionChange={setBoxFlavors}
             />
-          )}
-
-          {product.allowCustomMessage && (
-            <div className="space-y-1">
-              <label className="text-sm text-brand-muted">Special message (optional)</label>
-              <Input
-                placeholder="e.g., Happy Birthday John!"
-                maxLength={50}
-                value={customMessage}
-                onChange={(e) => setCustomMessage(e.target.value)}
-                className="text-sm border-brand-border focus:border-brand-brown"
-              />
-              <p className="text-xs text-brand-muted">Max 50 characters</p>
-            </div>
           )}
 
           {errorMessage && (

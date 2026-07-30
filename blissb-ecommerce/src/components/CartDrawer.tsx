@@ -164,11 +164,6 @@ export function CartDrawer() {
                             Flavors: {item.boxFlavors.map(f => `${f.flavor} x${f.quantity}`).join(', ')}
                           </p>
                         )}
-                        {item.customMessage && (
-                          <p className="text-xs text-brand-success italic mb-1 bg-brand-success/5 px-2 py-1 rounded">
-                            "{item.customMessage}"
-                          </p>
-                        )}
                         {item.product.description && (
                           <p className="text-xs text-brand-muted mb-2 line-clamp-2">
                             {item.product.description}

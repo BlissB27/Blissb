@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AddToCartButton } from "@/components/AddToCartButton";
 import {
@@ -29,25 +28,23 @@ export function ProductHighlightCard({
   const { addItem } = useCartStore();
   const [isOpen, setIsOpen] = useState(false);
   const [boxFlavors, setBoxFlavors] = useState<BoxFlavor[] | null>(null);
-  const [customMessage, setCustomMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const hasFlavorSelector = !!product.flavors && product.flavors.length > 0;
 
-  const finishAdd = (options: { boxFlavors?: BoxFlavor[]; customMessage?: string }): boolean => {
+  const finishAdd = (options: { boxFlavors?: BoxFlavor[] }): boolean => {
     setErrorMessage(null);
     const result = addItem(product, { quantity: 1, ...options });
     if (!result.success) {
       setErrorMessage(result.error ?? "Couldn't add this to your cart.");
       return false;
     }
-    setCustomMessage("");
     setBoxFlavors(null);
     return true;
   };
 
   const handleAddClick = (): boolean => {
-    if (hasFlavorSelector || product.allowCustomMessage) {
+    if (hasFlavorSelector) {
       setIsOpen(true);
       return false;
     }
@@ -58,7 +55,6 @@ export function ProductHighlightCard({
     if (hasFlavorSelector && !boxFlavors) return false;
     return finishAdd({
       boxFlavors: hasFlavorSelector ? boxFlavors ?? undefined : undefined,
-      customMessage: customMessage || undefined,
     });
   };
 
@@ -119,20 +115,6 @@ export function ProductHighlightCard({
               fixedTarget={false}
               onSelectionChange={setBoxFlavors}
             />
-          )}
-
-          {product.allowCustomMessage && (
-            <div className="space-y-1">
-              <label className="text-sm text-brand-muted">Special message (optional)</label>
-              <Input
-                placeholder="e.g., Happy Birthday John!"
-                maxLength={50}
-                value={customMessage}
-                onChange={(e) => setCustomMessage(e.target.value)}
-                className="text-sm border-brand-border focus:border-brand-brown"
-              />
-              <p className="text-xs text-brand-muted">Max 50 characters</p>
-            </div>
           )}
 
           {errorMessage && (

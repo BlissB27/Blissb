@@ -28,7 +28,7 @@ export function CakesHighlight() {
     <section className="relative bg-brand-brown">
       <WaveDivider direction="top" color="#FFFFFF" className="absolute left-0 right-0" />
 
-      <div className="mx-auto max-w-[1200px] px-4 py-14 md:py-20 my-10 md:my-14">
+      <div className="mx-auto max-w-[1200px] px-4 py-8 md:py-8 my-8 md:my-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           <motion.div
             initial={{ opacity: 0, y: 40 }}

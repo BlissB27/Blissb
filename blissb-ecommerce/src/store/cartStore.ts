@@ -13,14 +13,12 @@ export type CartItem = {
   product: Product;
   quantity: number;
   flavor?: string; // Para cakes que requieren sabor específico
-  customMessage?: string; // Para desserts que permiten mensaje personalizado
   boxFlavors?: BoxFlavor[]; // Para cajas con reparto de sabores (ej. Mini Cookie Box)
 };
 
 export type AddItemOptions = {
   quantity?: number;
   flavor?: string;
-  customMessage?: string;
   boxFlavors?: BoxFlavor[];
 };
 
@@ -82,7 +80,7 @@ export const useCartStore = create<CartStore>()(
       isOpen: false,
       
       addItem: (product, options = {}) => {
-        const { quantity = 1, flavor, customMessage, boxFlavors } = options;
+        const { quantity = 1, flavor, boxFlavors } = options;
 
         const normalizedProduct = {
           ...product,
@@ -122,20 +120,13 @@ export const useCartStore = create<CartStore>()(
             };
           }
 
-          // Para productos con sabor o desserts con mensaje, crear un ID único
-          let itemId = normalizedProduct.id;
-          if (flavor) {
-            // Cualquier producto con sabor seleccionado
-            itemId = `${normalizedProduct.id}-${flavor}`;
-          } else if (customMessage) {
-            // Para productos con mensaje personalizado, crear ID único
-            itemId = `${normalizedProduct.id}-${Date.now()}`;
-          }
+          // Para productos con sabor, crear un ID único por sabor
+          const itemId = flavor ? `${normalizedProduct.id}-${flavor}` : normalizedProduct.id;
 
           const existingItem = state.items.find(item => item.id === itemId);
 
-          // Si existe y NO tiene mensaje personalizado, incrementar cantidad
-          if (existingItem && !customMessage) {
+          // Si ya existe esa combinación, incrementar cantidad
+          if (existingItem) {
             return {
               items: state.items.map(item =>
                 item.id === itemId
@@ -153,7 +144,6 @@ export const useCartStore = create<CartStore>()(
               product: normalizedProduct,
               quantity: effectiveQuantity,
               flavor,
-              customMessage
             }],
             isOpen: true,
           };
