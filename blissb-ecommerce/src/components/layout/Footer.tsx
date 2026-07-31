@@ -41,7 +41,7 @@ function SocialIcon({ href, label, children }: { href: string; label: string; ch
 
 export function Footer() {
   return (
-    <footer className="bg-[#5C3319] text-white">
+    <footer className="bg-[#5C3319] text-white shadow-[0_50vh_0_60vh_#5C3319]">
       <div className="mx-auto max-w-[1200px] px-4 py-14 flex flex-col items-center text-center">
         <Link href="/">
           <Image src="/img/logo-white.png" alt="Bliss-B Desserts" width={1343} height={452} className="h-10 md:h-12 w-auto" />

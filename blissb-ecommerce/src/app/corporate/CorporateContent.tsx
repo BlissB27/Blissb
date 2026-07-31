@@ -3,24 +3,48 @@
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Clock3 } from "lucide-react";
+import { CalendarClock, MapPin, Sparkles } from "lucide-react";
+import PhotoSwipeLightbox from "photoswipe/lightbox";
+import "photoswipe/style.css";
 import { Button } from "@/components/ui/button";
 import { WaveDivider } from "@/components/WaveDivider";
+import { CorporateHero } from "@/components/category/CorporateHero";
 import { motion } from "framer-motion";
 
 const PHONE_NUMBER = "+14708835035";
-const EMAIL = "blissbdesserts@gmail.com";
-
-function mailtoFor(subject: string) {
-  return `mailto:${EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(
-    "Hi Bliss-B Desserts,\n\nEvent date:\nGuest count:\nBudget range:\n\nThanks!"
-  )}`;
-}
+const CALL_HREF = `tel:${PHONE_NUMBER}`;
 
 const SECTION_IDS = ["catering", "corporate-gifting", "cookie-cart"];
 
+// Real event/product photography — not stock, not the transparent product renders
+// (those live elsewhere) — this is proof of what Bliss-B actually shows up with.
+const GALLERY_PHOTOS = [
+  { src: "/img/event1.jpeg", alt: "The Bliss-B cart set up on-site at an event", width: 3024, height: 4032 },
+  { src: "/img/carrito.jpeg", alt: "The Bliss-B dessert cart styled for an event", width: 1024, height: 1043 },
+  { src: "/img/catering1.jpeg", alt: "Plated mini tarts for a catered event", width: 3024, height: 4032 },
+  { src: "/img/corporate1.jpeg", alt: "A Bliss-B cookie box presented as a corporate gift", width: 5107, height: 3648 },
+  { src: "/img/corporate.jpeg", alt: "Cookies branded with the Bliss-B logo for corporate gifting", width: 3024, height: 4032 },
+];
+
+const FEATURES = [
+  {
+    Icon: CalendarClock,
+    title: "Book 2 Weeks Ahead",
+    description: "Give us at least two weeks' notice so every order gets the care and prep time it deserves.",
+  },
+  {
+    Icon: Sparkles,
+    title: "Custom Quotes",
+    description: "Every quote is tailored to your guest count, menu, and budget — never a generic package.",
+  },
+  {
+    Icon: MapPin,
+    title: "Serving Braselton & Beyond",
+    description: "Based in Braselton, GA, with cart service and delivery available for nearby events.",
+  },
+];
+
 export function CorporateContent() {
-  const phoneNumber = PHONE_NUMBER;
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -34,20 +58,39 @@ export function CorporateContent() {
     }
   }, [searchParams, router]);
 
+  useEffect(() => {
+    const lightbox = new PhotoSwipeLightbox({
+      gallery: "#corporate-gallery",
+      children: "a",
+      pswpModule: () => import("photoswipe"),
+    });
+    lightbox.init();
+    return () => lightbox.destroy();
+  }, []);
+
   return (
     <div className="min-h-screen ">
+      <CorporateHero />
+
       {/* Booking basics - the numbers a corporate/event buyer needs before reaching out */}
-      <div className="bg-brand-bg border-b border-brand-border">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6 text-center text-sm text-brand-text">
-          <span className="flex items-center gap-2">
-            <Clock3 className="w-4 h-4 text-brand-brown" aria-hidden="true" />
-            Book at least 2 weeks before your event
-          </span>
-          <span className="hidden sm:inline text-brand-border">•</span>
-          <span>Every quote is custom to your guest count and menu — request one below</span>
+      <section className="relative bg-brand-bg">
+        <WaveDivider direction="top" color="#9B562C" className="absolute left-0 right-0" />
+        <div className="max-w-6xl mx-auto px-4 py-16">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {FEATURES.map((feature) => (
+              <div key={feature.title} className="text-center">
+                <div className="w-16 h-16 bg-brand-accent rounded-full flex items-center justify-center mx-auto mb-4">
+                  <feature.Icon className="w-7 h-7 text-white" strokeWidth={1.75} aria-hidden="true" />
+                </div>
+                <h3 className="font-semibold text-brand-text mb-2">{feature.title}</h3>
+                <p className="text-sm text-brand-muted">{feature.description}</p>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-      {/* Hero Section - Catering & Events */}
+        <WaveDivider direction="bottom" color="#FFFFFF" className="absolute bottom-0 left-0 right-0" />
+      </section>
+      {/* Catering & Events */}
       <section id="catering" className="py-12 md:py-16 bg-white scroll-mt-24">
         <div className="max-w-6xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
@@ -63,7 +106,7 @@ export function CorporateContent() {
               }}
               className="order-2 md:order-1"
             >
-              <motion.h1
+              <motion.h2
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{
@@ -76,7 +119,7 @@ export function CorporateContent() {
                 className="text-3xl md:text-4xl lg:text-5xl font-bold text-brand-brown mb-4 md:mb-6"
               >
                 Catering & Events
-              </motion.h1>
+              </motion.h2>
 
               <div className="space-y-3 md:space-y-4 text-brand-muted mb-6 md:mb-8 text-sm md:text-base">
                 <p>Sweeten every celebration with our dessert catering.</p>
@@ -140,18 +183,9 @@ export function CorporateContent() {
               >
                 <Button
                   asChild
-                  variant="outline"
                   className="text-sm md:text-base px-4 md:px-6 py-2 md:py-3 w-full sm:w-auto"
                 >
-                  <a href={`sms:${phoneNumber}?body=Hi! I'm interested in hiring Bliss-B for catering and events.`}>
-                    Text Us
-                  </a>
-                </Button>
-                <Button
-                  asChild
-                  className="text-sm md:text-base px-4 md:px-6 py-2 md:py-3 w-full sm:w-auto"
-                >
-                  <a href={mailtoFor("Catering Quote Request")}>Email Us</a>
+                  <a href={CALL_HREF}>Book a Call</a>
                 </Button>
               </motion.div>
             </motion.div>
@@ -180,10 +214,11 @@ export function CorporateContent() {
           </div>
         </div>
       </section>
-      <WaveDivider direction="top" color="#FFFFFF" className="absolute bottom-0 left-0 right-0"/>
+
       {/* Corporate Gifting Section */}
-      <section id="corporate-gifting" className="py-16 bg-brand-bg scroll-mt-24">
-        <div className="max-w-6xl mx-auto px-2">
+      <section id="corporate-gifting" className="relative bg-brand-bg scroll-mt-24">
+        <WaveDivider direction="top" color="#FFFFFF" className="absolute left-0 right-0" />
+        <div className="max-w-6xl mx-auto px-2 py-16">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Left Content - Gift Boxes */}
             <div className="relative w-full h-[300px] md:h-[400px] lg:h-[500px] order-2 lg:order-1">
@@ -214,26 +249,17 @@ export function CorporateContent() {
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Button
                     asChild
-                    variant="outline"
                     className="text-sm md:text-base px-4 md:px-6 py-2 md:py-3 w-full sm:w-auto"
                   >
-                    <a href={`sms:${phoneNumber}?body=Hi! I'm interested in corporate gifting options from Bliss-B.`}>
-                      Text Us
-                    </a>
-                  </Button>
-                  <Button
-                    asChild
-                    className="text-sm md:text-base px-4 md:px-6 py-2 md:py-3 w-full sm:w-auto"
-                  >
-                    <a href={mailtoFor("Corporate Gifting Inquiry")}>Email Us</a>
+                    <a href={CALL_HREF}>Book a Call</a>
                   </Button>
                 </div>
               </div>
             </div>
           </div>
         </div>
+        <WaveDivider direction="bottom" color="#FFFFFF" className="absolute bottom-0 left-0 right-0" />
       </section>
-        <WaveDivider direction="bottom" color="#FFFFFF" className="absolute bottom-0 left-0 right-0"/>
 
       {/* Cookie Cart Experience Section */}
       <section id="cookie-cart" className="py-16 bg-white scroll-mt-24">
@@ -294,18 +320,9 @@ export function CorporateContent() {
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button
                   asChild
-                  variant="outline"
                   className="text-sm md:text-base px-4 md:px-6 py-2 md:py-3 w-full sm:w-auto"
                 >
-                  <a href={`sms:${phoneNumber}?body=Hi! I'm interested in the Bliss-B Cookie Cart Experience for my event.`}>
-                    Text Us
-                  </a>
-                </Button>
-                <Button
-                  asChild
-                  className="text-sm md:text-base px-4 md:px-6 py-2 md:py-3 w-full sm:w-auto"
-                >
-                  <a href={mailtoFor("Cookie Cart Booking")}>Email Us</a>
+                  <a href={CALL_HREF}>Book a Call</a>
                 </Button>
               </div>
             </div>
@@ -322,6 +339,42 @@ export function CorporateContent() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* Gallery - proof of work for a buyer deciding whether to trust us with their event */}
+      <section className="relative bg-brand-bg">
+        <WaveDivider direction="top" color="#FFFFFF" className="absolute left-0 right-0" />
+        <div className="max-w-6xl mx-auto px-4 py-16">
+          <div className="text-center mb-8 md:mb-10">
+            <h2 className="text-3xl md:text-4xl font-bold text-brand-brown mb-3">
+              See Us In Action
+            </h2>
+            <p className="text-brand-muted text-sm md:text-base max-w-2xl mx-auto">
+              A look at real Bliss-B setups from past weddings, offices, and celebrations.
+            </p>
+          </div>
+
+          <div id="corporate-gallery" className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+            {GALLERY_PHOTOS.map((photo) => (
+              <a
+                key={photo.src}
+                href={photo.src}
+                data-pswp-width={photo.width}
+                data-pswp-height={photo.height}
+                className="group relative block aspect-square cursor-pointer overflow-hidden rounded-lg border border-brand-border"
+              >
+                <Image
+                  src={photo.src}
+                  alt={photo.alt}
+                  fill
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
+                  sizes="(max-width: 768px) 50vw, 33vw"
+                />
+              </a>
+            ))}
+          </div>
+        </div>
+        <WaveDivider direction="bottom" color="#5C3319" className="absolute bottom-0 left-0 right-0" />
       </section>
     </div>
   );

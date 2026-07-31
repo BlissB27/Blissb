@@ -1,21 +1,32 @@
 import type { Metadata } from "next";
 import { IceCream, Snowflake, Sparkles, Utensils } from "lucide-react";
 import { CategoryPageTemplate } from "@/components/CategoryPageTemplate";
+import { DessertsHero } from "@/components/category/DessertsHero";
+import { getProductsByCategoryAsync, type Product } from "@/data/products";
 
 export const metadata: Metadata = {
   title: "Desserts | Bliss-B Desserts",
   description: "Gourmet individual desserts crafted with precision and care, handmade in Braselton, GA.",
 };
 
-export default function DessertsPage() {
+export default async function DessertsPage() {
+  // Fetched here (server-side), same reasoning as Cookies/Cakes: the hero's
+  // photos render with real data on the first paint, no client-side Strapi
+  // round trip to wait on after hydration.
+  let desserts: Product[] = [];
+  try {
+    desserts = await getProductsByCategoryAsync("desserts");
+  } catch (error) {
+    console.error("Error loading desserts:", error);
+  }
+
   return (
     <CategoryPageTemplate
       category="desserts"
       Icon={IceCream}
+      hero={<DessertsHero desserts={desserts} />}
       title="Gourmet Desserts"
       categoryLabel="Desserts"
-      optionLabel="dessert option"
-      optionLabelPlural="dessert options"
       blurb="Indulgent desserts crafted with precision and care. From classic favorites to innovative creations, each dessert is a perfect ending to any meal."
       infoCards={[
         {

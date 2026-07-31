@@ -89,6 +89,11 @@ const nextConfig: NextConfig = {
         hostname: '*.vercel.app',
         pathname: '/uploads/**',
       },
+      {
+        // Placeholder dessert hero photo until real Bliss-B photography is ready.
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
     ],
     // Configuración de seguridad adicional
     dangerouslyAllowSVG: false, // Prevenir XSS via SVG

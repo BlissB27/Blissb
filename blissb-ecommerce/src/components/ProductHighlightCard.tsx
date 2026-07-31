@@ -16,6 +16,7 @@ import { FlavorSelector } from "@/components/FlavorSelector";
 import { useCartStore } from "@/store/cartStore";
 import type { BoxFlavor } from "@/store/cartStore";
 import type { Product } from "@/data/products";
+import { getProductUrl } from "@/lib/productUrl";
 
 export function ProductHighlightCard({
   product,
@@ -60,9 +61,9 @@ export function ProductHighlightCard({
 
   return (
     <>
-      <div className="flex gap-4 rounded-2xl border border-brand-border bg-white p-4 shadow-sm sm:flex-col sm:gap-0 sm:p-5">
+      <div className="flex gap-4 rounded-2xl border border-brand-border bg-white p-4 transition-shadow duration-200 hover:shadow-lg sm:flex-col sm:gap-0 sm:p-5">
         <Link
-          href={`/product/${product.slug || product.id}`}
+          href={getProductUrl(product)}
           className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-xl bg-brand-bg sm:h-44 sm:w-full"
         >
           <Image
@@ -75,7 +76,7 @@ export function ProductHighlightCard({
         </Link>
 
         <div className="flex min-w-0 flex-1 flex-col sm:mt-4">
-          <Link href={`/product/${product.slug || product.id}`}>
+          <Link href={getProductUrl(product)}>
             <h3 className="font-display text-base font-semibold text-brand-text hover:text-brand-brown transition-colors">
               {product.name}
             </h3>

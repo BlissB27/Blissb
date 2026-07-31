@@ -28,6 +28,7 @@ export function Hero() {
               alt=""
               aria-hidden="true"
               className="h-7 w-auto"
+              style={{ width: 'auto' }}
             />
             <span className="text-sm font-medium text-brand-brown">
               Best of Georgia 2025 &middot; Top 5 dessert competition 2024

@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, Search, Handbag } from "lucide-react";
+import { Menu, X, Search, ShoppingCart } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { SearchModal } from "../SearchModal";
 import { useHydrated } from "@/hooks/useHydrated";
@@ -33,7 +33,7 @@ function CartButton() {
       className="inline-block relative text-brand-muted hover:text-brand-brown transition-colors"
       aria-label="Cart"
     >
-      <Handbag className="w-5 h-5" strokeWidth={1.75} />
+      <ShoppingCart className="w-5 h-5" strokeWidth={1.75} />
 
       {/* Counter badge - solo mostrar cuando hay items y está hidratado */}
       {hydrated && totalItems > 0 && (
@@ -55,8 +55,10 @@ function NavLink({ href, label, isActive }: { href: string; label: string; isAct
     >
       {label}
       <span
-        className={`absolute bottom-1 left-3 right-3 h-0.5 rounded-full bg-brand-brown transition-[clip-path] duration-300 ease-out [clip-path:inset(0_100%_0_0)] group-hover:[clip-path:inset(0_0%_0_0)] ${
-          isActive ? "[clip-path:inset(0_0%_0_0)]" : ""
+        className={`absolute bottom-1 left-3 right-3 h-0.5 rounded-full bg-brand-brown transition-[clip-path] duration-300 ease-out ${
+          isActive
+            ? "[clip-path:inset(0_0%_0_0)]"
+            : "[clip-path:inset(0_100%_0_0)] group-hover:[clip-path:inset(0_0%_0_0)]"
         }`}
       />
     </Link>
@@ -110,6 +112,8 @@ export default function Header() {
                   height={200}
                   alt="logo"
                   className="h-20 w-auto"
+                  style={{ width: 'auto' }}
+                  priority
                 />
                 <Image
                   src="/img/blisbpremio.png"
@@ -117,6 +121,7 @@ export default function Header() {
                   height={112}
                   alt="Best of Georgia 2025"
                   className="hidden md:block h-28 w-auto"
+                  style={{ width: 'auto' }}
                 />
               </Link>
 

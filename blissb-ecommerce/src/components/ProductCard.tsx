@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { AddToCartButton } from "@/components/AddToCartButton";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -12,65 +13,48 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { useCartStore } from "@/store/cartStore";
-import type { BoxFlavor } from "@/store/cartStore";
 import type { Product } from "@/data/products";
 import { motion } from "framer-motion";
 import { FlavorSelector } from "@/components/FlavorSelector";
+import { useProductAddToCart } from "@/hooks/useProductAddToCart";
+import { getProductUrl } from "@/lib/productUrl";
 
 type ProductCardProps = {
   product: Product;
 };
 
 export function ProductCard({ product }: ProductCardProps) {
-  const { addItem } = useCartStore();
   const [currentQuantity, setCurrentQuantity] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
-  const [boxFlavors, setBoxFlavors] = useState<BoxFlavor[] | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isOptionsOpen, setIsOptionsOpen] = useState(false);
+  const {
+    hasFlavorSelector,
+    isUnconfiguredBox,
+    isOptionsOpen,
+    setIsOptionsOpen,
+    boxFlavors,
+    setBoxFlavors,
+    errorMessage,
+    handleAddToCart,
+    handleConfirmOptions,
+  } = useProductAddToCart(product);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  const hasFlavorSelector = !!product.flavors && product.flavors.length > 0;
-  const isUnconfiguredBox = product.isSoldInBox && !product.boxSize;
-  const needsOptions = hasFlavorSelector && !isUnconfiguredBox;
-
-  const finishAdd = (options: { boxFlavors?: BoxFlavor[] }): boolean => {
-    setErrorMessage(null);
-    const addedQuantity = options.boxFlavors
-      ? options.boxFlavors.reduce((sum, f) => sum + f.quantity, 0)
+  const handleConfirm = (): boolean => {
+    const addedQuantity = boxFlavors
+      ? boxFlavors.reduce((sum, f) => sum + f.quantity, 0)
       : 1;
-
-    const result = addItem(product, { quantity: 1, ...options });
-    if (!result.success) {
-      setErrorMessage(result.error ?? "Couldn't add this item to your cart.");
-      return false;
-    }
-    setCurrentQuantity((prev) => prev + addedQuantity);
-    setBoxFlavors(null);
-    return true;
+    const success = handleConfirmOptions();
+    if (success) setCurrentQuantity((prev) => prev + addedQuantity);
+    return success;
   };
 
-  const handleAddToCart = (e: React.MouseEvent<HTMLButtonElement>): boolean => {
-    e.preventDefault();
-    if (isUnconfiguredBox) return false;
-
-    if (needsOptions) {
-      setIsOptionsOpen(true);
-      return false;
-    }
-
-    return finishAdd({});
-  };
-
-  const handleConfirmOptions = (): boolean => {
-    if (hasFlavorSelector && !boxFlavors) return false; // FlavorSelector shows the invalid state
-    return finishAdd({
-      boxFlavors: hasFlavorSelector ? boxFlavors ?? undefined : undefined,
-    });
+  const handleAdd = (e: React.MouseEvent<HTMLButtonElement>): boolean => {
+    const success = handleAddToCart(e);
+    if (success) setCurrentQuantity((prev) => prev + 1);
+    return success;
   };
 
   return (
@@ -83,8 +67,8 @@ export function ProductCard({ product }: ProductCardProps) {
     >
       <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-brand-border bg-white transition-shadow duration-200 hover:shadow-lg">
         {/* Image */}
-        <div className="relative aspect-square bg-brand-bg">
-          <Link href={`/product/${product.slug || product.id}`} className="absolute inset-0">
+        <div className="relative aspect-square overflow-hidden bg-brand-bg">
+          <Link href={getProductUrl(product)} className="absolute inset-0">
             <Image
               src={product.image}
               alt={product.name}
@@ -113,7 +97,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
         {/* Content */}
         <div className="flex flex-1 flex-col gap-2 p-4">
-          <Link href={`/product/${product.slug || product.id}`}>
+          <Link href={getProductUrl(product)}>
             <h3 className="font-display text-base font-semibold text-brand-text line-clamp-1 hover:text-brand-brown transition-colors">
               {product.name}
             </h3>
@@ -138,7 +122,7 @@ export function ProductCard({ product }: ProductCardProps) {
             </p>
           ) : (
             <div className="mt-auto pt-2">
-              <AddToCartButton onAdd={handleAddToCart} className="w-full" size="sm">
+              <AddToCartButton onAdd={handleAdd} className="w-full" size="sm">
                 Add to Cart
               </AddToCartButton>
               {errorMessage && (
@@ -175,7 +159,7 @@ export function ProductCard({ product }: ProductCardProps) {
           )}
 
           <AddToCartButton
-            onAdd={handleConfirmOptions}
+            onAdd={handleConfirm}
             onAnimationComplete={() => setIsOptionsOpen(false)}
             disabled={hasFlavorSelector ? !boxFlavors : false}
             className="w-full"
@@ -185,5 +169,22 @@ export function ProductCard({ product }: ProductCardProps) {
         </DialogContent>
       </Dialog>
     </motion.div>
+  );
+}
+
+export function ProductCardSkeleton() {
+  return (
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl">
+      <Skeleton className="aspect-square rounded-xl" />
+      <div className="flex flex-1 flex-col gap-2 p-4">
+        <Skeleton className="h-4 w-2/3" />
+        <Skeleton className="h-5 w-16" />
+        <Skeleton className="h-3 w-full" />
+        <Skeleton className="h-3 w-4/5" />
+        <div className="mt-auto pt-2">
+          <Skeleton className="h-9 w-full rounded-md" />
+        </div>
+      </div>
+    </div>
   );
 }
