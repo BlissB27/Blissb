@@ -89,6 +89,11 @@
     "boxSize": {
       "type": "integer",
       "min": 1
+    },
+    "flavorOptions": {
+      "type": "component",
+      "component": "flavor.flavor-option",
+      "repeatable": true
     }
   }
 }

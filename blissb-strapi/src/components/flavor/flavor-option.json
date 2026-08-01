@@ -1,0 +1,23 @@
+{
+  "collectionName": "components_flavor_flavor_options",
+  "info": {
+    "displayName": "flavor-option"
+  },
+  "options": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "image": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    }
+  },
+  "config": {}
+}
