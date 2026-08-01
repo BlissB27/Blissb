@@ -1,81 +1,354 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useCartStore } from "@/store/cartStore";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+import { useCartStore, type CartItem, type AppliedCoupon } from "@/store/cartStore";
 import { useDeliveryStore } from "@/store/deliveryStore";
 import { useHydrated } from "@/hooks/useHydrated";
 import { getFulfillmentOptions } from "@/lib/deliverySchedule";
+import { validateCoupon } from "@/lib/coupons";
 import { DeliverySelector } from "@/components/DeliverySelector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { AlertCircle, CreditCard, Lock, X } from "lucide-react";
-import { motion } from "framer-motion";
-import { loadStripe } from "@stripe/stripe-js";
+import { FieldGroup, GroupField } from "@/components/ui/field-group";
+import { AlertCircle, ChevronDown, Lock } from "lucide-react";
 import { calculateProcessingFee } from "@/lib/orderFees";
 import { getProductImageSrc } from "@/lib/productImage";
-import { validateCoupon } from "@/lib/coupons";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
-function CheckoutContent() {
+function emailLooksValid(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+function nameLooksValid(name: string) {
+  const trimmed = name.trim();
+  // Letters (incl. accented), spaces, hyphens, apostrophes, periods — rejects
+  // names that are just digits/symbols without being overly strict about format.
+  return trimmed.length >= 2 && /^[\p{L}][\p{L}'.\- ]*$/u.test(trimmed);
+}
+
+// Formats digits as the user types into (404) 952-7610 — US phone numbers only.
+function formatPhoneNumber(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 10);
+  if (digits.length === 0) return "";
+  if (digits.length < 4) return `(${digits}`;
+  if (digits.length < 7) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+}
+
+function phoneDigitCount(value: string) {
+  return value.replace(/\D/g, "").length;
+}
+
+function ErrorText({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+      <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+      {children}
+    </p>
+  );
+}
+
+// Mounted only once a PaymentIntent exists, so it — and its Pay button — live
+// together in one place. No cross-column bridging needed: this whole section
+// is self-contained inside its own <Elements>.
+function PaymentSectionInner({
+  clientSecret,
+  customerName,
+  shippingForConfirm,
+  total,
+}: {
+  clientSecret: string;
+  customerName: string;
+  shippingForConfirm: { name: string; address: { line1: string; city?: string; state?: string; postal_code?: string; country: string } } | undefined;
+  total: number;
+}) {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handlePay = async () => {
+    if (!stripe || !elements) return;
+    setIsProcessing(true);
+    setError(null);
+
+    const { error: submitError } = await elements.submit();
+    if (submitError) {
+      setError(submitError.message ?? "Please check your payment details.");
+      setIsProcessing(false);
+      return;
+    }
+
+    const { error, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      clientSecret,
+      confirmParams: {
+        return_url: `${window.location.origin}/order-success`,
+        payment_method_data: { billing_details: { name: customerName } },
+        ...(shippingForConfirm ? { shipping: shippingForConfirm } : {}),
+      },
+      redirect: "if_required",
+    });
+
+    if (error) {
+      setError(error.message ?? "Payment failed. Please try again.");
+      setIsProcessing(false);
+      return;
+    }
+
+    if (paymentIntent?.status === "succeeded") {
+      router.push(`/order-success?payment_intent=${paymentIntent.id}`);
+    } else {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <PaymentElement />
+      {error && (
+        <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+          <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+          <span>{error}</span>
+        </div>
+      )}
+      <Button
+        type="button"
+        onClick={handlePay}
+        disabled={!stripe || !elements || isProcessing}
+        className="w-full bg-brand-success hover:bg-brand-success-hover text-white py-3 font-medium text-lg"
+        size="lg"
+      >
+        {isProcessing ? (
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            Processing...
+          </div>
+        ) : (
+          `Pay $${total.toFixed(2)}`
+        )}
+      </Button>
+      <p className="text-xs text-brand-muted text-center">
+        By completing your order, you agree to our Terms of Service and Privacy Policy.
+      </p>
+    </div>
+  );
+}
+
+// Big total + plain item list + breakdown — no card, no border, matching
+// Stripe's own checkout where the "pay X" side is the quiet one and the form
+// side is the elevated card. Shared between the desktop column and the
+// mobile collapsible bar.
+function OrderSummaryPanel({
+  items,
+  appliedCoupon,
+  setCoupon,
+  clearCoupon,
+  subtotal,
+  discountAmount,
+  deliveryFee,
+  taxAmount,
+  processingFee,
+  total,
+  selectedType,
+}: {
+  items: CartItem[];
+  appliedCoupon: AppliedCoupon | null;
+  setCoupon: (coupon: AppliedCoupon) => void;
+  clearCoupon: () => void;
+  subtotal: number;
+  discountAmount: number;
+  deliveryFee: number;
+  taxAmount: number;
+  processingFee: number;
+  total: number;
+  selectedType: "shipping" | "delivery" | "pickup";
+}) {
+  const [couponInput, setCouponInput] = useState("");
+  const [couponError, setCouponError] = useState<string | null>(null);
+
+  const handleApplyCoupon = () => {
+    if (!couponInput.trim()) return;
+    const result = validateCoupon(couponInput);
+    if (result.valid) {
+      setCoupon({ code: couponInput.trim().toUpperCase(), percentOff: result.percentOff });
+      setCouponError(null);
+      setCouponInput("");
+    } else {
+      setCouponError("That code isn't valid.");
+    }
+  };
+
+  return (
+    <div>
+      {/* The logo file itself has built-in left padding before the "B" glyph
+          starts, so a negative margin is needed to true it up with the text
+          below it, which has none. */}
+      <img src="/img/logobb.png" alt="Bliss-B Desserts" className="h-16 w-auto mb-6 -ml-5" />
+      <p className="text-sm text-brand-muted mb-1">Pay</p>
+      <p className="text-4xl font-bold text-brand-text mb-8">${total.toFixed(2)}</p>
+
+      <div className="space-y-4">
+        {items.map((item) => (
+          <div key={item.id} className="flex items-center gap-3">
+            <div className="relative">
+              <div className="w-12 h-12 bg-white border border-brand-border rounded-lg overflow-hidden">
+                <img
+                  src={getProductImageSrc(item.product.image)}
+                  alt={item.product.name}
+                  className="object-contain w-full h-full"
+                />
+              </div>
+              <span className="absolute -top-2 -right-2 bg-brand-brown text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                {item.quantity}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-brand-text truncate">{item.product.name}</p>
+              {item.flavor && <p className="text-xs text-brand-muted">Flavor: {item.flavor}</p>}
+              {item.boxFlavors && item.boxFlavors.length > 0 && (
+                <p className="text-xs text-brand-muted">
+                  Flavors: {item.boxFlavors.map((f) => `${f.flavor} x${f.quantity}`).join(", ")}
+                </p>
+              )}
+            </div>
+            <p className="text-sm font-medium text-brand-text flex-shrink-0">
+              ${(item.product.price * item.quantity).toFixed(2)}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-6">
+        {appliedCoupon ? (
+          <div className="flex items-center justify-between">
+            <span className="inline-flex items-center gap-1 rounded-md bg-brand-bg border border-brand-border px-2 py-1 text-xs font-medium text-brand-text">
+              🏷️ {appliedCoupon.code} · {appliedCoupon.percentOff}% off
+            </span>
+            <button type="button" onClick={clearCoupon} className="text-xs text-brand-muted hover:text-brand-text underline">
+              Remove
+            </button>
+          </div>
+        ) : (
+          <div>
+            <div className="flex gap-2">
+              <Input
+                value={couponInput}
+                onChange={(e) => {
+                  setCouponInput(e.target.value);
+                  setCouponError(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleApplyCoupon();
+                  }
+                }}
+                placeholder="Discount code"
+                className="bg-white border-brand-border focus:border-brand-brown"
+              />
+              <Button type="button" onClick={handleApplyCoupon} disabled={!couponInput.trim()}>
+                Apply
+              </Button>
+            </div>
+            {couponError && <ErrorText>{couponError}</ErrorText>}
+          </div>
+        )}
+      </div>
+
+      <div className="border-t border-brand-border mt-6 pt-4 space-y-2 text-sm">
+        <div className="flex justify-between text-brand-muted">
+          <span>Subtotal</span>
+          <span className="text-brand-text">${subtotal.toFixed(2)}</span>
+        </div>
+
+        {appliedCoupon && (
+          <div className="flex justify-between text-brand-success">
+            <span>Discount ({appliedCoupon.code})</span>
+            <span>-${discountAmount.toFixed(2)}</span>
+          </div>
+        )}
+
+        <div className="flex justify-between text-brand-muted">
+          <span>{selectedType === "shipping" ? "Shipping" : selectedType === "delivery" ? "Delivery" : "Pickup"}</span>
+          <span className="text-brand-text">{deliveryFee > 0 ? `$${deliveryFee.toFixed(2)}` : "Free"}</span>
+        </div>
+
+        {taxAmount > 0 && (
+          <div className="flex justify-between text-brand-muted">
+            <span>Tax</span>
+            <span className="text-brand-text">${taxAmount.toFixed(2)}</span>
+          </div>
+        )}
+
+        <div className="flex justify-between gap-4 text-brand-muted">
+          <span>Card processing fee (2.9% + $0.80)</span>
+          <span className="flex-shrink-0 text-brand-text">${processingFee.toFixed(2)}</span>
+        </div>
+      </div>
+
+      <div className="border-t border-brand-border mt-4 pt-4 flex justify-between text-base font-bold text-brand-text">
+        <span>Total due</span>
+        <span>${total.toFixed(2)}</span>
+      </div>
+    </div>
+  );
+}
+
+export default function CheckoutPage() {
+  const router = useRouter();
   const hydrated = useHydrated();
   const [isLoading, setIsLoading] = useState(true);
 
-  const { items, getTotalPrice, getShippingInfo, getMinimumOrderInfo } = useCartStore();
-  const { selectedType, address } = useDeliveryStore();
+  const { items, getTotalPrice, getShippingInfo, getMinimumOrderInfo, appliedCoupon, setCoupon, clearCoupon } = useCartStore();
+  const { selectedType, address, shippingAddress } = useDeliveryStore();
 
   const [customerInfo, setCustomerInfo] = useState({ name: "", email: "", phone: "" });
-  const [specialMessage, setSpecialMessage] = useState("");
+  const [contactErrors, setContactErrors] = useState<{ name?: string; email?: string; phone?: string }>({});
+  // Before the first "Continue to Payment" click, blur shouldn't nag about an
+  // untouched empty field — only about content that's actually wrong (a
+  // malformed email, an incomplete phone). After a submit attempt, blur
+  // enforces "required" too, since the user has now tried to proceed.
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [deliveryFee, setDeliveryFee] = useState(0);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
-  const [showCanceledBanner, setShowCanceledBanner] = useState(false);
-  const [couponInput, setCouponInput] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; percentOff: number } | null>(null);
-  const [couponError, setCouponError] = useState<string | null>(null);
-  const isSubmittingRef = useRef(false);
+  const [deliveryError, setDeliveryError] = useState<string | null>(null);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [isCreatingIntent, setIsCreatingIntent] = useState(false);
+  const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
+  // Fingerprint of every input that affects the PaymentIntent's amount/contents
+  // at the time it was last created — if anything drifts afterward, the intent
+  // is stale and gets invalidated instead of silently charging an old amount.
+  const confirmedFingerprintRef = useRef<string | null>(null);
+  const [serverBreakdown, setServerBreakdown] = useState<{
+    subtotal: number;
+    discountAmount: number;
+    deliveryFee: number;
+    taxAmount: number;
+    processingFee: number;
+    total: number;
+  } | null>(null);
 
   const subtotal = getTotalPrice();
   const shippingInfo = getShippingInfo();
   const orderInfo = getMinimumOrderInfo();
   const discountAmount = appliedCoupon ? Math.round(subtotal * (appliedCoupon.percentOff / 100) * 100) / 100 : 0;
-  const processingFee = calculateProcessingFee(subtotal - discountAmount + deliveryFee);
-  const total = subtotal - discountAmount + deliveryFee + processingFee;
-
-  const handleApplyCoupon = () => {
-    const result = validateCoupon(couponInput);
-    if (result.valid) {
-      setAppliedCoupon({ code: couponInput.trim().toUpperCase(), percentOff: result.percentOff });
-      setCouponError(null);
-    } else {
-      setAppliedCoupon(null);
-      setCouponError("That code isn't valid.");
-    }
-  };
+  const processingFee = serverBreakdown?.processingFee ?? calculateProcessingFee(subtotal - discountAmount + deliveryFee);
+  const taxAmount = serverBreakdown?.taxAmount ?? 0;
+  const total = serverBreakdown?.total ?? subtotal - discountAmount + deliveryFee + processingFee;
 
   const fulfillment = getFulfillmentOptions();
 
-  // Same hydration-settle pattern already proven on the old order-confirmation page,
-  // so a mid-flow refresh can't misread a persisted cart as empty and eject the customer.
   useEffect(() => {
     if (!hydrated) return;
     const timer = setTimeout(() => setIsLoading(false), 500);
     return () => clearTimeout(timer);
   }, [hydrated]);
-
-  useEffect(() => {
-    if (searchParams.get("canceled") === "1") {
-      setShowCanceledBanner(true);
-      router.replace("/checkout");
-    }
-  }, [searchParams, router]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -85,44 +358,95 @@ function CheckoutContent() {
   }, [isLoading, items.length, router]);
 
   const isDeliveryValid = selectedType !== "delivery" || address.trim().length >= 8;
+  const isShippingAddressValid =
+    selectedType !== "shipping" ||
+    (shippingAddress.street.trim().length > 0 &&
+      shippingAddress.city.trim().length > 0 &&
+      shippingAddress.state.trim().length > 0 &&
+      shippingAddress.zip.trim().length > 0);
 
-  const validateForm = () => {
-    const errors: string[] = [];
-    if (!customerInfo.name.trim()) errors.push("Name is required");
-    if (!customerInfo.email.trim()) errors.push("Email is required");
-    if (!customerInfo.phone.trim()) errors.push("Phone is required");
-    if (selectedType === "delivery" && address.trim().length < 8) {
-      errors.push("A complete delivery address is required");
+  const computeFingerprint = () => {
+    const itemsSignature = items
+      .map((i) => `${i.id}:${i.quantity}:${i.flavor ?? ""}:${(i.boxFlavors ?? []).map((f) => `${f.flavor}x${f.quantity}`).join("+")}`)
+      .join("|");
+    return JSON.stringify({ itemsSignature, selectedType, address, shippingAddress, deliveryFee, coupon: appliedCoupon?.code, customerInfo });
+  };
+
+  // If anything relevant changes after a PaymentIntent was created, the intent
+  // is stale — drop it so the Payment section disappears and "Continue to
+  // Payment" reappears, instead of letting a stale amount get charged.
+  useEffect(() => {
+    if (!clientSecret) return;
+    if (confirmedFingerprintRef.current !== computeFingerprint()) {
+      setClientSecret(null);
+      setServerBreakdown(null);
     }
-    setValidationErrors(errors);
-    return errors.length === 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedType, address, shippingAddress, deliveryFee, appliedCoupon, customerInfo, items]);
+
+  const handleInputChange = (field: "name" | "email" | "phone", value: string) => {
+    const nextValue = field === "phone" ? formatPhoneNumber(value) : value;
+    setCustomerInfo((prev) => ({ ...prev, [field]: nextValue }));
+    setContactErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    setCustomerInfo((prev) => ({ ...prev, [field]: value }));
-    if (validationErrors.length > 0) setValidationErrors([]);
+  const validateContactField = (field: "name" | "email" | "phone", value: string): string | undefined => {
+    if (field === "email") {
+      if (!value.trim()) return "Email is required";
+      if (!emailLooksValid(value)) return "Enter a valid email address";
+    } else if (field === "name") {
+      if (!value.trim()) return "Name is required";
+      if (!nameLooksValid(value)) return "Enter your full name";
+    } else {
+      if (!value.trim()) return "Phone number is required";
+      if (phoneDigitCount(value) !== 10) return "Enter a complete 10-digit phone number";
+    }
+    return undefined;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleContactBlur = (field: "name" | "email" | "phone") => {
+    const value = customerInfo[field];
+    if (!value.trim() && !hasAttemptedSubmit) {
+      // Untouched empty field, no submit attempt yet — don't nag.
+      return;
+    }
+    setContactErrors((prev) => ({ ...prev, [field]: validateContactField(field, value) }));
+  };
 
-    if (isSubmittingRef.current) return; // reentrancy guard
-    if (!validateForm()) return;
+  const confirmDetails = async () => {
+    setHasAttemptedSubmit(true);
+    const errors: { name?: string; email?: string; phone?: string } = {
+      name: validateContactField("name", customerInfo.name),
+      email: validateContactField("email", customerInfo.email),
+      phone: validateContactField("phone", customerInfo.phone),
+    };
+    const hasErrors = Object.values(errors).some(Boolean);
+    if (hasErrors) {
+      setContactErrors(errors);
+      return;
+    }
+    setContactErrors({});
 
-    isSubmittingRef.current = true;
-    setIsProcessing(true);
-    setValidationErrors([]);
+    const deliveryErrs: string[] = [];
+    if (selectedType === "delivery" && !isDeliveryValid) deliveryErrs.push("A complete delivery address is required.");
+    if (selectedType === "shipping" && !isShippingAddressValid) deliveryErrs.push("A complete shipping address is required.");
+    if (deliveryErrs.length > 0) {
+      setDeliveryError(deliveryErrs.join(" "));
+      return;
+    }
+    setDeliveryError(null);
+
+    setIsCreatingIntent(true);
+    setClientSecret(null);
+    setServerBreakdown(null);
 
     try {
-      const stripe = await stripePromise;
-      if (!stripe) throw new Error("Stripe failed to load");
-
-      const window = selectedType !== "shipping" ? fulfillment[selectedType] : null;
+      const window_ = selectedType !== "shipping" ? fulfillment[selectedType] : null;
       const deliveryInfo = {
         type: selectedType,
         address: selectedType === "delivery" ? address : "",
-        date: window?.date ?? "",
-        time: window?.window ?? "",
+        date: window_?.date ?? "",
+        time: window_?.window ?? "",
         fee: deliveryFee,
       };
 
@@ -133,35 +457,32 @@ function CheckoutContent() {
           items,
           customerInfo,
           deliveryInfo,
+          shippingAddress: selectedType === "shipping" ? shippingAddress : undefined,
           couponCode: appliedCoupon?.code,
-          specialMessage: specialMessage.trim() || undefined,
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        setValidationErrors([data.error ?? "Something went wrong. Please try again."]);
+        setDeliveryError(data.error ?? "Something went wrong. Please try again.");
         return;
       }
 
-      const { sessionId } = data;
-      const result = await stripe.redirectToCheckout({ sessionId });
-      if (result.error) {
-        setValidationErrors([result.error.message ?? "Payment failed"]);
-      }
+      setClientSecret(data.clientSecret);
+      if (data.breakdown) setServerBreakdown(data.breakdown);
+      confirmedFingerprintRef.current = computeFingerprint();
     } catch (error) {
-      console.error("Checkout error:", error);
-      setValidationErrors(["Something went wrong. Please try again."]);
+      console.error("Error creating payment intent:", error);
+      setDeliveryError("Something went wrong. Please check your connection and try again.");
     } finally {
-      setIsProcessing(false);
-      isSubmittingRef.current = false;
+      setIsCreatingIntent(false);
     }
   };
 
   if (!hydrated || isLoading) {
     return (
-      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
+      <div className="flex items-center justify-center bg-brand-bg py-24">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-brand-brown border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-brand-muted">Loading your order...</p>
@@ -174,323 +495,203 @@ function CheckoutContent() {
     return null; // redirecting
   }
 
-  const canSubmit = orderInfo.hasMinimumOrder && isDeliveryValid && !isProcessing;
+  const shippingForConfirm =
+    selectedType === "pickup"
+      ? undefined
+      : selectedType === "shipping"
+      ? {
+          name: customerInfo.name,
+          address: {
+            line1: shippingAddress.street,
+            city: shippingAddress.city,
+            state: shippingAddress.state,
+            postal_code: shippingAddress.zip,
+            country: "US",
+          },
+        }
+      : { name: customerInfo.name, address: { line1: address, country: "US" } };
+
+  const summaryProps = {
+    items,
+    appliedCoupon,
+    setCoupon,
+    clearCoupon,
+    subtotal,
+    discountAmount,
+    deliveryFee,
+    taxAmount,
+    processingFee,
+    total,
+    selectedType,
+  };
 
   return (
-    <div className="min-h-screen bg-brand-bg">
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <h1 className="text-3xl font-bold text-brand-brown">Checkout</h1>
-        </motion.div>
-
-        {showCanceledBanner && (
-          <Card className="bg-yellow-50 border-yellow-200 mb-6">
-            <CardContent className="p-4 flex items-start justify-between gap-3">
-              <div className="flex items-start gap-2 text-yellow-800">
-                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <p className="text-sm">
-                  Payment wasn&apos;t completed — nothing was charged. You can try again below.
-                </p>
-              </div>
-              <button
-                type="button"
-                aria-label="Dismiss"
-                onClick={() => setShowCanceledBanner(false)}
-                className="text-yellow-800 hover:text-yellow-900 flex-shrink-0"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </CardContent>
-          </Card>
+    <div className="bg-brand-bg">
+      {/* Mobile-only: running total stays visible while scrolling the form,
+          expandable to the full itemized breakdown — desktop shows the same
+          panel permanently in its own column. */}
+      <div className="lg:hidden sticky top-0 z-10 bg-white border-b border-brand-border">
+        <button
+          type="button"
+          onClick={() => setMobileSummaryOpen((o) => !o)}
+          className="w-full flex items-center justify-between px-4 py-3"
+          aria-expanded={mobileSummaryOpen}
+        >
+          <span className="flex items-center gap-1.5 text-sm font-medium text-brand-text">
+            <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${mobileSummaryOpen ? "rotate-180" : ""}`} />
+            {mobileSummaryOpen ? "Hide order summary" : "Show order summary"}
+          </span>
+          <span className="text-sm font-semibold text-brand-brown">${total.toFixed(2)}</span>
+        </button>
+        {mobileSummaryOpen && (
+          <div className="px-4 pb-4 pt-1 border-t border-brand-border">
+            <OrderSummaryPanel {...summaryProps} />
+          </div>
         )}
+      </div>
 
+      <div className="max-w-5xl mx-auto px-4 md:px-8 py-8 md:py-14">
         {!orderInfo.hasMinimumOrder && (
-          <Card className="bg-yellow-50 border-yellow-200 mb-6">
-            <CardContent className="p-4 text-sm text-yellow-800">
+          <Card className="bg-yellow-50 border-yellow-200 mb-6 py-4">
+            <CardContent className="px-4 text-sm text-yellow-800">
               Your cart subtotal must be at least ${orderInfo.minimumRequired.toFixed(2)} to check out
               (currently ${orderInfo.currentTotal.toFixed(2)}).
             </CardContent>
           </Card>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Column */}
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {validationErrors.length > 0 && (
-                <Card className="bg-red-50 border-red-200">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2 text-red-600 mb-2">
-                      <AlertCircle className="w-4 h-4" />
-                      <span className="font-medium">Please fix the following:</span>
-                    </div>
-                    <ul className="text-sm text-red-600 list-disc list-inside space-y-1">
-                      {validationErrors.map((error, index) => (
-                        <li key={index}>{error}</li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              )}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-start">
+          {/* Left: plain, cardless summary — Stripe's own checkout keeps this
+              side quiet; the elevated card is reserved for the form. */}
+          <div className="hidden lg:block">
+            <OrderSummaryPanel {...summaryProps} />
+          </div>
 
-              {/* 1. Delivery method */}
-              <Card className="bg-white border-brand-border">
-                <CardContent className="p-6">
-                  <h2 className="text-lg font-semibold text-brand-brown mb-4">1. Delivery Method</h2>
+          {/* Right: one card holding contact, delivery, and payment — same
+              shape as Stripe's own full-page checkout. Offset down to align
+              with the price line, not the logo — the logo stays the single
+              tallest element on the page. */}
+          <div className="lg:mt-[5.5rem]">
+            <Card className="bg-white border-brand-border">
+              <CardContent className="space-y-6">
+                <div>
+                  <FieldGroup>
+                    <GroupField
+                      label="Full name"
+                      autoComplete="name"
+                      value={customerInfo.name}
+                      onChange={(e) => handleInputChange("name", e.target.value)}
+                      onBlur={() => handleContactBlur("name")}
+                      placeholder="Full name"
+                      aria-invalid={!!contactErrors.name}
+                      required
+                    />
+                    <GroupField
+                      label="Email"
+                      type="email"
+                      autoComplete="email"
+                      value={customerInfo.email}
+                      onChange={(e) => handleInputChange("email", e.target.value)}
+                      onBlur={() => handleContactBlur("email")}
+                      placeholder="email@example.com"
+                      aria-invalid={!!contactErrors.email}
+                      required
+                    />
+                    <GroupField
+                      label="Phone number"
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      value={customerInfo.phone}
+                      onChange={(e) => handleInputChange("phone", e.target.value)}
+                      onBlur={() => handleContactBlur("phone")}
+                      placeholder="(404) 952-7610"
+                      maxLength={14}
+                      aria-invalid={!!contactErrors.phone}
+                      required
+                    />
+                  </FieldGroup>
+                  {contactErrors.name && <ErrorText>{contactErrors.name}</ErrorText>}
+                  {contactErrors.email && <ErrorText>{contactErrors.email}</ErrorText>}
+                  {contactErrors.phone && <ErrorText>{contactErrors.phone}</ErrorText>}
+                </div>
+
+                <div>
+                  <h2 className="text-base font-semibold text-brand-text mb-3">Delivery method</h2>
                   <DeliverySelector
                     subtotal={subtotal}
                     shippingCost={shippingInfo.shippingCost}
                     onDeliveryFeeChange={setDeliveryFee}
+                    customerName={customerInfo.name}
                   />
-                </CardContent>
-              </Card>
+                  {deliveryError && (
+                    <div className="mt-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                      <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                      <span>{deliveryError}</span>
+                    </div>
+                  )}
+                </div>
 
-              {/* 2. Contact information */}
-              <Card className="bg-white border-brand-border">
-                <CardContent className="p-6">
-                  <h2 className="text-lg font-semibold text-brand-brown mb-4">2. Contact Information</h2>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="name" className="text-brand-text font-medium">Full Name *</Label>
-                      <Input
-                        id="name"
-                        value={customerInfo.name}
-                        onChange={(e) => handleInputChange("name", e.target.value)}
-                        className="mt-1 border-brand-border focus:border-brand-brown"
-                        placeholder="Enter your full name"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="email" className="text-brand-text font-medium">Email Address *</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={customerInfo.email}
-                        onChange={(e) => handleInputChange("email", e.target.value)}
-                        className="mt-1 border-brand-border focus:border-brand-brown"
-                        placeholder="Enter your email"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="phone" className="text-brand-text font-medium">Phone Number *</Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        value={customerInfo.phone}
-                        onChange={(e) => handleInputChange("phone", e.target.value)}
-                        className="mt-1 border-brand-border focus:border-brand-brown"
-                        placeholder="Enter your phone number"
-                        required
-                      />
-                    </div>
-                  </div>
-                  {selectedType === "shipping" && (
-                    <p className="text-xs text-brand-muted mt-4">
-                      You&apos;ll enter your shipping address on the next (secure Stripe) screen.
+                <div>
+                  <h2 className="text-base font-semibold text-brand-text mb-3">Payment method</h2>
+                  {!clientSecret && (
+                    <p className="text-sm text-brand-muted">
+                      Continue below to enter your payment details.
                     </p>
                   )}
-                </CardContent>
-              </Card>
+                  {clientSecret && (
+                    <Elements
+                      stripe={stripePromise}
+                      options={{
+                        clientSecret,
+                        appearance: {
+                          variables: {
+                            colorPrimary: "#9B562C",
+                            colorText: "#211A16",
+                            colorTextSecondary: "#6B5D54",
+                            borderRadius: "8px",
+                          },
+                        },
+                      }}
+                    >
+                      <PaymentSectionInner
+                        clientSecret={clientSecret}
+                        customerName={customerInfo.name}
+                        shippingForConfirm={shippingForConfirm}
+                        total={total}
+                      />
+                    </Elements>
+                  )}
+                </div>
 
-              {/* Special instructions — order-level note, not tied to a specific item */}
-              <Card className="bg-white border-brand-border">
-                <CardContent className="p-6">
-                  <h2 className="text-lg font-semibold text-brand-brown mb-1">Special Instructions</h2>
-                  <p className="text-sm text-brand-muted mb-4">
-                    Anything we should know about your order? e.g. a birthday message, allergy note, or delivery instructions.
-                  </p>
-                  <Textarea
-                    value={specialMessage}
-                    onChange={(e) => setSpecialMessage(e.target.value)}
-                    maxLength={300}
-                    placeholder="Optional message for your order..."
-                    className="border-brand-border focus-visible:border-brand-brown"
-                  />
-                  <p className="text-xs text-brand-muted mt-1 text-right">{specialMessage.length}/300</p>
-                </CardContent>
-              </Card>
-
-              {/* 3. Payment */}
-              <Card className="bg-white border-brand-border">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <CreditCard className="w-5 h-5 text-brand-brown" />
-                    <h2 className="text-lg font-semibold text-brand-brown">3. Payment</h2>
-                    <Lock className="w-4 h-4 text-brand-muted" />
-                  </div>
-                  <p className="text-sm text-brand-muted mb-4">
-                    You&apos;ll be redirected to Stripe, our secure payment provider, to complete your payment.
-                  </p>
-                  <div className="flex items-center gap-2 text-xs text-brand-muted">
-                    <Lock className="w-3 h-3" />
-                    <span>Secure checkout powered by Stripe</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Button
-                type="submit"
-                disabled={!canSubmit}
-                className="w-full bg-brand-success hover:bg-brand-success-hover text-white py-3 font-medium text-lg"
-                size="lg"
-              >
-                {isProcessing ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Processing...
-                  </div>
-                ) : (
-                  `Complete Order - $${total.toFixed(2)}`
+                {!clientSecret && (
+                  <Button
+                    type="button"
+                    onClick={confirmDetails}
+                    disabled={isCreatingIntent || !orderInfo.hasMinimumOrder}
+                    className="w-full py-3 font-medium text-lg"
+                    size="lg"
+                  >
+                    {isCreatingIntent ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Preparing your order...
+                      </div>
+                    ) : (
+                      "Continue to Payment"
+                    )}
+                  </Button>
                 )}
-              </Button>
 
-              <p className="text-xs text-brand-muted text-center">
-                By completing your order, you agree to our Terms of Service and Privacy Policy.
-              </p>
-            </form>
-          </motion.div>
-
-          {/* Right Column - Order Summary */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 }}
-            className="lg:sticky lg:top-8 lg:h-fit"
-          >
-            <Card className="bg-white border-brand-border">
-              <CardContent className="p-6">
-                <h2 className="text-xl font-bold text-brand-brown mb-6">Order Summary</h2>
-
-                <div className="space-y-4 mb-6">
-                  {items.map((item) => (
-                    <div key={item.id} className="flex items-center gap-3">
-                      <div className="relative">
-                        <div className="w-12 h-12 bg-brand-bg rounded-lg overflow-hidden">
-                          <img
-                            src={getProductImageSrc(item.product.image)}
-                            alt={item.product.name}
-                            className="object-contain w-full h-full"
-                          />
-                        </div>
-                        <span className="absolute -top-2 -right-2 bg-brand-brown text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                          {item.quantity}
-                        </span>
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium text-brand-text text-sm">{item.product.name}</h4>
-                        {item.flavor && <p className="text-xs text-brand-muted">Flavor: {item.flavor}</p>}
-                        {item.boxFlavors && item.boxFlavors.length > 0 && (
-                          <p className="text-xs text-brand-muted">
-                            Flavors: {item.boxFlavors.map((f) => `${f.flavor} x${f.quantity}`).join(", ")}
-                          </p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-brand-text">
-                          ${(item.product.price * item.quantity).toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <Separator className="my-4" />
-
-                {/* Discount code */}
-                <div className="mb-4">
-                  {appliedCoupon ? (
-                    <div className="flex items-center justify-between rounded-lg bg-brand-success/10 px-3 py-2 text-sm text-brand-success">
-                      <span className="font-medium">{appliedCoupon.code} applied — {appliedCoupon.percentOff}% off</span>
-                      <button
-                        type="button"
-                        onClick={() => { setAppliedCoupon(null); setCouponInput(""); }}
-                        aria-label="Remove discount code"
-                        className="text-brand-success hover:text-brand-success-hover"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div>
-                      <div className="flex gap-2">
-                        <Input
-                          value={couponInput}
-                          onChange={(e) => { setCouponInput(e.target.value); setCouponError(null); }}
-                          placeholder="Discount code"
-                          className="border-brand-border focus:border-brand-brown"
-                        />
-                        <Button type="button" variant="outline" onClick={handleApplyCoupon}>
-                          Apply
-                        </Button>
-                      </div>
-                      {couponError && <p className="text-xs text-red-600 mt-1">{couponError}</p>}
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex justify-between text-brand-muted">
-                    <span>Subtotal</span>
-                    <span>${subtotal.toFixed(2)}</span>
-                  </div>
-                  {discountAmount > 0 && (
-                    <div className="flex justify-between text-brand-success">
-                      <span>Discount ({appliedCoupon?.code})</span>
-                      <span>-${discountAmount.toFixed(2)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-brand-muted">
-                    <span>{selectedType === "shipping" ? "Shipping" : selectedType === "delivery" ? "Delivery" : "Pickup"}</span>
-                    <span>{deliveryFee > 0 ? `$${deliveryFee.toFixed(2)}` : "Free"}</span>
-                  </div>
-                  <div className="flex justify-between text-brand-muted">
-                    <span>Card processing fee (2.9% + $0.80)</span>
-                    <span>${processingFee.toFixed(2)}</span>
-                  </div>
-                  <Separator className="my-2" />
-                  <div className="flex justify-between text-lg font-bold text-brand-text">
-                    <span>Total</span>
-                    <span>${total.toFixed(2)}</span>
-                  </div>
-                </div>
-
-                <div className="mt-6 p-3 bg-brand-bg border border-brand-border rounded-lg">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-brand-brown flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-brand-muted">
-                      <strong>Allergy Notice:</strong> All products may contain tree nuts and food allergens.
-                      See our{" "}
-                      <a href="/allergens" className="underline hover:text-brand-brown">
-                        allergen information
-                      </a>{" "}
-                      for full details.
-                    </p>
-                  </div>
-                </div>
+                <p className="flex items-center justify-center gap-1.5 text-xs text-brand-muted">
+                  <Lock className="h-3 w-3" aria-hidden="true" />
+                  Secure checkout powered by Stripe
+                </p>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
         </div>
       </div>
     </div>
-  );
-}
-
-export default function CheckoutPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-brand-bg flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-8 h-8 border-4 border-brand-brown border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-brand-muted">Loading your order...</p>
-          </div>
-        </div>
-      }
-    >
-      <CheckoutContent />
-    </Suspense>
   );
 }

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { BoxFlavor } from "@/store/cartStore";
 
-const MAX_FLAVORS = 3;
+const MAX_FLAVORS = 5;
 
 type FlavorSelectorProps = {
   flavors: string[];

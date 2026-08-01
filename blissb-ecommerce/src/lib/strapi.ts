@@ -1,5 +1,20 @@
 const STRAPI_TOKEN = process.env.STRAPI_API_TOKEN;
 
+// Carries the HTTP status so callers can tell "not found" (expected, e.g. a
+// product lookup miss) apart from a genuine failure worth logging.
+export class StrapiRequestError extends Error {
+  status: number;
+  constructor(status: number, statusText: string) {
+    super(`Strapi API error: ${status} ${statusText}`);
+    this.name = 'StrapiRequestError';
+    this.status = status;
+  }
+}
+
+export function isStrapiNotFound(error: unknown): boolean {
+  return error instanceof StrapiRequestError && error.status === 404;
+}
+
 function getStrapiApiUrl() {
   const serverUrl = typeof window === 'undefined' ? process.env.STRAPI_API_URL : undefined;
   const publicUrl = process.env.NEXT_PUBLIC_STRAPI_URL;
@@ -29,25 +44,27 @@ async function strapiRequest(path: string, options: RequestInit = {}) {
     headers['Authorization'] = `Bearer ${STRAPI_TOKEN}`;
   }
 
-  try {
-    const response = await fetch(url, {
-      ...options,
-      headers,
-      // Enable caching for GET requests
-      next: options.method === 'GET' || !options.method ? { revalidate: 60 } : undefined,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Strapi API error (${response.status}) for ${path}: ${errorText}`);
-      throw new Error(`Strapi API error: ${response.status} ${response.statusText}`);
-    }
-
-    return await response.json();
-  } catch (error) {
+  const response = await fetch(url, {
+    ...options,
+    headers,
+    // Enable caching for GET requests
+    next: options.method === 'GET' || !options.method ? { revalidate: 60 } : undefined,
+  }).catch((error) => {
     console.error('Strapi request failed:', error);
     throw error;
+  });
+
+  if (!response.ok) {
+    // 404 just means "not found" (product/category lookup miss) — a routine
+    // outcome across many callers, not an application error worth logging.
+    if (response.status !== 404) {
+      const errorText = await response.text();
+      console.error(`Strapi API error (${response.status}) for ${path}: ${errorText}`);
+    }
+    throw new StrapiRequestError(response.status, response.statusText);
   }
+
+  return await response.json();
 }
 
 // GET request helper

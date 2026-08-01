@@ -165,7 +165,7 @@ export function CookieBoxBuilder() {
                   <div
                     key={cookie.id}
                     data-cookie-card
-                    className="group flex flex-col rounded-2xl border border-brand-border bg-white p-3"
+                    className="group flex flex-col rounded-2xl border border-brand-border bg-white p-3 transition-shadow duration-200 hover:shadow-lg"
                   >
                     <div className="relative aspect-square overflow-hidden rounded-xl bg-brand-bg">
                       <Image

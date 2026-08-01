@@ -1,10 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { stripe } from '@/lib/stripe';
+import { stripe, unchunkMetadata } from '@/lib/stripe';
 import { sendOrderEmails } from '@/lib/email';
+import { getProductByIdAsync } from '@/data/products';
 import { decrementProductStock } from '@/services/products';
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+
+type CompactItem = {
+  id: string;
+  q: number;
+  f?: string;
+  bf?: { flavor: string; quantity: number }[];
+};
+
+// Deterministic numeric id for the email template's `Product.id` field — it's
+// only used for display/keying in the email, not a real business identifier,
+// so a stable hash of the real (string) product id is enough.
+function hashToNumericId(id: string): number {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,97 +44,115 @@ export async function POST(request: NextRequest) {
       webhookSecret
     );
 
-    // Manejar evento de checkout completado
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as Stripe.Checkout.Session;
+    if (event.type === 'payment_intent.succeeded') {
+      const paymentIntent = event.data.object as Stripe.PaymentIntent;
+      const metadata = paymentIntent.metadata || {};
 
-      // Obtener los detalles de la sesión
-      const sessionWithLineItems = await stripe.checkout.sessions.retrieve(
-        session.id,
-        {
-          expand: ['line_items.data.price.product'],
-        }
-      );
+      // Un PaymentIntent no trae line_items como una Checkout Session — el
+      // carrito viaja comprimido en metadata (ver chunkMetadata en lib/stripe.ts)
+      // y se re-valida contra Strapi acá, en vez de confiar en lo que mandó el cliente.
+      let compactItems: CompactItem[] = [];
+      try {
+        compactItems = JSON.parse(unchunkMetadata('items', metadata));
+      } catch (err) {
+        console.error('Failed to parse items from PaymentIntent metadata:', err);
+      }
 
-      const lineItems = sessionWithLineItems.line_items?.data || [];
-      const metadata = session.metadata || {};
+      const products = (
+        await Promise.all(
+          compactItems.map(async (item) => {
+            const product = await getProductByIdAsync(item.id);
+            if (!product) {
+              console.error(`Product not found while fulfilling order: ${item.id}`);
+              return null;
+            }
 
-      // Preparar datos para los emails
-      const products = lineItems
-        .filter((item) => {
-          const productData = item.price?.product as Stripe.Product | null;
-          return (
-            productData?.name !== 'Shipping' &&
-            productData?.name !== 'Delivery Fee' &&
-            productData?.name !== 'Fees'
-          );
-        })
-        .map((item) => {
-          const productData = item.price?.product as Stripe.Product;
-          return {
-            id: parseInt(item.id.slice(-8), 16), // Generar ID numérico
-            productId: productData.metadata?.productId,
-            name: productData.name,
-            price: (item.amount_total || 0) / 100 / (item.quantity || 1),
-            quantity: item.quantity || 1,
-            image: productData.images?.[0],
-            size: item.description?.includes('Flavor')
-              ? item.description.split(/Flavors?: /)[1]
-              : undefined,
-          };
-        });
+            const size = item.bf?.length
+              ? item.bf.map((f) => `${f.flavor} x${f.quantity}`).join(', ')
+              : item.f || undefined;
+
+            return {
+              id: hashToNumericId(item.id),
+              productId: item.id,
+              name: product.name,
+              price: product.price,
+              quantity: item.q,
+              image: product.image,
+              size,
+            };
+          })
+        )
+      ).filter((p): p is NonNullable<typeof p> => p !== null);
 
       // Descontar inventario (best-effort, no debe fallar el webhook si algo sale mal)
       for (const p of products) {
-        if (!p.productId) continue;
         await decrementProductStock(p.productId, p.quantity).catch((err) =>
           console.error(`Failed to decrement stock for product ${p.productId}:`, err)
         );
       }
 
-      // Calcular totales
-      const shippingItem = lineItems.find((item) => {
-        const productData = item.price?.product as Stripe.Product | null;
-        return (
-          productData?.name === 'Shipping' ||
-          productData?.name === 'Delivery Fee'
-        );
-      });
+      const subtotal = Number(metadata.subtotal || 0);
+      const shipping = Number(metadata.deliveryFee || 0);
+      const processingFee = Number(metadata.processingFee || 0);
+      const total = paymentIntent.amount / 100;
 
-      const shipping = shippingItem ? (shippingItem.amount_total || 0) / 100 : 0;
-      const feeItem = lineItems.find((item) => {
-        const productData = item.price?.product as Stripe.Product | null;
-        return productData?.name === 'Card processing fee';
-      });
-      const processingFee = feeItem ? (feeItem.amount_total || 0) / 100 : 0;
-      const subtotal = products.reduce(
-        (sum, p) => sum + p.price * p.quantity,
-        0
-      );
-      const total = (session.amount_total || 0) / 100;
-
-      // Obtener dirección de envío
-      const shippingDetails = session.collected_information?.shipping_details;
-      const shippingAddress = {
-        street: shippingDetails?.address?.line1 || metadata.deliveryAddress || '',
-        city: shippingDetails?.address?.city || '',
-        state: shippingDetails?.address?.state || '',
-        zipCode: shippingDetails?.address?.postal_code || metadata.zipCode || '',
-        country: shippingDetails?.address?.country || 'US',
-        phone: session.customer_details?.phone || metadata.customerPhone,
+      // Dirección: la del PaymentIntent (si el cliente la mandó vía confirmParams.shipping
+      // para delivery/shipping), si no la estructurada que guardamos en metadata para
+      // "shipping", si no la dirección de texto libre de "delivery".
+      const stripeAddress = paymentIntent.shipping?.address;
+      let shippingAddress: {
+        street: string;
+        city: string;
+        state: string;
+        zipCode: string;
+        country: string;
+        phone?: string;
       };
 
-      const orderNumber = `BLISS-${session.id.slice(-8).toUpperCase()}`;
+      if (stripeAddress) {
+        shippingAddress = {
+          street: stripeAddress.line1 || '',
+          city: stripeAddress.city || '',
+          state: stripeAddress.state || '',
+          zipCode: stripeAddress.postal_code || '',
+          country: stripeAddress.country || 'US',
+          phone: metadata.customerPhone,
+        };
+      } else if (metadata.shippingAddress) {
+        try {
+          const parsed = JSON.parse(metadata.shippingAddress);
+          shippingAddress = {
+            street: parsed.street || '',
+            city: parsed.city || '',
+            state: parsed.state || '',
+            zipCode: parsed.zip || '',
+            country: 'US',
+            phone: metadata.customerPhone,
+          };
+        } catch {
+          shippingAddress = { street: '', city: '', state: '', zipCode: '', country: 'US', phone: metadata.customerPhone };
+        }
+      } else {
+        shippingAddress = {
+          street: metadata.deliveryAddress || '',
+          city: '',
+          state: '',
+          zipCode: '',
+          country: 'US',
+          phone: metadata.customerPhone,
+        };
+      }
+
+      const orderNumber = `BLISS-${paymentIntent.id.slice(-8).toUpperCase()}`;
       const orderDate = new Date().toLocaleDateString('es-ES', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
       });
 
-      // Enviar emails
       const emailResult = await sendOrderEmails({
-        customerName: metadata.customerName || shippingDetails?.name || 'Cliente',
-        customerEmail: session.customer_details?.email || session.customer_email || '',
+        customerName: metadata.customerName || 'Cliente',
+        customerEmail: paymentIntent.receipt_email || metadata.customerEmail || '',
         orderNumber,
         orderDate,
         products,
@@ -125,7 +162,7 @@ export async function POST(request: NextRequest) {
         total,
         shippingAddress,
         paymentMethod: 'Stripe',
-        paymentId: session.payment_intent as string,
+        paymentId: paymentIntent.id,
         deliveryType: metadata.deliveryType || '',
         deliveryDate: metadata.deliveryDate || '',
         deliveryTime: metadata.deliveryTime || '',
@@ -140,6 +177,15 @@ export async function POST(request: NextRequest) {
 
       if (!emailResult.admin.success) {
         console.error('Failed to send admin email:', emailResult.admin.error);
+      }
+
+      // 🧾 Stripe Tax — records the transaction for reporting/remittance. Only
+      // runs when /api/checkout actually got a calculation (i.e. Tax is enabled
+      // on the account); best-effort, must never fail order fulfillment.
+      if (metadata.taxCalculationId) {
+        await stripe.tax.transactions
+          .createFromCalculation({ calculation: metadata.taxCalculationId, reference: orderNumber })
+          .catch((err) => console.error('Failed to record Stripe Tax transaction:', err));
       }
     }
 

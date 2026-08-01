@@ -27,9 +27,12 @@ export type AddItemResult = {
   error?: string;
 };
 
+export type AppliedCoupon = { code: string; percentOff: number };
+
 type CartStore = {
   items: CartItem[];
   isOpen: boolean;
+  appliedCoupon: AppliedCoupon | null;
 
   // Actions
   addItem: (product: Product, options?: AddItemOptions) => AddItemResult;
@@ -39,6 +42,8 @@ type CartStore = {
   toggleCart: () => void;
   openCart: () => void;
   closeCart: () => void;
+  setCoupon: (coupon: AppliedCoupon) => void;
+  clearCoupon: () => void;
 
   // Getters
   getTotalItems: () => number;
@@ -78,7 +83,8 @@ export const useCartStore = create<CartStore>()(
     (set, get) => ({
       items: [],
       isOpen: false,
-      
+      appliedCoupon: null,
+
       addItem: (product, options = {}) => {
         const { quantity = 1, flavor, boxFlavors } = options;
 
@@ -168,8 +174,11 @@ export const useCartStore = create<CartStore>()(
           const item = state.items.find(item => item.id === productId);
           if (!item) return state;
 
-          // Los items de caja tienen su cantidad fija por el reparto de sabores
-          if (item.boxFlavors) return state;
+          // Cajas de tamaño fijo o repartos de varios sabores: la cantidad la define
+          // el reparto de sabores, no se puede editar desde el carrito sin reabrir el selector.
+          if (item.boxFlavors && (item.boxFlavors.length !== 1 || item.product.isSoldInBox)) {
+            return state;
+          }
 
           // Validate minimum quantity
           const validation = get().validateMinimumQuantity(item.product, quantity);
@@ -181,7 +190,13 @@ export const useCartStore = create<CartStore>()(
           return {
             items: state.items.map(item =>
               item.id === productId
-                ? { ...item, quantity }
+                ? {
+                    ...item,
+                    quantity,
+                    boxFlavors: item.boxFlavors
+                      ? [{ ...item.boxFlavors[0], quantity }]
+                      : item.boxFlavors,
+                  }
                 : item
             ),
           };
@@ -189,21 +204,29 @@ export const useCartStore = create<CartStore>()(
       },
       
       clearCart: () => {
-        set({ items: [] });
+        set({ items: [], appliedCoupon: null });
       },
-      
+
       toggleCart: () => {
         set((state) => ({ isOpen: !state.isOpen }));
       },
-      
+
       openCart: () => {
         set({ isOpen: true });
       },
-      
+
       closeCart: () => {
         set({ isOpen: false });
       },
-      
+
+      setCoupon: (coupon) => {
+        set({ appliedCoupon: coupon });
+      },
+
+      clearCoupon: () => {
+        set({ appliedCoupon: null });
+      },
+
       getTotalItems: () => {
         return get().items.reduce((total, item) => total + item.quantity, 0);
       },
@@ -351,7 +374,7 @@ export const useCartStore = create<CartStore>()(
     }),
     {
       name: 'bliss-b-cart',
-      partialize: (state) => ({ items: state.items }),
+      partialize: (state) => ({ items: state.items, appliedCoupon: state.appliedCoupon }),
     }
   )
 );

@@ -127,7 +127,7 @@ export function NewsletterDiscountModal() {
           </div>
         ) : (
           <>
-            <div className="flex flex-col items-center px-6 py-5 text-center">
+            <div className="flex flex-col items-center px-6 pt-8 pb-2 text-center">
               <CookieMark className="mb-3 h-14 w-14" />
               <DialogHeader className="items-center gap-2 text-center">
                 <DialogTitle className="text-2xl font-bold leading-tight text-brand-brown">
@@ -139,7 +139,7 @@ export function NewsletterDiscountModal() {
               </DialogHeader>
             </div>
 
-            <form onSubmit={handleSubmit} className="px-6 py-5 space-y-3 text-center">
+            <form onSubmit={handleSubmit} className="px-6 pt-1 pb-5 space-y-3 text-center">
               <Input
                 type="email"
                 required

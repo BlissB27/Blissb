@@ -2,10 +2,7 @@ import type { Metadata } from "next";
 import { Bricolage_Grotesque, Inter } from "next/font/google";
 import { MotionConfig } from "framer-motion";
 import "./globals.css";
-import Header from "@/components/layout/Header";
-import { CartDrawer } from "@/components/CartDrawer";
-import { ParallaxFooter } from "@/components/layout/ParallaxFooter";
-import { NewsletterDiscountModal } from "@/components/NewsletterDiscountModal";
+import { SiteChrome } from "@/components/layout/SiteChrome";
 
 const bricolageGrotesque = Bricolage_Grotesque({
   variable: "--font-bricolage",
@@ -32,12 +29,7 @@ export default function RootLayout({
     <html lang="en-US">
       <body className={`${bricolageGrotesque.variable} ${inter.variable} min-h-screen bg-brand-bg text-brand-text font-sans antialiased`}>
         <MotionConfig reducedMotion="user">
-          <ParallaxFooter>
-            <Header />
-            <main className="mx-auto  ">{children}</main>
-          </ParallaxFooter>
-          <CartDrawer/>
-          <NewsletterDiscountModal/>
+          <SiteChrome>{children}</SiteChrome>
         </MotionConfig>
       </body>
     </html>

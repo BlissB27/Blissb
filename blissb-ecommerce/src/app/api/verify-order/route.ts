@@ -3,22 +3,22 @@ import { stripe } from "@/lib/stripe";
 
 // Real server-side confirmation for the order-success page. The client used to trust a
 // sessionStorage flag alone (which a canceled/abandoned attempt could leave stale) — this
-// asks Stripe directly whether the session actually completed before the UI claims success.
+// asks Stripe directly whether the payment actually succeeded before the UI claims success.
 export async function GET(request: NextRequest) {
-  const sessionId = request.nextUrl.searchParams.get("session_id");
+  const paymentIntentId = request.nextUrl.searchParams.get("payment_intent");
 
-  if (!sessionId) {
-    return NextResponse.json({ error: "Missing session_id" }, { status: 400 });
+  if (!paymentIntentId) {
+    return NextResponse.json({ error: "Missing payment_intent" }, { status: 400 });
   }
 
   try {
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-    const paid = session.payment_status === "paid";
-    const orderNumber = `BLISS-${sessionId.slice(-8).toUpperCase()}`;
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    const paid = paymentIntent.status === "succeeded";
+    const orderNumber = `BLISS-${paymentIntentId.slice(-8).toUpperCase()}`;
 
     return NextResponse.json({ paid, orderNumber });
   } catch (error) {
-    console.error("Error verifying order session:", error);
+    console.error("Error verifying payment intent:", error);
     return NextResponse.json({ paid: false, orderNumber: null }, { status: 200 });
   }
 }

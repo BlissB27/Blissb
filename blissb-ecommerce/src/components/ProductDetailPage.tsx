@@ -1,19 +1,16 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { notFound, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import PhotoSwipeLightbox from "photoswipe/lightbox";
 import "photoswipe/style.css";
 import { AddToCartButton } from "@/components/AddToCartButton";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Clock, Flame, Snowflake, AlertTriangle, ChefHat, Package, CalendarClock } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import type { BoxFlavor } from "@/store/cartStore";
-import { getProductByIdAsync, getProductBySlug, getAllProducts, type Product } from "@/data/products";
-import { getProductUrl } from "@/lib/productUrl";
+import type { Product } from "@/data/products";
 import { ProductCard } from "@/components/ProductCard";
 import { FlavorSelector } from "@/components/FlavorSelector";
 import { WaveDivider } from "@/components/WaveDivider";
@@ -34,17 +31,14 @@ function shuffle<T>(items: T[]): T[] {
 }
 
 type ProductDetailPageProps = {
-  category: "cookies" | "cakes" | "desserts";
-  productSlug: string;
+  product: Product;
+  allProducts: Product[];
 };
 
-export function ProductDetailPage({ category, productSlug }: ProductDetailPageProps) {
-  const router = useRouter();
-
-  const [product, setProduct] = useState<Product | null>(null);
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+// Data is fetched server-side by the route (see src/app/{category}/[productSlug]/page.tsx)
+// so a missing/mis-categorized product can return a real HTTP 404 or redirect
+// before this ever renders. This component only owns page interactivity.
+export function ProductDetailPage({ product, allProducts }: ProductDetailPageProps) {
   const { addItem } = useCartStore();
   const [selectedQuantity, setSelectedQuantity] = useState<number>(1);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -52,52 +46,6 @@ export function ProductDetailPage({ category, productSlug }: ProductDetailPagePr
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadProductData = async () => {
-      try {
-        let productData = null;
-
-        try {
-          productData = await getProductBySlug(productSlug);
-          if (!productData) {
-            productData = await getProductByIdAsync(productSlug);
-          }
-        } catch {
-          productData = await getProductByIdAsync(productSlug);
-        }
-
-        const allProductsData = await getAllProducts();
-
-        if (!productData) {
-          setError("Product not found");
-          return;
-        }
-
-        setProduct(productData);
-        setAllProducts(allProductsData);
-      } catch (err) {
-        console.error("Error loading product:", err);
-        setError("Failed to load product");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadProductData();
-  }, [productSlug]);
-
-  // The URL's category segment is just routing sugar — the product's real
-  // category is the source of truth. If they disagree (stale link, product
-  // recategorized), send the browser to the canonical URL instead of
-  // silently rendering a cookie under /cakes/....
-  useEffect(() => {
-    if (!product) return;
-    if (product.category !== category) {
-      router.replace(getProductUrl(product));
-    }
-  }, [product, category, router]);
-
-  useEffect(() => {
-    if (!product) return;
     const lightbox = new PhotoSwipeLightbox({
       gallery: "#product-gallery",
       children: "a",
@@ -111,66 +59,9 @@ export function ProductDetailPage({ category, productSlug }: ProductDetailPagePr
   // particular product is ever guaranteed a slot — memoized so it doesn't
   // reshuffle on unrelated re-renders, e.g. changing quantity.
   const relatedProducts = useMemo(() => {
-    if (!product) return [];
     const candidates = allProducts.filter((p) => p.id !== product.id);
     return shuffle(candidates).slice(0, 4);
   }, [product, allProducts]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white">
-        <div className="max-w-[1200px] mx-auto px-4 py-8">
-          {/* Breadcrumb */}
-          <div className="mb-6 flex items-center gap-2">
-            <Skeleton className="h-4 w-10" />
-            <Skeleton className="h-4 w-4" />
-            <Skeleton className="h-4 w-16" />
-            <Skeleton className="h-4 w-4" />
-            <Skeleton className="h-4 w-28" />
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 bg-brand-bg rounded-3xl p-6 lg:p-8 mb-12">
-            {/* Left: image */}
-            <div>
-              <Skeleton className="aspect-square rounded-2xl mb-4" />
-              <div className="flex gap-2 justify-center">
-                <Skeleton className="w-16 h-16 rounded-xl flex-shrink-0" />
-                <Skeleton className="w-16 h-16 rounded-xl flex-shrink-0" />
-                <Skeleton className="w-16 h-16 rounded-xl flex-shrink-0" />
-              </div>
-            </div>
-
-            {/* Right: info */}
-            <div>
-              <Skeleton className="h-9 w-3/4 mb-3" />
-              <Skeleton className="h-10 w-32 mb-4" />
-              <Skeleton className="h-4 w-48 mb-6" />
-              <div className="space-y-2 mb-6">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-2/3" />
-              </div>
-              <Skeleton className="h-12 w-full rounded-lg mb-6" />
-              <div className="space-y-2 mb-6">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-5/6" />
-              </div>
-              <Skeleton className="h-16 w-full rounded-lg" />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !product) {
-    notFound();
-  }
-
-  if (product.category !== category) {
-    // Redirecting via the effect above — render nothing in the meantime.
-    return null;
-  }
 
   const hasFlavorSelector =
     product.isSoldInBox ||

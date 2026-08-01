@@ -227,7 +227,7 @@ export function CartDrawer() {
                 disabled={!orderInfo.hasMinimumOrder}
                 onClick={() => {
                   closeCart();
-                  router.push('/checkout');
+                  router.push('/cart');
                 }}
               >
                 Continue

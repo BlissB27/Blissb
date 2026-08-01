@@ -14,23 +14,23 @@ type VerifyState = 'verifying' | 'confirmed' | 'unconfirmed' | 'no-session';
 
 function OrderSuccessContent() {
   const searchParams = useSearchParams();
-  const sessionId = searchParams.get('session_id');
+  const paymentIntentId = searchParams.get('payment_intent');
   const { clearCart } = useCartStore();
   const { resetDelivery } = useDeliveryStore();
   const [orderNumber, setOrderNumber] = useState<string>('');
-  const [status, setStatus] = useState<VerifyState>(sessionId ? 'verifying' : 'no-session');
+  const [status, setStatus] = useState<VerifyState>(paymentIntentId ? 'verifying' : 'no-session');
 
-  // Real server-side confirmation: ask Stripe directly whether this session actually
-  // completed, instead of trusting a client-side flag that a canceled/abandoned
+  // Real server-side confirmation: ask Stripe directly whether this payment actually
+  // succeeded, instead of trusting a client-side flag that a canceled/abandoned
   // attempt could leave stale.
   useEffect(() => {
-    if (!sessionId) return;
+    if (!paymentIntentId) return;
 
-    fetch(`/api/verify-order?session_id=${encodeURIComponent(sessionId)}`)
+    fetch(`/api/verify-order?payment_intent=${encodeURIComponent(paymentIntentId)}`)
       .then((res) => res.json())
       .then((data: { paid: boolean; orderNumber: string | null }) => {
         if (data.paid) {
-          setOrderNumber(data.orderNumber ?? `BLISS-${sessionId.slice(-8).toUpperCase()}`);
+          setOrderNumber(data.orderNumber ?? `BLISS-${paymentIntentId.slice(-8).toUpperCase()}`);
           setStatus('confirmed');
           clearCart();
           resetDelivery();
@@ -39,7 +39,7 @@ function OrderSuccessContent() {
         }
       })
       .catch(() => setStatus('unconfirmed'));
-  }, [sessionId, clearCart, resetDelivery]);
+  }, [paymentIntentId, clearCart, resetDelivery]);
 
   if (status === 'verifying') {
     return (

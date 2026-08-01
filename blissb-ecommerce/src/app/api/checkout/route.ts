@@ -1,22 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe } from '@/lib/stripe';
+import { stripe, chunkMetadata } from '@/lib/stripe';
 import { getProductByIdAsync } from '@/data/products';
 import { calculateProcessingFee } from '@/lib/orderFees';
 import { getDrivingMilesFromOrigin } from '@/lib/googleMaps';
 import { getDeliveryQuote } from '@/lib/deliveryPricing';
 import { validateCoupon } from '@/lib/coupons';
-
-// Ensures a real Stripe Coupon object exists for a given percent-off, reusing it across
-// orders (stable, deterministic id) instead of creating a new one per checkout.
-async function getOrCreateStripeCoupon(percentOff: number): Promise<string> {
-  const id = `welcome-${percentOff}-percent`;
-  try {
-    await stripe.coupons.retrieve(id);
-  } catch {
-    await stripe.coupons.create({ id, percent_off: percentOff, duration: 'once' });
-  }
-  return id;
-}
 
 const SHIPPING_COST = 15;
 
@@ -36,9 +24,22 @@ async function validateDeliveryFee(
   return { fee: 0, eligible: true };
 }
 
+// Compact per-item snapshot stashed in the PaymentIntent's metadata (see
+// chunkMetadata in lib/stripe.ts). A PaymentIntent has no line_items like a
+// Checkout Session does, so the webhook needs *something* to re-fetch full
+// product details (name/price/image) from Strapi with — this is deliberately
+// minimal (no name/price here) since the webhook re-validates from Strapi
+// anyway, which is more trustworthy than echoing back what the client sent.
+type CompactItem = {
+  id: string;
+  q: number;
+  f?: string;
+  bf?: { flavor: string; quantity: number }[];
+};
+
 export async function POST(request: NextRequest) {
   try {
-    const { items, customerInfo, deliveryInfo, couponCode, specialMessage } = await request.json();
+    const { items, customerInfo, deliveryInfo, shippingAddress, couponCode, specialMessage } = await request.json();
 
     // Validar que haya items
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -58,7 +59,8 @@ export async function POST(request: NextRequest) {
 
     // 🔒 VALIDAR CADA PRODUCTO CON STRAPI
     let validatedSubtotal = 0;
-    const validatedLineItems = await Promise.all(
+    const lineItemAmounts: number[] = []; // cents, parallel to compactItems — for Stripe Tax below
+    const compactItems: CompactItem[] = await Promise.all(
       items.map(async (item: any) => {
         try {
           // Consultar precio real desde Strapi
@@ -113,6 +115,7 @@ export async function POST(request: NextRequest) {
             : item.quantity;
           const validQuantity = Math.max(1, Math.min(100, requestedQuantity));
           validatedSubtotal += realPrice * validQuantity;
+          lineItemAmounts.push(Math.round(realPrice * validQuantity * 100));
 
           // 🔒 Disponibilidad real (sin exponer cantidades de stock al cliente)
           const availableStock = strapiProduct.stock ?? 0;
@@ -120,24 +123,11 @@ export async function POST(request: NextRequest) {
             throw new Error('One or more items in your cart are currently unavailable. Please remove them and try again.');
           }
 
-          const description = item.boxFlavors?.length
-            ? `Flavors: ${item.boxFlavors.map((f: { flavor: string; quantity: number }) => `${f.flavor} x${f.quantity}`).join(', ')}`
-            : item.flavor
-            ? `Flavor: ${item.flavor}`
-            : undefined;
-
           return {
-            price_data: {
-              currency: 'usd',
-              product_data: {
-                name: strapiProduct.name,
-                description,
-                images: strapiProduct.image ? [strapiProduct.image] : [],
-                metadata: { productId: strapiProduct.id },
-              },
-              unit_amount: Math.round(realPrice * 100), // 🔒 PRECIO VALIDADO DE STRAPI
-            },
-            quantity: validQuantity,
+            id: strapiProduct.id,
+            q: validQuantity,
+            f: item.flavor,
+            bf: boxFlavors,
           };
         } catch (error) {
           console.error(`Error validating product ${item.product.id}:`, error);
@@ -189,82 +179,103 @@ export async function POST(request: NextRequest) {
       // Usar el fee validado del backend
     }
 
-    // Agregar delivery fee como línea separada si existe
-    if (validatedDeliveryFee > 0) {
-      validatedLineItems.push({
-        price_data: {
-          currency: 'usd',
-          product_data: {
-            name: deliveryInfo.type === 'shipping' ? 'Shipping' : 'Delivery Fee',
-            description: deliveryInfo.type === 'shipping'
-              ? 'Nationwide shipping'
-              : `Delivery to ${deliveryInfo.address}`,
-            images: [],
-            metadata: { productId: '' },
-          },
-          unit_amount: Math.round(validatedDeliveryFee * 100), // 🔒 FEE VALIDADO
-        },
-        quantity: 1,
-      });
-    }
-
-    // Crear sesión de checkout de Stripe con items validados
-    const processingFee = calculateProcessingFee(validatedSubtotal + validatedDeliveryFee);
-    if (processingFee > 0) {
-      validatedLineItems.push({
-        price_data: {
-          currency: 'usd',
-          product_data: {
-            name: 'Card processing fee',
-            description: undefined,
-            images: [],
-            metadata: { productId: '' },
-          },
-          unit_amount: Math.round(processingFee * 100),
-        },
-        quantity: 1,
-      });
-    }
-
     // 🔒 CUPÓN — validado contra la lista fija del servidor, nunca se confía en el % que mande el cliente
-    let discounts: { coupon: string }[] | undefined;
+    let discountAmount = 0;
     let appliedCouponCode: string | undefined;
     if (couponCode) {
       const { valid, percentOff } = validateCoupon(couponCode);
       if (!valid) {
         return NextResponse.json({ error: 'That discount code is not valid.' }, { status: 400 });
       }
-      discounts = [{ coupon: await getOrCreateStripeCoupon(percentOff) }];
+      discountAmount = Math.round(validatedSubtotal * (percentOff / 100) * 100) / 100;
       appliedCouponCode = couponCode.trim().toUpperCase();
     }
 
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: validatedLineItems, // 🔒 ITEMS CON PRECIOS VALIDADOS
-      mode: 'payment',
-      discounts,
-      success_url: `${request.nextUrl.origin}/order-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${request.nextUrl.origin}/checkout?canceled=1`,
-      customer_email: customerInfo.email,
+    // 🧾 STRIPE TAX — dormant until Tax is enabled on the Stripe dashboard (needs an
+    // origin address + registered states/nexus configured there, a business decision,
+    // not a code one). Until then this call fails and we fail open at $0 tax so
+    // checkout keeps working exactly as it does today; the moment Tax is turned on,
+    // this starts calculating for real with no further code changes needed.
+    // NOTE: tax is calculated on pre-discount line amounts and skipped for pickup
+    // (no customer address to base it on) — both worth revisiting once Tax is live.
+    let taxAmount = 0;
+    let taxCalculationId: string | undefined;
+    if (deliveryInfo.type !== 'pickup') {
+      try {
+        const taxAddress =
+          deliveryInfo.type === 'shipping'
+            ? {
+                line1: shippingAddress?.street || '',
+                city: shippingAddress?.city || '',
+                state: shippingAddress?.state || '',
+                postal_code: shippingAddress?.zip || '',
+                country: 'US',
+              }
+            : { line1: deliveryInfo.address || '', country: 'US' };
+
+        const taxLineItems = [
+          ...lineItemAmounts.map((amount, i) => ({ amount, reference: `item_${i}` })),
+          ...(validatedDeliveryFee > 0
+            ? [{ amount: Math.round(validatedDeliveryFee * 100), reference: 'delivery' }]
+            : []),
+        ];
+
+        const calculation = await stripe.tax.calculations.create({
+          currency: 'usd',
+          line_items: taxLineItems,
+          customer_details: { address: taxAddress, address_source: 'shipping' },
+        });
+
+        taxAmount = calculation.tax_amount_exclusive / 100;
+        taxCalculationId = calculation.id ?? undefined;
+      } catch (error) {
+        console.warn('Stripe Tax calculation skipped (likely not enabled yet):', error);
+        taxAmount = 0;
+      }
+    }
+
+    const processingFee = calculateProcessingFee(validatedSubtotal - discountAmount + validatedDeliveryFee + taxAmount);
+    const total = validatedSubtotal - discountAmount + validatedDeliveryFee + taxAmount + processingFee;
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(total * 100),
+      currency: 'usd',
+      payment_method_types: ['card'], // matches the previous session (card-only)
+      receipt_email: customerInfo.email,
       metadata: {
         customerName: customerInfo.name,
         customerPhone: customerInfo.phone || '',
+        customerEmail: customerInfo.email,
         couponCode: appliedCouponCode || '',
         deliveryType: deliveryInfo.type,
         deliveryDate: deliveryInfo.date || '',
         deliveryTime: deliveryInfo.time || '',
         deliveryAddress: deliveryInfo.address || '',
+        shippingAddress: shippingAddress ? JSON.stringify(shippingAddress) : '',
+        subtotal: validatedSubtotal.toFixed(2),
+        discountAmount: discountAmount.toFixed(2),
+        deliveryFee: validatedDeliveryFee.toFixed(2),
+        taxAmount: taxAmount.toFixed(2),
+        taxCalculationId: taxCalculationId || '',
         processingFee: processingFee.toFixed(2),
         specialMessage: typeof specialMessage === 'string' ? specialMessage.slice(0, 300) : '',
+        ...chunkMetadata('items', JSON.stringify(compactItems)), // 🔒 ITEMS CON PRECIOS VALIDADOS (re-fetched from Strapi by the webhook)
       },
-      shipping_address_collection: deliveryInfo.type === 'shipping' || deliveryInfo.type === 'delivery'
-        ? { allowed_countries: ['US'] }
-        : undefined,
     });
 
-    return NextResponse.json({ sessionId: session.id });
+    return NextResponse.json({
+      clientSecret: paymentIntent.client_secret,
+      breakdown: {
+        subtotal: validatedSubtotal,
+        discountAmount,
+        deliveryFee: validatedDeliveryFee,
+        taxAmount,
+        processingFee,
+        total,
+      },
+    });
   } catch (error: any) {
-    console.error('Error creating checkout session:', error);
+    console.error('Error creating payment intent:', error);
 
     // Proporcionar mensaje de error más específico al usuario
     const errorMessage = error.message || 'Unable to process checkout';

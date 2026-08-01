@@ -1,4 +1,4 @@
-import { strapiGet, strapiPut, getStrapiMediaUrl } from '@/lib/strapi';
+import { strapiGet, strapiPut, getStrapiMediaUrl, isStrapiNotFound } from '@/lib/strapi';
 import { StrapiResponse, StrapiProduct } from '@/types/strapi';
 import type { Product } from '@/data/products';
 
@@ -76,7 +76,11 @@ export async function getProductById(id: string): Promise<Product | null> {
     const product = Array.isArray(response.data) ? response.data[0] : response.data;
     return product ? transformStrapiProduct(product) : null;
   } catch (error) {
-    console.error(`Error fetching product ${id}:`, error);
+    // A 404 here just means "no product with this id" — a routine lookup
+    // miss (e.g. the slug fallback path), not something worth logging.
+    if (!isStrapiNotFound(error)) {
+      console.error(`Error fetching product ${id}:`, error);
+    }
     return null;
   }
 }

@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Elements, AddressElement } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+import type { StripeAddressElementChangeEvent } from "@stripe/stripe-js";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useDeliveryStore, type DeliveryType } from "@/store/deliveryStore";
 import { getFulfillmentOptions } from "@/lib/deliverySchedule";
 import { AlertCircle, CheckCircle2, MapPin, Package, ShoppingBag, Truck, type LucideIcon } from "lucide-react";
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 export type DeliveryQuote = { eligible: boolean; fee: number; miles: number };
 
@@ -14,6 +17,9 @@ type DeliverySelectorProps = {
   subtotal: number;
   shippingCost: number;
   onDeliveryFeeChange: (fee: number) => void;
+  /** Pre-fills the AddressElement's (otherwise unavoidable) name field, since
+   * Contact Information is collected on the same page — avoids asking twice. */
+  customerName?: string;
 };
 
 const TYPE_ICONS: Record<DeliveryType, LucideIcon> = {
@@ -28,8 +34,8 @@ function formatWindowDate(dateISO: string, isToday: boolean) {
   return isToday ? `Today, ${formatted}` : formatted;
 }
 
-export function DeliverySelector({ subtotal, shippingCost, onDeliveryFeeChange }: DeliverySelectorProps) {
-  const { selectedType, address, setDeliveryType, setAddress } = useDeliveryStore();
+export function DeliverySelector({ subtotal, shippingCost, onDeliveryFeeChange, customerName }: DeliverySelectorProps) {
+  const { selectedType, address, setDeliveryType, setAddress, shippingAddress, setShippingAddress } = useDeliveryStore();
   const [quote, setQuote] = useState<DeliveryQuote | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [isQuoting, setIsQuoting] = useState(false);
@@ -82,112 +88,125 @@ export function DeliverySelector({ subtotal, shippingCost, onDeliveryFeeChange }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quote, selectedType, shippingCost]);
 
-  const options: { type: DeliveryType; label: string; description: string }[] = [
-    { type: "shipping", label: "Shipping", description: "Nationwide, 3-5 business days" },
-    { type: "delivery", label: "Local Delivery", description: "Within 25 miles of Braselton, GA" },
-    { type: "pickup", label: "Pickup", description: "At the bakery, or Saturday at the farmers market" },
+  const handleShippingAddressElementChange = (event: StripeAddressElementChangeEvent) => {
+    if (!event.complete) return;
+    const { line1, line2, city, state, postal_code } = event.value.address;
+    setShippingAddress({
+      street: line2 ? `${line1} ${line2}` : line1,
+      city,
+      state,
+      zip: postal_code,
+    });
+  };
+
+  const options: { type: DeliveryType; label: string }[] = [
+    { type: "pickup", label: "Pickup" },
+    { type: "delivery", label: "Local Delivery" },
+    { type: "shipping", label: "Shipping" },
   ];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold text-brand-brown mb-4">Choose Your Delivery Method</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {options.map((option) => {
-            const Icon = TYPE_ICONS[option.type];
-            const isSelected = selectedType === option.type;
-            let feeLabel = "Free";
-            if (option.type === "shipping" && shippingCost > 0) feeLabel = `$${shippingCost.toFixed(2)}`;
-            if (option.type === "delivery") {
-              if (!address.trim()) feeLabel = "Enter address";
-              else if (isQuoting) feeLabel = "Calculating…";
-              else if (quoteError) feeLabel = "—";
-              else if (quote) feeLabel = quote.eligible ? (quote.fee > 0 ? `$${quote.fee.toFixed(2)}` : "Free") : "Out of range";
-            }
-
-            return (
-              <Card
-                key={option.type}
-                className={`p-4 cursor-pointer transition-all duration-200 border-2 ${
-                  isSelected ? "border-brand-brown bg-brand-brown/5" : "border-brand-border hover:border-brand-brown/50"
-                }`}
-                onClick={() => setDeliveryType(option.type)}
-              >
-                <div className="text-center space-y-2">
-                  <div className="flex justify-center">
-                    <Icon className={`w-10 h-10 ${isSelected ? "text-brand-brown" : "text-brand-muted"}`} />
-                  </div>
-                  <h4 className="font-medium text-brand-text">{option.label}</h4>
-                  <p className="text-sm text-brand-muted">{option.description}</p>
-                  <Badge
-                    variant="secondary"
-                    className={
-                      feeLabel === "Free"
-                        ? "bg-brand-success text-white"
-                        : feeLabel === "Enter address" || feeLabel === "Calculating…"
-                        ? "bg-brand-border text-brand-muted"
-                        : feeLabel === "Out of range"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-brand-accent text-brand-brown"
-                    }
-                  >
-                    {feeLabel}
-                  </Badge>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
+    <div className="space-y-4">
+      {/* Fulfillment method — a compact toggle rather than a stacked list of
+          bordered radio cards, so this reads as one lightweight choice, not
+          three separate decisions. */}
+      <div className="flex flex-wrap gap-3">
+        {options.map((option) => {
+          const Icon = TYPE_ICONS[option.type];
+          const isSelected = selectedType === option.type;
+          return (
+            <button
+              key={option.type}
+              type="button"
+              onClick={() => setDeliveryType(option.type)}
+              aria-pressed={isSelected}
+              className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors duration-200 ${
+                isSelected
+                  ? "border-brand-brown bg-brand-brown/5 text-brand-brown"
+                  : "border-brand-border text-brand-muted hover:border-brand-brown/40 hover:text-brand-text"
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {option.label}
+            </button>
+          );
+        })}
       </div>
 
       {selectedType === "delivery" && (
-        <div>
-          <h3 className="text-lg font-semibold text-brand-brown mb-4 flex items-center gap-2">
-            <MapPin className="w-5 h-5" />
-            Delivery Address
-          </h3>
-          <div className="max-w-md">
-            <Input
-              type="text"
-              placeholder="Street address, city, state, ZIP"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className="border-brand-border focus:border-brand-brown"
-            />
-            {isQuoting && (
-              <p className="mt-2 text-sm text-brand-muted">Calculating delivery distance…</p>
-            )}
-            {!isQuoting && quoteError && (
-              <div className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {quoteError}
-              </div>
-            )}
-            {!isQuoting && quote?.eligible && (
-              <div className="mt-2 text-sm text-brand-success flex items-center gap-1">
-                <CheckCircle2 className="w-4 h-4" />
-                {quote.miles.toFixed(1)} miles away — {quote.fee > 0 ? `$${quote.fee.toFixed(2)} delivery fee` : "free delivery!"}
-              </div>
-            )}
-            {!isQuoting && quote && !quote.eligible && (
-              <div className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                This address is outside our 25-mile delivery radius. Please choose shipping or pickup instead.
-              </div>
-            )}
+        <div className="max-w-md space-y-2">
+          <div className="flex items-center gap-2 text-brand-brown">
+            <MapPin className="w-4 h-4" />
+            <span className="text-sm font-medium">Delivery Address</span>
           </div>
+          <Input
+            type="text"
+            placeholder="Street address, city, state, ZIP"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            className="border-brand-border focus:border-brand-brown"
+          />
+          {isQuoting && <p className="text-sm text-brand-muted">Calculating delivery distance…</p>}
+          {!isQuoting && quoteError && (
+            <div className="text-sm text-red-600 flex items-center gap-1">
+              <AlertCircle className="w-4 h-4" />
+              {quoteError}
+            </div>
+          )}
+          {!isQuoting && quote?.eligible && (
+            <div className="text-sm text-brand-success flex items-center gap-1">
+              <CheckCircle2 className="w-4 h-4" />
+              {quote.miles.toFixed(1)} miles away — {quote.fee > 0 ? `$${quote.fee.toFixed(2)} delivery fee` : "free delivery!"}
+            </div>
+          )}
+          {!isQuoting && quote && !quote.eligible && (
+            <div className="text-sm text-red-600 flex items-center gap-1">
+              <AlertCircle className="w-4 h-4" />
+              This address is outside our 25-mile delivery radius. Please choose shipping or pickup instead.
+            </div>
+          )}
+        </div>
+      )}
+
+      {selectedType === "shipping" && (
+        <div className="max-w-md space-y-2">
+          <div className="flex items-center gap-2 text-brand-brown">
+            <MapPin className="w-4 h-4" />
+            <span className="text-sm font-medium">Shipping Address</span>
+          </div>
+          {/* Stripe's AddressElement — real autocomplete/suggestions as you type,
+              plus built-in validation. Needs its own <Elements> since there's no
+              PaymentIntent yet at this step (that's created later, in Payment). */}
+          <Elements stripe={stripePromise} options={{ mode: "payment", currency: "usd", amount: 100 }}>
+            <AddressElement
+              options={{
+                mode: "shipping",
+                allowedCountries: ["US"],
+                fields: { phone: "never" },
+                defaultValues: {
+                  name: customerName || null,
+                  address: {
+                    line1: shippingAddress.street,
+                    city: shippingAddress.city,
+                    state: shippingAddress.state,
+                    postal_code: shippingAddress.zip,
+                    country: "US",
+                  },
+                },
+              }}
+              onChange={handleShippingAddressElementChange}
+            />
+          </Elements>
         </div>
       )}
 
       {(selectedType === "delivery" || selectedType === "pickup") && (
-        <Card className="p-4 border-brand-border bg-brand-bg">
-          <p className="text-sm text-brand-muted">
-            {selectedType === "delivery" ? "Estimated delivery" : "Pickup"}:{" "}
-            <span className="font-medium text-brand-text">
-              {formatWindowDate(fulfillment[selectedType].date, fulfillment[selectedType].isToday)}, {fulfillment[selectedType].window}
-            </span>
-          </p>
-        </Card>
+        <p className="text-sm text-brand-muted">
+          {selectedType === "delivery" ? "Estimated delivery" : "Pickup"}:{" "}
+          <span className="font-medium text-brand-text">
+            {formatWindowDate(fulfillment[selectedType].date, fulfillment[selectedType].isToday)}, {fulfillment[selectedType].window}
+          </span>
+        </p>
       )}
     </div>
   );
