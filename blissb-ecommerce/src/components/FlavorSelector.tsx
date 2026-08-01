@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import { Check } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { BoxFlavor } from "@/store/cartStore";
 
@@ -67,18 +68,23 @@ function SingleFlavorPicker({
               role="radio"
               aria-checked={isSelected}
               onClick={() => setSelected(flavor)}
-              className={`flex flex-col items-center gap-1 rounded-xl border-2 p-1.5 text-center transition-colors ${
-                isSelected ? "border-brand-brown bg-brand-brown/5" : "border-brand-border hover:border-brand-brown/40"
+              className={`relative aspect-square w-full overflow-hidden rounded-xl border-2 bg-brand-bg transition-colors ${
+                isSelected ? "border-brand-brown" : "border-brand-border hover:border-brand-brown/40"
               }`}
             >
-              <div className="relative aspect-square w-full rounded-lg overflow-hidden bg-brand-bg">
-                {image ? (
-                  <Image src={image} alt="" fill className="object-cover" sizes="120px" />
-                ) : (
-                  <div className="absolute inset-0" />
-                )}
-              </div>
-              <span className="text-xs font-medium text-brand-muted line-clamp-1">{flavor}</span>
+              {image && <Image src={image} alt="" fill className="object-cover" sizes="120px" />}
+
+              {isSelected && (
+                <span className="absolute top-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-brand-brown text-white">
+                  <Check className="h-3 w-3" strokeWidth={2.5} />
+                </span>
+              )}
+
+              {/* Caption sits on top of the photo instead of below it, so the
+                  whole tile stays a perfect square no matter how long the name is. */}
+              <span className="absolute inset-x-0 bottom-0 bg-white/90 px-1 py-1 text-xs font-medium text-brand-muted break-words">
+                {flavor}
+              </span>
             </button>
           );
         })}
