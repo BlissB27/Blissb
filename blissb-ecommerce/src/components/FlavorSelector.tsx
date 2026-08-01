@@ -67,28 +67,22 @@ function SingleFlavorPicker({
               role="radio"
               aria-checked={isSelected}
               onClick={() => setSelected(flavor)}
-              className={`flex flex-col items-center gap-1.5 rounded-xl border-2 p-2 text-center transition-colors ${
+              className={`flex flex-col items-center gap-1 rounded-xl border-2 p-1.5 text-center transition-colors ${
                 isSelected ? "border-brand-brown bg-brand-brown/5" : "border-brand-border hover:border-brand-brown/40"
               }`}
             >
-              <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-brand-bg">
+              <div className="relative aspect-square w-full rounded-lg overflow-hidden bg-brand-bg">
                 {image ? (
                   <Image src={image} alt="" fill className="object-cover" sizes="120px" />
                 ) : (
                   <div className="absolute inset-0" />
                 )}
               </div>
-              <span className="text-xs font-medium text-brand-text line-clamp-2">{flavor}</span>
+              <span className="text-xs font-medium text-brand-muted line-clamp-1">{flavor}</span>
             </button>
           );
         })}
       </div>
-
-      {!selected && (
-        <p aria-live="polite" className="text-sm mt-2 text-brand-muted">
-          Select one flavor
-        </p>
-      )}
     </div>
   );
 }

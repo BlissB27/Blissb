@@ -382,7 +382,7 @@ export function CookieBoxBuilder() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-brand-brown">{flavorModalProduct?.name}</DialogTitle>
-            <DialogDescription>Choose a flavor before adding this to your box.</DialogDescription>
+            <DialogDescription>Pick one before it joins your box.</DialogDescription>
           </DialogHeader>
 
           {flavorModalProduct && (
