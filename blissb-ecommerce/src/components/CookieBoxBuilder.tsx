@@ -7,6 +7,14 @@ import { Plus, Minus, X, ShoppingBag, PartyPopper } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AddToCartButton } from "@/components/AddToCartButton";
+import { FlavorSelector } from "@/components/FlavorSelector";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { useCartStore } from "@/store/cartStore";
 import { getProductsByCategoryAsync, type Product } from "@/data/products";
 
@@ -20,14 +28,23 @@ type FlyingItem = {
   deltaY: number;
 };
 
+// A cookie with its own `flavors` (e.g. a dipping-sauce choice) needs one
+// picked before it can be added — a product can have several box lines if
+// it's been added with different flavors, so lines are keyed by product+flavor.
+type Selection = { productId: string; flavor?: string; quantity: number };
+const selectionKey = (productId: string, flavor?: string) => (flavor ? `${productId}::${flavor}` : productId);
+
 export function CookieBoxBuilder() {
   const { addItem } = useCartStore();
   const [cookies, setCookies] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selections, setSelections] = useState<Record<string, number>>({});
+  const [selections, setSelections] = useState<Record<string, Selection>>({});
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [flyingItems, setFlyingItems] = useState<FlyingItem[]>([]);
+  const [flavorModalProduct, setFlavorModalProduct] = useState<Product | null>(null);
+  const [modalFlavor, setModalFlavor] = useState<string | null>(null);
   const boxPanelRef = useRef<HTMLDivElement>(null);
+  const modalCardElRef = useRef<HTMLElement | null>(null);
   const flyIdRef = useRef(0);
 
   useEffect(() => {
@@ -42,9 +59,9 @@ export function CookieBoxBuilder() {
 
   const lines = useMemo(
     () =>
-      Object.entries(selections)
-        .map(([id, quantity]) => ({ product: cookies.find((c) => c.id === id), quantity }))
-        .filter((line): line is { product: Product; quantity: number } => !!line.product && line.quantity > 0),
+      Object.values(selections)
+        .map((sel) => ({ product: cookies.find((c) => c.id === sel.productId), flavor: sel.flavor, quantity: sel.quantity }))
+        .filter((line): line is { product: Product; flavor: string | undefined; quantity: number } => !!line.product && line.quantity > 0),
     [selections, cookies]
   );
 
@@ -53,9 +70,18 @@ export function CookieBoxBuilder() {
   const progress = Math.min(totalUnits / MIN_COOKIES, 1) * 100;
   const meetsMinimum = totalUnits >= MIN_COOKIES;
 
-  const addOne = (productId: string, cardEl?: HTMLElement | null) => {
+  const qtyForProduct = (productId: string) =>
+    Object.values(selections)
+      .filter((sel) => sel.productId === productId)
+      .reduce((sum, sel) => sum + sel.quantity, 0);
+
+  const addOne = (productId: string, flavor: string | undefined, cardEl?: HTMLElement | null) => {
     setErrorMessage(null);
-    setSelections((prev) => ({ ...prev, [productId]: (prev[productId] ?? 0) + 1 }));
+    const key = selectionKey(productId, flavor);
+    setSelections((prev) => ({
+      ...prev,
+      [key]: { productId, flavor, quantity: (prev[key]?.quantity ?? 0) + 1 },
+    }));
 
     if (cardEl && boxPanelRef.current) {
       const imgEl = cardEl.querySelector("img");
@@ -74,26 +100,41 @@ export function CookieBoxBuilder() {
     }
   };
 
-  const handleAddClick = (e: React.MouseEvent<HTMLButtonElement>, cookieId: string) => {
+  const handleAddClick = (e: React.MouseEvent<HTMLButtonElement>, cookie: Product): boolean => {
     const cardEl = e.currentTarget.closest("[data-cookie-card]") as HTMLElement | null;
-    addOne(cookieId, cardEl);
+
+    if (cookie.flavors && cookie.flavors.length > 0) {
+      modalCardElRef.current = cardEl;
+      setModalFlavor(null);
+      setFlavorModalProduct(cookie);
+      return false; // opens the flavor modal instead of a completed add
+    }
+
+    addOne(cookie.id, undefined, cardEl);
     return true;
   };
 
-  const removeOne = (productId: string) => {
+  const confirmFlavorModal = (): boolean => {
+    if (!flavorModalProduct || !modalFlavor) return false;
+    addOne(flavorModalProduct.id, modalFlavor, modalCardElRef.current);
+    return true;
+  };
+
+  const removeOne = (key: string) => {
     setSelections((prev) => {
-      const current = prev[productId] ?? 0;
-      if (current <= 1) {
-        const { [productId]: _removed, ...rest } = prev;
+      const existing = prev[key];
+      if (!existing) return prev;
+      if (existing.quantity <= 1) {
+        const { [key]: _removed, ...rest } = prev;
         return rest;
       }
-      return { ...prev, [productId]: current - 1 };
+      return { ...prev, [key]: { ...existing, quantity: existing.quantity - 1 } };
     });
   };
 
-  const removeAll = (productId: string) => {
+  const removeAll = (key: string) => {
     setSelections((prev) => {
-      const { [productId]: _removed, ...rest } = prev;
+      const { [key]: _removed, ...rest } = prev;
       return rest;
     });
   };
@@ -103,7 +144,7 @@ export function CookieBoxBuilder() {
     setErrorMessage(null);
 
     for (const line of lines) {
-      const result = addItem(line.product, { quantity: line.quantity });
+      const result = addItem(line.product, { quantity: line.quantity, flavor: line.flavor });
       if (!result.success) {
         setErrorMessage(result.error ?? `Couldn't add ${line.product.name} to your cart.`);
         return false;
@@ -160,7 +201,7 @@ export function CookieBoxBuilder() {
                 </div>
               ))
             : cookies.map((cookie) => {
-                const qty = selections[cookie.id] ?? 0;
+                const qty = qtyForProduct(cookie.id);
                 return (
                   <div
                     key={cookie.id}
@@ -186,7 +227,7 @@ export function CookieBoxBuilder() {
                       <AddToCartButton
                         size="sm"
                         className="mt-auto w-full"
-                        onAdd={(e) => handleAddClick(e, cookie.id)}
+                        onAdd={(e) => handleAddClick(e, cookie)}
                       >
                         <span className="flex w-full items-center justify-between">
                           <span>Add</span>
@@ -252,9 +293,11 @@ export function CookieBoxBuilder() {
           ) : (
             <div className="space-y-3 mb-4">
               <AnimatePresence initial={false}>
-                {lines.map(({ product, quantity }) => (
+                {lines.map(({ product, flavor, quantity }) => {
+                  const key = selectionKey(product.id, flavor);
+                  return (
                   <motion.div
-                    key={product.id}
+                    key={key}
                     initial={{ opacity: 0, x: -16 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, height: 0 }}
@@ -265,12 +308,15 @@ export function CookieBoxBuilder() {
                       <Image src={product.image} alt={product.name} fill className="object-cover" sizes="48px" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-brand-text line-clamp-1">{product.name}</p>
+                      <p className="text-sm font-medium text-brand-text line-clamp-1">
+                        {product.name}
+                        {flavor && <span className="text-brand-muted"> — {flavor}</span>}
+                      </p>
                       <p className="text-xs text-brand-muted">${product.price.toFixed(2)} each</p>
                     </div>
                     <div className="flex items-center border border-brand-border rounded-md bg-white">
                       <Button
-                        onClick={() => removeOne(product.id)}
+                        onClick={() => removeOne(key)}
                         aria-label={`Remove one ${product.name}`}
                         variant="ghost"
                         size="icon"
@@ -280,7 +326,7 @@ export function CookieBoxBuilder() {
                       </Button>
                       <span className="w-5 text-center text-xs text-brand-text">{quantity}</span>
                       <Button
-                        onClick={() => addOne(product.id)}
+                        onClick={() => addOne(product.id, flavor)}
                         aria-label={`Add one more ${product.name}`}
                         variant="ghost"
                         size="icon"
@@ -290,14 +336,15 @@ export function CookieBoxBuilder() {
                       </Button>
                     </div>
                     <button
-                      onClick={() => removeAll(product.id)}
+                      onClick={() => removeAll(key)}
                       aria-label={`Remove ${product.name} from box`}
                       className="text-brand-muted hover:text-brand-brown-hover"
                     >
                       <X className="h-4 w-4" strokeWidth={1.75} />
                     </button>
                   </motion.div>
-                ))}
+                  );
+                })}
               </AnimatePresence>
             </div>
           )}
@@ -328,6 +375,35 @@ export function CookieBoxBuilder() {
           )}
         </div>
       </div>
+
+      {/* Flavor modal — only cookies with their own flavors (e.g. a dipping
+          sauce choice) need this before they can be added to the box. */}
+      <Dialog open={!!flavorModalProduct} onOpenChange={(open) => !open && setFlavorModalProduct(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-brand-brown">{flavorModalProduct?.name}</DialogTitle>
+            <DialogDescription>Choose a flavor before adding this to your box.</DialogDescription>
+          </DialogHeader>
+
+          {flavorModalProduct && (
+            <FlavorSelector
+              flavors={flavorModalProduct.flavors ?? []}
+              flavorOptions={flavorModalProduct.flavorOptions}
+              fixedTarget={false}
+              onSelectionChange={(selection) => setModalFlavor(selection?.[0]?.flavor ?? null)}
+            />
+          )}
+
+          <AddToCartButton
+            onAdd={confirmFlavorModal}
+            onAnimationComplete={() => setFlavorModalProduct(null)}
+            disabled={!modalFlavor}
+            className="w-full"
+          >
+            Add to Box
+          </AddToCartButton>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

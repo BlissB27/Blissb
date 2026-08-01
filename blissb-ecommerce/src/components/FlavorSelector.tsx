@@ -56,9 +56,10 @@ function SingleFlavorPicker({
     <div className="mb-6">
       <p className="text-sm text-brand-muted mb-2">Choose a flavor:</p>
 
-      <div className="space-y-2" role="radiogroup" aria-label="Flavor">
+      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3" role="radiogroup" aria-label="Flavor">
         {flavors.map((flavor) => {
           const isSelected = selected === flavor;
+          const image = imageByFlavor[flavor];
           return (
             <button
               type="button"
@@ -66,19 +67,18 @@ function SingleFlavorPicker({
               role="radio"
               aria-checked={isSelected}
               onClick={() => setSelected(flavor)}
-              className={`flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-colors ${
+              className={`flex flex-col items-center gap-1.5 rounded-xl border-2 p-2 text-center transition-colors ${
                 isSelected ? "border-brand-brown bg-brand-brown/5" : "border-brand-border hover:border-brand-brown/40"
               }`}
             >
-              <span
-                className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border ${
-                  isSelected ? "border-brand-brown" : "border-brand-border"
-                }`}
-              >
-                {isSelected && <span className="h-2 w-2 rounded-full bg-brand-brown" />}
-              </span>
-              <ImageThumb src={imageByFlavor[flavor]} />
-              <span className="text-sm text-brand-text">{flavor}</span>
+              <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-brand-bg">
+                {image ? (
+                  <Image src={image} alt="" fill className="object-cover" sizes="120px" />
+                ) : (
+                  <div className="absolute inset-0" />
+                )}
+              </div>
+              <span className="text-xs font-medium text-brand-text line-clamp-2">{flavor}</span>
             </button>
           );
         })}
