@@ -25,7 +25,7 @@ export function useProductAddToCart(product: Product | null) {
   const isUnconfiguredBox = !!product?.isSoldInBox && !product.boxSize;
   const needsOptions = hasFlavorSelector && !isUnconfiguredBox;
 
-  const finishAdd = (options: { boxFlavors?: BoxFlavor[] }): boolean => {
+  const finishAdd = (options: { boxFlavors?: BoxFlavor[]; flavor?: string }): boolean => {
     if (!product) return false;
     setErrorMessage(null);
     const result = addItem(product, { quantity: 1, ...options });
@@ -51,9 +51,15 @@ export function useProductAddToCart(product: Product | null) {
 
   const handleConfirmOptions = (): boolean => {
     if (hasFlavorSelector && !boxFlavors) return false; // FlavorSelector shows the invalid state
-    return finishAdd({
-      boxFlavors: hasFlavorSelector ? boxFlavors ?? undefined : undefined,
-    });
+    if (!hasFlavorSelector) return finishAdd({});
+
+    // Box products (multi-flavor split) vs. regular products (exactly one
+    // flavor, quantity handled separately) — FlavorSelector always emits
+    // BoxFlavor[], but only the box case actually wants that shape at the cart.
+    if (product?.isSoldInBox) {
+      return finishAdd({ boxFlavors: boxFlavors ?? undefined });
+    }
+    return finishAdd({ flavor: boxFlavors?.[0]?.flavor });
   };
 
   return {

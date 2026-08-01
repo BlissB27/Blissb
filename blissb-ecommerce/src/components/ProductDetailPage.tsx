@@ -72,7 +72,13 @@ export function ProductDetailPage({ product, allProducts }: ProductDetailPagePro
 
     if (hasFlavorSelector) {
       if (!boxFlavors) return false;
-      const result = addItem(product, { boxFlavors });
+      // Box products keep their multi-flavor split (quantity comes from the
+      // split itself); regular products get exactly one flavor plus the
+      // normal quantity stepper next to it.
+      const options = product.isSoldInBox
+        ? { boxFlavors }
+        : { flavor: boxFlavors[0]?.flavor, quantity: selectedQuantity };
+      const result = addItem(product, options);
       if (!result.success) {
         setErrorMessage(result.error ?? "Couldn't add this item to your cart.");
         return false;
@@ -184,7 +190,7 @@ export function ProductDetailPage({ product, allProducts }: ProductDetailPagePro
               </div>
             )}
 
-            {!product.isSoldInBox && !hasFlavorSelector && (
+            {!product.isSoldInBox && (
               <div className="mb-6">
                 <p className="text-sm text-brand-muted mb-2">Quantity:</p>
                 <div className="flex items-center border border-brand-border rounded-lg w-fit">

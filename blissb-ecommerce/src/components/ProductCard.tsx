@@ -146,6 +146,7 @@ export function ProductCard({ product }: ProductCardProps) {
           {hasFlavorSelector && (
             <FlavorSelector
               flavors={product.flavors ?? []}
+              flavorOptions={product.flavorOptions}
               fixedTarget={!!product.isSoldInBox}
               targetQuantity={product.isSoldInBox ? (product.boxSize as number) : undefined}
               onSelectionChange={setBoxFlavors}

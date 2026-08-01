@@ -5,7 +5,10 @@ import Image from "next/image";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { BoxFlavor } from "@/store/cartStore";
 
-const MAX_FLAVORS = 5;
+// Only the box products (e.g. Mini Cookie Box) split a fixed count across
+// multiple flavors. Regular products get exactly one flavor — see the
+// !fixedTarget branch below, which is a plain single-choice picker.
+const MAX_BOX_FLAVORS = 3;
 
 type FlavorSelectorProps = {
   flavors: string[];
@@ -15,33 +18,105 @@ type FlavorSelectorProps = {
   flavorOptions?: { name: string; image: string }[];
   /** Box products (fixed size, e.g. a 50-count box): the split must sum exactly to this. */
   targetQuantity?: number;
-  /** true for box products with a fixed size; false lets the customer build the total from the flavors themselves. */
+  /** true for box products with a fixed size and a multi-flavor split; false for a single-flavor pick. */
   fixedTarget: boolean;
+  /** Always emits `BoxFlavor[]` for API-compatibility with box mode, but in
+   * single-flavor mode the array only ever holds one entry (quantity is a
+   * fixed placeholder — the actual purchase quantity lives outside this
+   * component, e.g. a normal quantity stepper next to it). */
   onSelectionChange: (selection: BoxFlavor[] | null) => void;
 };
 
-export function FlavorSelector({ flavors, flavorOptions, targetQuantity, fixedTarget, onSelectionChange }: FlavorSelectorProps) {
-  const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const imageByFlavor = useMemo(
-    () => Object.fromEntries((flavorOptions ?? []).map((f) => [f.name, f.image])),
-    [flavorOptions]
+function ImageThumb({ src }: { src?: string }) {
+  if (!src) return null;
+  return (
+    <div className="relative w-10 h-10 flex-shrink-0 rounded-md overflow-hidden bg-brand-bg">
+      <Image src={src} alt="" fill className="object-cover" sizes="40px" />
+    </div>
   );
+}
+
+function SingleFlavorPicker({
+  flavors,
+  imageByFlavor,
+  onSelectionChange,
+}: {
+  flavors: string[];
+  imageByFlavor: Record<string, string>;
+  onSelectionChange: (selection: BoxFlavor[] | null) => void;
+}) {
+  const [selected, setSelected] = useState<string | null>(null);
+
+  useEffect(() => {
+    onSelectionChange(selected ? [{ flavor: selected, quantity: 1 }] : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected]);
+
+  return (
+    <div className="mb-6">
+      <p className="text-sm text-brand-muted mb-2">Choose a flavor:</p>
+
+      <div className="space-y-2" role="radiogroup" aria-label="Flavor">
+        {flavors.map((flavor) => {
+          const isSelected = selected === flavor;
+          return (
+            <button
+              type="button"
+              key={flavor}
+              role="radio"
+              aria-checked={isSelected}
+              onClick={() => setSelected(flavor)}
+              className={`flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-colors ${
+                isSelected ? "border-brand-brown bg-brand-brown/5" : "border-brand-border hover:border-brand-brown/40"
+              }`}
+            >
+              <span
+                className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border ${
+                  isSelected ? "border-brand-brown" : "border-brand-border"
+                }`}
+              >
+                {isSelected && <span className="h-2 w-2 rounded-full bg-brand-brown" />}
+              </span>
+              <ImageThumb src={imageByFlavor[flavor]} />
+              <span className="text-sm text-brand-text">{flavor}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {!selected && (
+        <p aria-live="polite" className="text-sm mt-2 text-brand-muted">
+          Select one flavor
+        </p>
+      )}
+    </div>
+  );
+}
+
+function BoxFlavorPicker({
+  flavors,
+  imageByFlavor,
+  targetQuantity,
+  onSelectionChange,
+}: {
+  flavors: string[];
+  imageByFlavor: Record<string, string>;
+  targetQuantity?: number;
+  onSelectionChange: (selection: BoxFlavor[] | null) => void;
+}) {
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
 
   const selectedFlavors = Object.keys(quantities);
   const total = Object.values(quantities).reduce((sum, q) => sum + q, 0);
-  const isValid = fixedTarget
-    ? !!targetQuantity && targetQuantity > 0 && selectedFlavors.length > 0 && selectedFlavors.length <= MAX_FLAVORS && total === targetQuantity
-    : selectedFlavors.length > 0 && selectedFlavors.length <= MAX_FLAVORS && total >= 1;
+  const isValid =
+    !!targetQuantity && targetQuantity > 0 && selectedFlavors.length > 0 && selectedFlavors.length <= MAX_BOX_FLAVORS && total === targetQuantity;
 
   useEffect(() => {
     if (!isValid) {
       onSelectionChange(null);
       return;
     }
-
-    onSelectionChange(
-      selectedFlavors.map((flavor) => ({ flavor, quantity: quantities[flavor] }))
-    );
+    onSelectionChange(selectedFlavors.map((flavor) => ({ flavor, quantity: quantities[flavor] })));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quantities, isValid, targetQuantity]);
 
@@ -49,9 +124,8 @@ export function FlavorSelector({ flavors, flavorOptions, targetQuantity, fixedTa
     setQuantities((prev) => {
       const next = { ...prev };
       if (checked) {
-        if (Object.keys(next).length >= MAX_FLAVORS) return prev;
-        // Free-form mode: a newly checked flavor starts at 1, so it's never a "phantom" empty slot.
-        next[flavor] = fixedTarget ? 0 : 1;
+        if (Object.keys(next).length >= MAX_BOX_FLAVORS) return prev;
+        next[flavor] = 0;
       } else {
         delete next[flavor];
       }
@@ -59,28 +133,25 @@ export function FlavorSelector({ flavors, flavorOptions, targetQuantity, fixedTa
     });
   };
 
-  const floor = fixedTarget ? 0 : 1;
   const setQuantity = (flavor: string, quantity: number) => {
-    setQuantities((prev) => ({ ...prev, [flavor]: Math.max(floor, quantity) }));
+    setQuantities((prev) => ({ ...prev, [flavor]: Math.max(0, quantity) }));
   };
 
-  const statusText = fixedTarget
-    ? `${total} / ${targetQuantity} selected${selectedFlavors.length > 0 && total !== targetQuantity ? " — quantities must add up exactly to the quantity selected" : ""}`
-    : `${total} total selected`;
-  const statusIsGood = fixedTarget ? total === targetQuantity : total >= 1;
+  const statusText = `${total} / ${targetQuantity} selected${
+    selectedFlavors.length > 0 && total !== targetQuantity ? " — quantities must add up exactly to the quantity selected" : ""
+  }`;
+  const statusIsGood = total === targetQuantity;
 
   return (
     <div className="mb-6">
       <p className="text-sm text-brand-muted mb-2">
-        {fixedTarget
-          ? `Choose up to ${MAX_FLAVORS} flavors and split the ${targetQuantity} between them:`
-          : `Choose up to ${MAX_FLAVORS} flavors and set the quantity for each:`}
+        Choose up to {MAX_BOX_FLAVORS} flavors and split the {targetQuantity} between them:
       </p>
 
       <div className="space-y-2">
         {flavors.map((flavor) => {
           const isChecked = flavor in quantities;
-          const isDisabled = !isChecked && selectedFlavors.length >= MAX_FLAVORS;
+          const isDisabled = !isChecked && selectedFlavors.length >= MAX_BOX_FLAVORS;
 
           return (
             <div
@@ -95,11 +166,7 @@ export function FlavorSelector({ flavors, flavorOptions, targetQuantity, fixedTa
                   disabled={isDisabled}
                   onCheckedChange={(checked) => toggleFlavor(flavor, checked === true)}
                 />
-                {imageByFlavor[flavor] && (
-                  <div className="relative w-10 h-10 flex-shrink-0 rounded-md overflow-hidden bg-brand-bg">
-                    <Image src={imageByFlavor[flavor]} alt="" fill className="object-cover" sizes="40px" />
-                  </div>
-                )}
+                <ImageThumb src={imageByFlavor[flavor]} />
                 <span className="text-sm text-brand-text">{flavor}</span>
               </label>
 
@@ -109,14 +176,12 @@ export function FlavorSelector({ flavors, flavorOptions, targetQuantity, fixedTa
                     type="button"
                     aria-label={`Decrease ${flavor} quantity`}
                     onClick={() => setQuantity(flavor, quantities[flavor] - 1)}
-                    disabled={quantities[flavor] <= floor}
+                    disabled={quantities[flavor] <= 0}
                     className="px-3 py-1 hover:bg-brand-bg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     −
                   </button>
-                  <span className="px-3 py-1 min-w-[2.5rem] text-center text-sm">
-                    {quantities[flavor]}
-                  </span>
+                  <span className="px-3 py-1 min-w-[2.5rem] text-center text-sm">{quantities[flavor]}</span>
                   <button
                     type="button"
                     aria-label={`Increase ${flavor} quantity`}
@@ -136,5 +201,18 @@ export function FlavorSelector({ flavors, flavorOptions, targetQuantity, fixedTa
         {statusText}
       </p>
     </div>
+  );
+}
+
+export function FlavorSelector({ flavors, flavorOptions, targetQuantity, fixedTarget, onSelectionChange }: FlavorSelectorProps) {
+  const imageByFlavor = useMemo(
+    () => Object.fromEntries((flavorOptions ?? []).map((f) => [f.name, f.image])),
+    [flavorOptions]
+  );
+
+  return fixedTarget ? (
+    <BoxFlavorPicker flavors={flavors} imageByFlavor={imageByFlavor} targetQuantity={targetQuantity} onSelectionChange={onSelectionChange} />
+  ) : (
+    <SingleFlavorPicker flavors={flavors} imageByFlavor={imageByFlavor} onSelectionChange={onSelectionChange} />
   );
 }
