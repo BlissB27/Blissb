@@ -10,6 +10,7 @@ export type Product = {
   originalPrice?: number;
   minQuantity?: number; // Ya no se usa para cookies, pero mantener por compatibilidad
   flavors?: string[]; // Para productos que requieren selección de sabor
+  flavorOptions?: { name: string; image: string }[]; // Igual que flavors pero con foto — mismos nombres, se cruzan por name
   allowCustomMessage?: boolean; // Si permite mensaje personalizado (ej: cakes, algunos desserts)
   gallery?: string[]; // Galería de imágenes adicionales
   slug?: string; // URL slug para SEO friendly URLs

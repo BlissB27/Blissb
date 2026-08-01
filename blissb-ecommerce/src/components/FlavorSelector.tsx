@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { BoxFlavor } from "@/store/cartStore";
 
@@ -8,6 +9,10 @@ const MAX_FLAVORS = 5;
 
 type FlavorSelectorProps = {
   flavors: string[];
+  /** Photo per flavor, keyed by the same name used in `flavors` — optional
+   * while flavors are still being migrated in Strapi, so a flavor with no
+   * matching entry here just renders without a thumbnail. */
+  flavorOptions?: { name: string; image: string }[];
   /** Box products (fixed size, e.g. a 50-count box): the split must sum exactly to this. */
   targetQuantity?: number;
   /** true for box products with a fixed size; false lets the customer build the total from the flavors themselves. */
@@ -15,8 +20,12 @@ type FlavorSelectorProps = {
   onSelectionChange: (selection: BoxFlavor[] | null) => void;
 };
 
-export function FlavorSelector({ flavors, targetQuantity, fixedTarget, onSelectionChange }: FlavorSelectorProps) {
+export function FlavorSelector({ flavors, flavorOptions, targetQuantity, fixedTarget, onSelectionChange }: FlavorSelectorProps) {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const imageByFlavor = useMemo(
+    () => Object.fromEntries((flavorOptions ?? []).map((f) => [f.name, f.image])),
+    [flavorOptions]
+  );
 
   const selectedFlavors = Object.keys(quantities);
   const total = Object.values(quantities).reduce((sum, q) => sum + q, 0);
@@ -80,12 +89,17 @@ export function FlavorSelector({ flavors, targetQuantity, fixedTarget, onSelecti
                 isChecked ? "border-brand-brown bg-brand-brown/5" : "border-brand-border"
               } ${isDisabled ? "opacity-50" : ""}`}
             >
-              <label className="flex items-center gap-2 cursor-pointer flex-1">
+              <label className="flex items-center gap-3 cursor-pointer flex-1">
                 <Checkbox
                   checked={isChecked}
                   disabled={isDisabled}
                   onCheckedChange={(checked) => toggleFlavor(flavor, checked === true)}
                 />
+                {imageByFlavor[flavor] && (
+                  <div className="relative w-10 h-10 flex-shrink-0 rounded-md overflow-hidden bg-brand-bg">
+                    <Image src={imageByFlavor[flavor]} alt="" fill className="object-cover" sizes="40px" />
+                  </div>
+                )}
                 <span className="text-sm text-brand-text">{flavor}</span>
               </label>
 

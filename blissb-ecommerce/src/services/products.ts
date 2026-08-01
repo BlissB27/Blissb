@@ -2,6 +2,15 @@ import { strapiGet, strapiPut, getStrapiMediaUrl, isStrapiNotFound } from '@/lib
 import { StrapiResponse, StrapiProduct } from '@/types/strapi';
 import type { Product } from '@/data/products';
 
+// Strapi v5's populate=* only goes one level deep, so it picks up the
+// flavorOptions component itself but not the media file nested inside each
+// entry — has to be requested explicitly or every flavor photo comes back empty.
+const PRODUCT_POPULATE = {
+  'populate[image]': 'true',
+  'populate[gallery]': 'true',
+  'populate[flavorOptions][populate][image]': 'true',
+};
+
 // Convert Strapi product to our app's product format
 export function transformStrapiProduct(strapiProduct: any): Product {
   // Strapi v5 format - no attributes wrapper, direct fields
@@ -20,6 +29,9 @@ export function transformStrapiProduct(strapiProduct: any): Product {
     isOnOffer: strapiProduct.isOnOffer || false,
     originalPrice: strapiProduct.originalPrice,
     flavors: strapiProduct.flavors || [],
+    flavorOptions: (strapiProduct.flavorOptions || [])
+      .filter((f: any) => f?.name && f?.image?.url)
+      .map((f: any) => ({ name: f.name, image: getStrapiMediaUrl(f.image.url) })),
     allowCustomMessage: strapiProduct.allowCustomMessage || false,
     // Agregar galería de imágenes
     gallery: strapiProduct.gallery?.map((img: any) => getStrapiMediaUrl(img.url)) || [],
@@ -34,7 +46,7 @@ export function transformStrapiProduct(strapiProduct: any): Product {
 export async function getAllProducts(): Promise<Product[]> {
   try {
     const response: any = await strapiGet('/products', {
-      'populate': '*',
+      ...PRODUCT_POPULATE,
       'sort': 'createdAt:desc'
     });
 
@@ -51,7 +63,7 @@ export async function getAllProducts(): Promise<Product[]> {
 // distinguish "the fetch failed" from "this category genuinely has no products".
 export async function getProductsByCategory(category: Product['category']): Promise<Product[]> {
   const response: any = await strapiGet('/products', {
-    'populate': '*',
+    ...PRODUCT_POPULATE,
     'sort': 'createdAt:desc'
   });
 
@@ -67,10 +79,10 @@ export async function getProductById(id: string): Promise<Product | null> {
     const response: any = isNumericId
       ? await strapiGet('/products', {
           'filters[id][$eq]': id,
-          'populate': '*'
+          ...PRODUCT_POPULATE
         })
       : await strapiGet(`/products/${id}`, {
-          'populate': '*'
+          ...PRODUCT_POPULATE
         });
 
     const product = Array.isArray(response.data) ? response.data[0] : response.data;
@@ -90,7 +102,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
   try {
     const response: any = await strapiGet('/products', {
       'filters[slug][$eq]': slug,
-      'populate': '*'
+      ...PRODUCT_POPULATE
     });
 
     if (response.data.length === 0) {
@@ -110,7 +122,7 @@ export async function getFeaturedProducts(): Promise<Product[]> {
     const response: any = await strapiGet('/products', {
       'filters[$or][0][isNew][$eq]': 'true',
       'filters[$or][1][isOnOffer][$eq]': 'true',
-      'populate': '*',
+      ...PRODUCT_POPULATE,
       'sort': 'createdAt:desc',
       'pagination[limit]': '8'
     });
@@ -143,7 +155,7 @@ export async function searchProducts(query: string): Promise<Product[]> {
   try {
     const response: any = await strapiGet('/products', {
       'filters[name][$containsi]': query,
-      'populate': '*',
+      ...PRODUCT_POPULATE,
       'sort': 'name:asc'
     });
 

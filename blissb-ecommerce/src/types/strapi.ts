@@ -57,6 +57,7 @@ export interface StrapiProductAttributes {
   isOnOffer?: boolean;
   originalPrice?: number;
   flavors?: string[];
+  flavorOptions?: { name: string; image: { url: string } }[];
   slug: string;
   image: {
     data: StrapiMedia | null;

@@ -211,6 +211,7 @@ export function ProductDetailPage({ product, allProducts }: ProductDetailPagePro
             {hasFlavorSelector && !(product.isSoldInBox && !product.boxSize) && (
               <FlavorSelector
                 flavors={product.flavors ?? []}
+                flavorOptions={product.flavorOptions}
                 fixedTarget={!!product.isSoldInBox}
                 targetQuantity={product.isSoldInBox ? (product.boxSize as number) : undefined}
                 onSelectionChange={setBoxFlavors}
