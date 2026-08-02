@@ -68,23 +68,23 @@ function SingleFlavorPicker({
               role="radio"
               aria-checked={isSelected}
               onClick={() => setSelected(flavor)}
-              className={`relative aspect-square w-full overflow-hidden rounded-xl border-2 bg-brand-bg transition-colors ${
-                isSelected ? "border-brand-brown" : "border-brand-border hover:border-brand-brown/40"
+              className={`flex flex-col rounded-2xl border-2 bg-white p-2 text-center transition-colors ${
+                isSelected ? "border-brand-brown bg-brand-brown/5" : "border-brand-border hover:border-brand-brown/40"
               }`}
             >
-              {image && <Image src={image} alt="" fill className="object-cover" sizes="120px" />}
+              {/* Same treatment as the product cards elsewhere: a true square
+                  photo with rounded corners and margin from the card edge. */}
+              <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-brand-bg">
+                {image && <Image src={image} alt="" fill className="object-cover" sizes="120px" />}
 
-              {isSelected && (
-                <span className="absolute top-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-brand-brown text-white">
-                  <Check className="h-3 w-3" strokeWidth={2.5} />
-                </span>
-              )}
+                {isSelected && (
+                  <span className="absolute top-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-brand-brown text-white">
+                    <Check className="h-3 w-3" strokeWidth={2.5} />
+                  </span>
+                )}
+              </div>
 
-              {/* Caption sits on top of the photo instead of below it, so the
-                  whole tile stays a perfect square no matter how long the name is. */}
-              <span className="absolute inset-x-0 bottom-0 bg-white/90 px-1 py-1 text-xs font-medium text-brand-muted break-words">
-                {flavor}
-              </span>
+              <span className="mt-1.5 text-xs font-medium text-brand-muted">{flavor}</span>
             </button>
           );
         })}
