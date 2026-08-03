@@ -1,15 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Elements, AddressElement } from "@stripe/react-stripe-js";
-import { loadStripe } from "@stripe/stripe-js";
-import type { StripeAddressElementChangeEvent } from "@stripe/stripe-js";
-import { Input } from "@/components/ui/input";
-import { useDeliveryStore, type DeliveryType } from "@/store/deliveryStore";
+import { AnimatePresence, motion } from "framer-motion";
+import { AddressFields } from "@/components/AddressFields";
+import { useDeliveryStore, type DeliveryType, type ShippingAddress } from "@/store/deliveryStore";
 import { getFulfillmentOptions } from "@/lib/deliverySchedule";
+import { BAKERY_ADDRESS } from "@/lib/bakeryLocation";
 import { AlertCircle, CheckCircle2, MapPin, Package, ShoppingBag, Truck, type LucideIcon } from "lucide-react";
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+const GOOGLE_MAPS_DIRECTIONS_URL = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(BAKERY_ADDRESS)}`;
+
+// Drops in from just above rather than a plain fade — used whenever the
+// fulfillment type changes, so the newly-revealed section reads as "arriving"
+// instead of popping in place.
+const dropDownVariants = {
+  initial: { opacity: 0, y: -12 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -12 },
+};
 
 export type DeliveryQuote = { eligible: boolean; fee: number; miles: number };
 
@@ -17,9 +25,7 @@ type DeliverySelectorProps = {
   subtotal: number;
   shippingCost: number;
   onDeliveryFeeChange: (fee: number) => void;
-  /** Pre-fills the AddressElement's (otherwise unavoidable) name field, since
-   * Contact Information is collected on the same page — avoids asking twice. */
-  customerName?: string;
+  onQuotingChange?: (quoting: boolean) => void;
 };
 
 const TYPE_ICONS: Record<DeliveryType, LucideIcon> = {
@@ -34,28 +40,66 @@ function formatWindowDate(dateISO: string, isToday: boolean) {
   return isToday ? `Today, ${formatted}` : formatted;
 }
 
-export function DeliverySelector({ subtotal, shippingCost, onDeliveryFeeChange, customerName }: DeliverySelectorProps) {
-  const { selectedType, address, setDeliveryType, setAddress, shippingAddress, setShippingAddress } = useDeliveryStore();
+function isAddressComplete(a: ShippingAddress) {
+  return a.street.trim().length > 0 && a.city.trim().length > 0 && a.state.trim().length > 0 && a.zip.trim().length > 0;
+}
+
+function joinAddress(a: ShippingAddress) {
+  return [a.street, `${a.city}, ${a.state} ${a.zip}`.trim()].filter(Boolean).join(", ");
+}
+
+// Per our shipping policy we only ship on Mondays via UPS (no per-order date
+// picker) — this finds the next one, including today if today is Monday.
+function getNextShipDate(now: Date): { dateISO: string; isToday: boolean } {
+  const day = now.getUTCDay();
+  const daysUntilMonday = (1 - day + 7) % 7;
+  const target = new Date(now);
+  target.setUTCDate(now.getUTCDate() + daysUntilMonday);
+  return { dateISO: target.toISOString().slice(0, 10), isToday: daysUntilMonday === 0 };
+}
+
+export function DeliverySelector({ subtotal, shippingCost, onDeliveryFeeChange, onQuotingChange }: DeliverySelectorProps) {
+  const {
+    selectedType,
+    billingAddress,
+    deliveryAddress,
+    deliveryAddressSameAsBilling,
+    shippingAddress,
+    shippingAddressSameAsBilling,
+    setDeliveryType,
+    setDeliveryAddress,
+    setDeliveryAddressSameAsBilling,
+    setShippingAddress,
+    setShippingAddressSameAsBilling,
+  } = useDeliveryStore();
   const [quote, setQuote] = useState<DeliveryQuote | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [isQuoting, setIsQuoting] = useState(false);
 
   const fulfillment = getFulfillmentOptions();
+  const shipDate = getNextShipDate(new Date());
+
+  // Defaults to the billing address collected up top — only the override
+  // (when the customer says "use a different address") needs entering fresh.
+  const effectiveDeliveryAddress = deliveryAddressSameAsBilling ? billingAddress : deliveryAddress;
+  const deliveryAddressLine = joinAddress(effectiveDeliveryAddress);
 
   useEffect(() => {
-    if (selectedType !== "delivery" || address.trim().length < 8) {
+    if (selectedType !== "delivery" || !isAddressComplete(effectiveDeliveryAddress)) {
       setQuote(null);
       setQuoteError(null);
       setIsQuoting(false);
+      onQuotingChange?.(false);
       return;
     }
 
     setIsQuoting(true);
+    onQuotingChange?.(true);
     const timer = setTimeout(() => {
       fetch("/api/delivery-quote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address, subtotal }),
+        body: JSON.stringify({ address: deliveryAddressLine, subtotal }),
       })
         .then(async (res) => {
           const data = await res.json();
@@ -71,11 +115,15 @@ export function DeliverySelector({ subtotal, shippingCost, onDeliveryFeeChange, 
           setQuoteError("Couldn't calculate delivery for this address. Check your connection and try again.");
           setQuote(null);
         })
-        .finally(() => setIsQuoting(false));
+        .finally(() => {
+          setIsQuoting(false);
+          onQuotingChange?.(false);
+        });
     }, 600);
 
     return () => clearTimeout(timer);
-  }, [address, selectedType, subtotal]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deliveryAddressLine, selectedType, subtotal]);
 
   useEffect(() => {
     if (selectedType === "delivery") {
@@ -88,20 +136,9 @@ export function DeliverySelector({ subtotal, shippingCost, onDeliveryFeeChange, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quote, selectedType, shippingCost]);
 
-  const handleShippingAddressElementChange = (event: StripeAddressElementChangeEvent) => {
-    if (!event.complete) return;
-    const { line1, line2, city, state, postal_code } = event.value.address;
-    setShippingAddress({
-      street: line2 ? `${line1} ${line2}` : line1,
-      city,
-      state,
-      zip: postal_code,
-    });
-  };
-
   const options: { type: DeliveryType; label: string }[] = [
     { type: "pickup", label: "Pickup" },
-    { type: "delivery", label: "Local Delivery" },
+    { type: "delivery", label: "Delivery" },
     { type: "shipping", label: "Shipping" },
   ];
 
@@ -109,8 +146,10 @@ export function DeliverySelector({ subtotal, shippingCost, onDeliveryFeeChange, 
     <div className="space-y-4">
       {/* Fulfillment method — a compact toggle rather than a stacked list of
           bordered radio cards, so this reads as one lightweight choice, not
-          three separate decisions. */}
-      <div className="flex flex-wrap gap-3">
+          three separate decisions. A fixed 3-column grid (not flex-wrap) so
+          the three options always share one row, never wrapping regardless
+          of container width or label length. */}
+      <div className="grid grid-cols-3 gap-2">
         {options.map((option) => {
           const Icon = TYPE_ICONS[option.type];
           const isSelected = selectedType === option.type;
@@ -120,94 +159,186 @@ export function DeliverySelector({ subtotal, shippingCost, onDeliveryFeeChange, 
               type="button"
               onClick={() => setDeliveryType(option.type)}
               aria-pressed={isSelected}
-              className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors duration-200 ${
+              className={`flex items-center justify-center gap-1.5 rounded-xl border px-2 py-2.5 text-sm font-medium transition-colors duration-200 whitespace-nowrap ${
                 isSelected
                   ? "border-brand-brown bg-brand-brown/5 text-brand-brown"
                   : "border-brand-border text-brand-muted hover:border-brand-brown/40 hover:text-brand-text"
               }`}
             >
-              <Icon className="w-4 h-4" />
+              <Icon className="w-4 h-4 flex-shrink-0" />
               {option.label}
             </button>
           );
         })}
       </div>
 
-      {selectedType === "delivery" && (
-        <div className="max-w-md space-y-2">
-          <div className="flex items-center gap-2 text-brand-brown">
-            <MapPin className="w-4 h-4" />
-            <span className="text-sm font-medium">Delivery Address</span>
-          </div>
-          <Input
-            type="text"
-            placeholder="Street address, city, state, ZIP"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            className="border-brand-border focus:border-brand-brown"
-          />
-          {isQuoting && <p className="text-sm text-brand-muted">Calculating delivery distance…</p>}
-          {!isQuoting && quoteError && (
-            <div className="text-sm text-red-600 flex items-center gap-1">
-              <AlertCircle className="w-4 h-4" />
-              {quoteError}
+      <AnimatePresence mode="wait">
+        {selectedType === "pickup" && (
+          <motion.div
+            key="pickup"
+            variants={dropDownVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="max-w-md rounded-lg border border-brand-border bg-brand-bg p-3 space-y-3"
+          >
+            <div>
+              <div className="flex items-center gap-2 mb-1 text-brand-brown">
+                <MapPin className="w-4 h-4" />
+                <span className="text-sm font-medium">Pick up here</span>
+              </div>
+              <p className="text-sm text-brand-text">{BAKERY_ADDRESS}</p>
+              <a
+                href={GOOGLE_MAPS_DIRECTIONS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 inline-block text-sm text-brand-brown hover:underline"
+              >
+                Get directions
+              </a>
             </div>
-          )}
-          {!isQuoting && quote?.eligible && (
-            <div className="text-sm text-brand-success flex items-center gap-1">
-              <CheckCircle2 className="w-4 h-4" />
-              {quote.miles.toFixed(1)} miles away — {quote.fee > 0 ? `$${quote.fee.toFixed(2)} delivery fee` : "free delivery!"}
+            <div className="pt-3 border-t border-brand-border">
+              <p className="text-xs text-brand-muted mb-0.5">Pickup</p>
+              <p className="text-sm font-medium text-brand-text">
+                {formatWindowDate(fulfillment.pickup.date, fulfillment.pickup.isToday)}, {fulfillment.pickup.window}
+              </p>
             </div>
-          )}
-          {!isQuoting && quote && !quote.eligible && (
-            <div className="text-sm text-red-600 flex items-center gap-1">
-              <AlertCircle className="w-4 h-4" />
-              This address is outside our 25-mile delivery radius. Please choose shipping or pickup instead.
-            </div>
-          )}
-        </div>
-      )}
+          </motion.div>
+        )}
 
-      {selectedType === "shipping" && (
-        <div className="max-w-md space-y-2">
-          <div className="flex items-center gap-2 text-brand-brown">
-            <MapPin className="w-4 h-4" />
-            <span className="text-sm font-medium">Shipping Address</span>
-          </div>
-          {/* Stripe's AddressElement — real autocomplete/suggestions as you type,
-              plus built-in validation. Needs its own <Elements> since there's no
-              PaymentIntent yet at this step (that's created later, in Payment). */}
-          <Elements stripe={stripePromise} options={{ mode: "payment", currency: "usd", amount: 100 }}>
-            <AddressElement
-              options={{
-                mode: "shipping",
-                allowedCountries: ["US"],
-                fields: { phone: "never" },
-                defaultValues: {
-                  name: customerName || null,
-                  address: {
-                    line1: shippingAddress.street,
-                    city: shippingAddress.city,
-                    state: shippingAddress.state,
-                    postal_code: shippingAddress.zip,
-                    country: "US",
-                  },
-                },
-              }}
-              onChange={handleShippingAddressElementChange}
-            />
-          </Elements>
-        </div>
-      )}
+        {selectedType === "delivery" && (
+          <motion.div
+            key="delivery"
+            variants={dropDownVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="max-w-md rounded-lg border border-brand-border bg-brand-bg p-3 space-y-3"
+          >
+            <div className="space-y-2">
+              {deliveryAddressSameAsBilling ? (
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-brand-brown">Delivering to</p>
+                    <p className="text-sm text-brand-text">
+                      {isAddressComplete(billingAddress) ? deliveryAddressLine : "Same as billing address (enter it above)"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setDeliveryAddressSameAsBilling(false)}
+                    className="flex-shrink-0 text-sm text-brand-brown hover:underline"
+                  >
+                    Use a different address
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-brand-brown">
+                      <MapPin className="w-4 h-4" />
+                      <span className="text-sm font-medium">Delivery Address</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setDeliveryAddressSameAsBilling(true)}
+                      className="text-sm text-brand-brown hover:underline"
+                    >
+                      Use my billing address instead
+                    </button>
+                  </div>
+                  <AddressFields value={deliveryAddress} onChange={setDeliveryAddress} />
+                </div>
+              )}
 
-      {(selectedType === "delivery" || selectedType === "pickup") && (
-        <p className="text-sm text-brand-muted">
-          {selectedType === "delivery" ? "Estimated delivery" : "Pickup"}:{" "}
-          <span className="font-medium text-brand-text">
-            {formatWindowDate(fulfillment[selectedType].date, fulfillment[selectedType].isToday)}, {fulfillment[selectedType].window}
-          </span>
-        </p>
-      )}
+              {isQuoting && <p className="text-sm text-brand-muted">Calculating delivery distance…</p>}
+              {!isQuoting && quoteError && (
+                <div className="text-sm text-red-600 flex items-center gap-1">
+                  <AlertCircle className="w-4 h-4" />
+                  {quoteError}
+                </div>
+              )}
+              {!isQuoting && quote?.eligible && (
+                <div className="text-sm text-brand-success flex items-center gap-1">
+                  <CheckCircle2 className="w-4 h-4" />
+                  {quote.miles.toFixed(1)} miles away — {quote.fee > 0 ? `$${quote.fee.toFixed(2)} delivery fee` : "free delivery!"}
+                </div>
+              )}
+              {!isQuoting && quote && !quote.eligible && (
+                <div className="text-sm text-red-600 flex items-center gap-1">
+                  <AlertCircle className="w-4 h-4" />
+                  This address is outside our 25-mile delivery radius. Please choose shipping or pickup instead.
+                </div>
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-brand-border">
+              <p className="text-xs text-brand-muted mb-0.5">Estimated delivery</p>
+              <p className="text-sm font-medium text-brand-text">
+                {formatWindowDate(fulfillment.delivery.date, fulfillment.delivery.isToday)}, {fulfillment.delivery.window}
+              </p>
+            </div>
+          </motion.div>
+        )}
+
+        {selectedType === "shipping" && (
+          <motion.div
+            key="shipping"
+            variants={dropDownVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="max-w-md rounded-lg border border-brand-border bg-brand-bg p-3 space-y-3"
+          >
+            <div>
+              {shippingAddressSameAsBilling ? (
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-brand-brown">Shipping to</p>
+                    <p className="text-sm text-brand-text">
+                      {isAddressComplete(billingAddress) ? joinAddress(billingAddress) : "Same as billing address (enter it above)"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShippingAddressSameAsBilling(false)}
+                    className="flex-shrink-0 text-sm text-brand-brown hover:underline"
+                  >
+                    Use a different address
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-brand-brown">
+                      <MapPin className="w-4 h-4" />
+                      <span className="text-sm font-medium">Shipping Address</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShippingAddressSameAsBilling(true)}
+                      className="text-sm text-brand-brown hover:underline"
+                    >
+                      Use my billing address instead
+                    </button>
+                  </div>
+                  <AddressFields value={shippingAddress} onChange={setShippingAddress} />
+                </div>
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-brand-border">
+              <p className="text-xs text-brand-muted mb-0.5">Estimated delivery</p>
+              <p className="text-sm font-medium text-brand-text">
+                Ships {formatWindowDate(shipDate.dateISO, shipDate.isToday)} via UPS
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { useCartStore } from "@/store/cartStore";
 import { getProductsByCategoryAsync, type Product } from "@/data/products";
+import { toSentenceCase } from "@/lib/text";
 
 const MIN_COOKIES = 4;
 
@@ -35,7 +36,7 @@ type Selection = { productId: string; flavor?: string; quantity: number };
 const selectionKey = (productId: string, flavor?: string) => (flavor ? `${productId}::${flavor}` : productId);
 
 export function CookieBoxBuilder() {
-  const { addItem } = useCartStore();
+  const { addItem, getMinimumOrderInfo } = useCartStore();
   const [cookies, setCookies] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [selections, setSelections] = useState<Record<string, Selection>>({});
@@ -43,13 +44,16 @@ export function CookieBoxBuilder() {
   const [flyingItems, setFlyingItems] = useState<FlyingItem[]>([]);
   const [flavorModalProduct, setFlavorModalProduct] = useState<Product | null>(null);
   const [modalFlavor, setModalFlavor] = useState<string | null>(null);
+  const [showMinWarning, setShowMinWarning] = useState(false);
   const boxPanelRef = useRef<HTMLDivElement>(null);
   const modalCardElRef = useRef<HTMLElement | null>(null);
   const flyIdRef = useRef(0);
 
   useEffect(() => {
     getProductsByCategoryAsync("cookies")
-      .then(setCookies)
+      // Pre-made boxes (e.g. Mini Cookie Box) aren't an individual cookie
+      // to mix into a custom box — they're their own whole product.
+      .then((data) => setCookies(data.filter((product) => !product.isSoldInBox)))
       .catch((error) => {
         console.error("Error loading cookies for the box builder:", error);
         setCookies([]);
@@ -139,8 +143,8 @@ export function CookieBoxBuilder() {
     });
   };
 
-  const handleAddToCart = () => {
-    if (lines.length === 0 || !meetsMinimum) return false;
+  const performAddToCart = (): boolean => {
+    if (lines.length === 0) return false;
     setErrorMessage(null);
 
     for (const line of lines) {
@@ -153,6 +157,23 @@ export function CookieBoxBuilder() {
 
     setSelections({});
     return true;
+  };
+
+  // Below the box's own suggested minimum (4), adding is still allowed — it's
+  // the site-wide $20 checkout minimum that actually matters, and the
+  // customer might already be planning to add more from elsewhere. Only warn
+  // if the cart would genuinely still be short of that after adding — if
+  // they already have enough from other purchases, the warning would just be
+  // noise (and wrong).
+  const handleAddToCart = (): boolean => {
+    if (lines.length === 0) return false;
+    const { currentTotal, minimumRequired } = getMinimumOrderInfo();
+    const wouldMeetSiteMinimum = currentTotal + subtotal >= minimumRequired;
+    if (!meetsMinimum && !wouldMeetSiteMinimum) {
+      setShowMinWarning(true);
+      return false;
+    }
+    return performAddToCart();
   };
 
   return (
@@ -310,7 +331,7 @@ export function CookieBoxBuilder() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-brand-text line-clamp-1">
                         {product.name}
-                        {flavor && <span className="text-brand-muted"> — {flavor}</span>}
+                        {flavor && <span className="text-brand-muted"> — {toSentenceCase(flavor)}</span>}
                       </p>
                       <p className="text-xs text-brand-muted">${product.price.toFixed(2)} each</p>
                     </div>
@@ -362,7 +383,7 @@ export function CookieBoxBuilder() {
 
           <AddToCartButton
             onAdd={handleAddToCart}
-            disabled={lines.length === 0 || !meetsMinimum}
+            disabled={lines.length === 0}
             className="w-full"
             size="lg"
           >
@@ -370,7 +391,7 @@ export function CookieBoxBuilder() {
           </AddToCartButton>
           {!meetsMinimum && (
             <p className="text-xs text-brand-muted text-center mt-2">
-              Add {MIN_COOKIES - totalUnits} more {MIN_COOKIES - totalUnits === 1 ? "cookie" : "cookies"} to check out.
+              {MIN_COOKIES - totalUnits} more {MIN_COOKIES - totalUnits === 1 ? "cookie" : "cookies"} recommended for a full box.
             </p>
           )}
         </div>
@@ -382,7 +403,6 @@ export function CookieBoxBuilder() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-brand-brown">{flavorModalProduct?.name}</DialogTitle>
-            <DialogDescription>Pick one before it joins your box.</DialogDescription>
           </DialogHeader>
 
           {flavorModalProduct && (
@@ -402,6 +422,32 @@ export function CookieBoxBuilder() {
           >
             Add to Box
           </AddToCartButton>
+        </DialogContent>
+      </Dialog>
+
+      {/* Under the box's own 4-cookie suggestion — still addable, just a
+          heads-up about the real (site-wide) $20 checkout minimum. */}
+      <Dialog open={showMinWarning} onOpenChange={setShowMinWarning}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-brand-brown">Just a heads up</DialogTitle>
+            <DialogDescription>
+              Your cart needs at least $20 total to check out. You can still add this now and keep shopping.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={() => setShowMinWarning(false)}>
+              Keep building
+            </Button>
+            <AddToCartButton
+              onAdd={performAddToCart}
+              onAnimationComplete={() => setShowMinWarning(false)}
+              className="flex-1"
+            >
+              Add anyway
+            </AddToCartButton>
+          </div>
         </DialogContent>
       </Dialog>
     </>

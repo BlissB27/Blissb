@@ -58,7 +58,15 @@ export function Hero() {
             transition={{ type: "spring", damping: 25, stiffness: 300, delay: 0.6, duration: 0.6 }}
           >
             <Button asChild size="lg">
-              <a href="/cookie-builder">Build Your Cookie Box</a>
+              <a
+                href="#cookie-box-builder"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById("cookie-box-builder")?.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
+                Build Your Cookie Box
+              </a>
             </Button>
           </motion.div>
         </motion.div>

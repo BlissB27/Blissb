@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { CalendarClock, MapPin, Sparkles } from "lucide-react";
+import { CalendarClock, MapPin, Phone, Sparkles } from "lucide-react";
 import PhotoSwipeLightbox from "photoswipe/lightbox";
 import "photoswipe/style.css";
 import { Button } from "@/components/ui/button";
@@ -91,7 +91,7 @@ export function CorporateContent() {
         <WaveDivider direction="bottom" color="#FFFFFF" className="absolute bottom-0 left-0 right-0" />
       </section>
       {/* Catering & Events */}
-      <section id="catering" className="py-12 md:py-16 bg-white scroll-mt-24">
+      <section id="catering" className="py-12 md:py-16 bg-white scroll-mt-[150px] md:scroll-mt-[185px]">
         <div className="max-w-6xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
             {/* Left Content */}
@@ -185,7 +185,10 @@ export function CorporateContent() {
                   asChild
                   className="text-sm md:text-base px-4 md:px-6 py-2 md:py-3 w-full sm:w-auto"
                 >
-                  <a href={CALL_HREF}>Book a Call</a>
+                  <a href={CALL_HREF} className="flex items-center gap-2">
+                    <Phone className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+                    Call us
+                  </a>
                 </Button>
               </motion.div>
             </motion.div>
@@ -216,7 +219,7 @@ export function CorporateContent() {
       </section>
 
       {/* Corporate Gifting Section */}
-      <section id="corporate-gifting" className="relative bg-brand-bg scroll-mt-24">
+      <section id="corporate-gifting" className="relative bg-brand-bg scroll-mt-[150px] md:scroll-mt-[185px]">
         <WaveDivider direction="top" color="#FFFFFF" className="absolute left-0 right-0" />
         <div className="max-w-6xl mx-auto px-2 py-16">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -251,7 +254,10 @@ export function CorporateContent() {
                     asChild
                     className="text-sm md:text-base px-4 md:px-6 py-2 md:py-3 w-full sm:w-auto"
                   >
-                    <a href={CALL_HREF}>Book a Call</a>
+                    <a href={CALL_HREF} className="flex items-center gap-2">
+                    <Phone className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+                    Call us
+                  </a>
                   </Button>
                 </div>
               </div>
@@ -262,7 +268,7 @@ export function CorporateContent() {
       </section>
 
       {/* Cookie Cart Experience Section */}
-      <section id="cookie-cart" className="py-16 bg-white scroll-mt-24">
+      <section id="cookie-cart" className="py-16 bg-white scroll-mt-[150px] md:scroll-mt-[185px]">
         <div className="max-w-6xl mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
@@ -322,7 +328,10 @@ export function CorporateContent() {
                   asChild
                   className="text-sm md:text-base px-4 md:px-6 py-2 md:py-3 w-full sm:w-auto"
                 >
-                  <a href={CALL_HREF}>Book a Call</a>
+                  <a href={CALL_HREF} className="flex items-center gap-2">
+                    <Phone className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+                    Call us
+                  </a>
                 </Button>
               </div>
             </div>

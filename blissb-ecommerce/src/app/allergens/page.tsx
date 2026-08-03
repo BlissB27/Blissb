@@ -6,6 +6,7 @@ import { FaqWaveDivider } from "@/components/FaqWaveDivider";
 export const metadata: Metadata = {
   title: "Allergen Information | Bliss-B Desserts",
   description: "Allergen information for Bliss-B Desserts cookies, cakes, and desserts, handmade in a shared kitchen in Braselton, GA.",
+  alternates: { canonical: "/allergens" },
 };
 
 const ALLERGENS: { label: string; Icon: LucideIcon }[] = [

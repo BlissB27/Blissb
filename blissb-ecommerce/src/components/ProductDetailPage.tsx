@@ -44,6 +44,12 @@ export function ProductDetailPage({ product, allProducts }: ProductDetailPagePro
   const [selectedImage, setSelectedImage] = useState(0);
   const [boxFlavors, setBoxFlavors] = useState<BoxFlavor[] | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // FlavorSelector keeps its own internal selection state (uncontrolled) — on
+  // ProductCard/ProductHighlightCard that state lives inside a Dialog, so
+  // closing it after adding to cart naturally unmounts and resets it. This
+  // page has no dialog (the selector is always inline), so bumping this key
+  // forces a remount — the same reset, done explicitly.
+  const [flavorSelectorKey, setFlavorSelectorKey] = useState(0);
 
   useEffect(() => {
     const lightbox = new PhotoSwipeLightbox({
@@ -63,9 +69,11 @@ export function ProductDetailPage({ product, allProducts }: ProductDetailPagePro
     return shuffle(candidates).slice(0, 4);
   }, [product, allProducts]);
 
-  const hasFlavorSelector =
-    product.isSoldInBox ||
-    ((product.category === "cakes" || product.category === "cookies") && !!product.flavors && product.flavors.length > 0);
+  // Matches ProductCard/ProductHighlightCard exactly — any product with
+  // flavors gets the selector, regardless of category. This used to also
+  // require category === "cakes" | "cookies", which silently hid the
+  // selector for flavor-bearing desserts (e.g. Cookie Cups).
+  const hasFlavorSelector = product.isSoldInBox || (!!product.flavors && product.flavors.length > 0);
 
   const handleAddToCart = (): boolean => {
     setErrorMessage(null);
@@ -83,6 +91,8 @@ export function ProductDetailPage({ product, allProducts }: ProductDetailPagePro
         setErrorMessage(result.error ?? "Couldn't add this item to your cart.");
         return false;
       }
+      setBoxFlavors(null);
+      setFlavorSelectorKey((k) => k + 1);
       return true;
     }
 
@@ -216,6 +226,7 @@ export function ProductDetailPage({ product, allProducts }: ProductDetailPagePro
 
             {hasFlavorSelector && !(product.isSoldInBox && !product.boxSize) && (
               <FlavorSelector
+                key={flavorSelectorKey}
                 flavors={product.flavors ?? []}
                 flavorOptions={product.flavorOptions}
                 fixedTarget={!!product.isSoldInBox}

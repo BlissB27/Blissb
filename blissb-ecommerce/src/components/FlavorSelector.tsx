@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { Check } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
 import type { BoxFlavor } from "@/store/cartStore";
+import { toSentenceCase } from "@/lib/text";
 
 // Only the box products (e.g. Mini Cookie Box) split a fixed count across
 // multiple flavors. Regular products get exactly one flavor — see the
@@ -27,15 +27,6 @@ type FlavorSelectorProps = {
    * component, e.g. a normal quantity stepper next to it). */
   onSelectionChange: (selection: BoxFlavor[] | null) => void;
 };
-
-function ImageThumb({ src }: { src?: string }) {
-  if (!src) return null;
-  return (
-    <div className="relative w-10 h-10 flex-shrink-0 rounded-md overflow-hidden bg-brand-bg">
-      <Image src={src} alt="" fill className="object-cover" sizes="40px" />
-    </div>
-  );
-}
 
 function SingleFlavorPicker({
   flavors,
@@ -68,23 +59,28 @@ function SingleFlavorPicker({
               role="radio"
               aria-checked={isSelected}
               onClick={() => setSelected(flavor)}
-              className={`flex flex-col rounded-2xl border-2 bg-white p-2 text-center transition-colors ${
-                isSelected ? "border-brand-brown bg-brand-brown/5" : "border-brand-border hover:border-brand-brown/40"
-              }`}
+              className="flex flex-col text-center"
             >
-              {/* Same treatment as the product cards elsewhere: a true square
-                  photo with rounded corners and margin from the card edge. */}
-              <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-brand-bg">
-                {image && <Image src={image} alt="" fill className="object-cover" sizes="120px" />}
+              {/* Only the photo gets the card treatment (border, rounded
+                  corners, margin) — the name sits outside it, not sharing
+                  the same border/box. */}
+              <div
+                className={`relative aspect-square w-full overflow-hidden rounded-xl border-2 bg-brand-bg p-1.5 transition-colors ${
+                  isSelected ? "border-brand-brown" : "border-brand-border hover:border-brand-brown/40"
+                }`}
+              >
+                <div className="relative h-full w-full overflow-hidden rounded-lg">
+                  {image && <Image src={image} alt="" fill className="object-cover" sizes="120px" />}
+                </div>
 
                 {isSelected && (
-                  <span className="absolute top-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-brand-brown text-white">
+                  <span className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-brand-brown text-white">
                     <Check className="h-3 w-3" strokeWidth={2.5} />
                   </span>
                 )}
               </div>
 
-              <span className="mt-1.5 text-xs font-medium text-brand-muted">{flavor}</span>
+              <span className="mt-1.5 text-xs font-medium text-brand-muted">{toSentenceCase(flavor)}</span>
             </button>
           );
         })}
@@ -104,102 +100,73 @@ function BoxFlavorPicker({
   targetQuantity?: number;
   onSelectionChange: (selection: BoxFlavor[] | null) => void;
 }) {
-  const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [selectedFlavors, setSelectedFlavors] = useState<string[]>([]);
 
-  const selectedFlavors = Object.keys(quantities);
-  const total = Object.values(quantities).reduce((sum, q) => sum + q, 0);
-  const isValid =
-    !!targetQuantity && targetQuantity > 0 && selectedFlavors.length > 0 && selectedFlavors.length <= MAX_BOX_FLAVORS && total === targetQuantity;
+  const isValid = !!targetQuantity && targetQuantity > 0 && selectedFlavors.length > 0 && selectedFlavors.length <= MAX_BOX_FLAVORS;
 
   useEffect(() => {
-    if (!isValid) {
+    if (!isValid || !targetQuantity) {
       onSelectionChange(null);
       return;
     }
-    onSelectionChange(selectedFlavors.map((flavor) => ({ flavor, quantity: quantities[flavor] })));
+    // Split evenly and invisibly — the customer just picks flavors, not
+    // amounts; any remainder goes one-each to the first-picked flavors
+    // (e.g. 50 across 3 -> 17, 17, 16).
+    const n = selectedFlavors.length;
+    const base = Math.floor(targetQuantity / n);
+    const remainder = targetQuantity % n;
+    onSelectionChange(selectedFlavors.map((flavor, i) => ({ flavor, quantity: base + (i < remainder ? 1 : 0) })));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quantities, isValid, targetQuantity]);
+  }, [selectedFlavors, isValid, targetQuantity]);
 
-  const toggleFlavor = (flavor: string, checked: boolean) => {
-    setQuantities((prev) => {
-      const next = { ...prev };
-      if (checked) {
-        if (Object.keys(next).length >= MAX_BOX_FLAVORS) return prev;
-        next[flavor] = 0;
-      } else {
-        delete next[flavor];
-      }
-      return next;
+  const toggleFlavor = (flavor: string) => {
+    setSelectedFlavors((prev) => {
+      if (prev.includes(flavor)) return prev.filter((f) => f !== flavor);
+      if (prev.length >= MAX_BOX_FLAVORS) return prev;
+      return [...prev, flavor];
     });
   };
 
-  const setQuantity = (flavor: string, quantity: number) => {
-    setQuantities((prev) => ({ ...prev, [flavor]: Math.max(0, quantity) }));
-  };
-
-  const statusText = `${total} / ${targetQuantity} selected${
-    selectedFlavors.length > 0 && total !== targetQuantity ? " — quantities must add up exactly to the quantity selected" : ""
-  }`;
-  const statusIsGood = total === targetQuantity;
-
   return (
     <div className="mb-6">
-      <p className="text-sm text-brand-muted mb-2">
-        Choose up to {MAX_BOX_FLAVORS} flavors and split the {targetQuantity} between them:
-      </p>
+      <p className="text-sm text-brand-muted mb-2">Choose up to {MAX_BOX_FLAVORS} flavors:</p>
 
-      <div className="space-y-2">
+      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
         {flavors.map((flavor) => {
-          const isChecked = flavor in quantities;
+          const isChecked = selectedFlavors.includes(flavor);
           const isDisabled = !isChecked && selectedFlavors.length >= MAX_BOX_FLAVORS;
+          const image = imageByFlavor[flavor];
 
           return (
-            <div
+            <button
+              type="button"
               key={flavor}
-              className={`flex items-center justify-between gap-3 rounded-lg border p-3 ${
-                isChecked ? "border-brand-brown bg-brand-brown/5" : "border-brand-border"
-              } ${isDisabled ? "opacity-50" : ""}`}
+              aria-pressed={isChecked}
+              disabled={isDisabled}
+              onClick={() => toggleFlavor(flavor)}
+              className={`flex flex-col text-center ${isDisabled ? "opacity-50" : ""}`}
             >
-              <label className="flex items-center gap-3 cursor-pointer flex-1">
-                <Checkbox
-                  checked={isChecked}
-                  disabled={isDisabled}
-                  onCheckedChange={(checked) => toggleFlavor(flavor, checked === true)}
-                />
-                <ImageThumb src={imageByFlavor[flavor]} />
-                <span className="text-sm text-brand-text">{flavor}</span>
-              </label>
-
-              {isChecked && (
-                <div className="flex items-center border border-brand-border rounded-lg">
-                  <button
-                    type="button"
-                    aria-label={`Decrease ${flavor} quantity`}
-                    onClick={() => setQuantity(flavor, quantities[flavor] - 1)}
-                    disabled={quantities[flavor] <= 0}
-                    className="px-3 py-1 hover:bg-brand-bg disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    −
-                  </button>
-                  <span className="px-3 py-1 min-w-[2.5rem] text-center text-sm">{quantities[flavor]}</span>
-                  <button
-                    type="button"
-                    aria-label={`Increase ${flavor} quantity`}
-                    onClick={() => setQuantity(flavor, quantities[flavor] + 1)}
-                    className="px-3 py-1 hover:bg-brand-bg"
-                  >
-                    +
-                  </button>
+              <div
+                className={`relative aspect-square w-full overflow-hidden rounded-xl border-2 bg-brand-bg p-1.5 transition-colors ${
+                  isChecked ? "border-brand-brown" : "border-brand-border hover:border-brand-brown/40"
+                }`}
+              >
+                <div className="relative h-full w-full overflow-hidden rounded-lg">
+                  {image && <Image src={image} alt="" fill className="object-cover" sizes="120px" />}
                 </div>
-              )}
-            </div>
+
+                {isChecked && (
+                  <span className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-brand-brown text-white">
+                    <Check className="h-3 w-3" strokeWidth={2.5} />
+                  </span>
+                )}
+              </div>
+
+              <span className="mt-1.5 text-xs font-medium text-brand-muted">{toSentenceCase(flavor)}</span>
+            </button>
           );
         })}
       </div>
-
-      <p aria-live="polite" className={`text-sm mt-2 ${statusIsGood ? "text-brand-success" : "text-brand-muted"}`}>
-        {statusText}
-      </p>
     </div>
   );
 }

@@ -10,6 +10,7 @@ const MINI_COOKIE_BOX_SLUG = "MiniCookie-box";
 export const metadata: Metadata = {
   title: "Cookies | Bliss-B Desserts",
   description: "Handcrafted cookies baked fresh to order in Braselton, GA. Mix and match flavors — 4 cookie minimum per order.",
+  alternates: { canonical: "/cookies" },
 };
 
 export default async function CookiesPage() {

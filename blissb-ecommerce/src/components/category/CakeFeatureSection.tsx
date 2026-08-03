@@ -15,6 +15,7 @@ import {
 import { FlavorSelector } from "@/components/FlavorSelector";
 import { useProductAddToCart } from "@/hooks/useProductAddToCart";
 import type { Product } from "@/data/products";
+import { toSentenceCase } from "@/lib/text";
 
 type CakeFeatureSectionProps = {
   product: Product;
@@ -77,8 +78,8 @@ export function CakeFeatureSection({ product, index }: CakeFeatureSectionProps) 
             {hasFlavorSelector && (
               <div className="flex flex-wrap gap-2 mb-4">
                 {product.flavors!.map((flavor) => (
-                  <Badge key={flavor} variant="outline" className="border-brand-border text-brand-text capitalize">
-                    {flavor}
+                  <Badge key={flavor} variant="outline" className="border-brand-border text-brand-text">
+                    {toSentenceCase(flavor)}
                   </Badge>
                 ))}
               </div>

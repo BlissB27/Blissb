@@ -38,7 +38,10 @@ export function CategoryProductGrid({
     setLoadingMore(false);
     getProductsByCategoryAsync(category)
       .then((data) => {
-        if (!cancelled) setProducts(data);
+        // Pre-made boxes (e.g. Mini Cookie Box) aren't an individual cookie
+        // choice — keep them out of this grid so they don't sit mixed in
+        // with the actual cookies (still reachable via their own product page).
+        if (!cancelled) setProducts(data.filter((product) => !product.isSoldInBox));
       })
       .catch((error) => {
         console.error(`Error fetching ${category} products:`, error);

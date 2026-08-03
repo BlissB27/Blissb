@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { getProductImageSrc } from '@/lib/productImage';
 import { validateCoupon } from '@/lib/coupons';
+import { toSentenceCase } from '@/lib/text';
 import { FaqWaveDivider } from '@/components/FaqWaveDivider';
 
 export default function CartPage() {
@@ -114,42 +115,39 @@ export default function CartPage() {
 
                       <div className="min-w-0 flex-1">
                         <p className="font-medium text-brand-text">{item.product.name}</p>
-                        {item.flavor && <p className="text-xs text-brand-brown capitalize">Flavor: {item.flavor}</p>}
-                        {item.boxFlavors && item.boxFlavors.length > 0 && (
-                          <p className="text-xs text-brand-brown capitalize">
-                            Flavors: {item.boxFlavors.map((f) => `${f.flavor} x${f.quantity}`).join(', ')}
+                        {item.flavor && <p className="text-xs text-brand-brown">{toSentenceCase(item.flavor)}</p>}
+                        {item.boxFlavors && item.boxFlavors.length === 1 && (
+                          <p className="text-xs text-brand-brown">{toSentenceCase(item.boxFlavors[0].flavor)}</p>
+                        )}
+                        {item.boxFlavors && item.boxFlavors.length > 1 && (
+                          <p className="text-xs text-brand-brown">
+                            {item.boxFlavors.map((f) => `${toSentenceCase(f.flavor)} x${f.quantity}`).join(', ')}
                           </p>
                         )}
                         <p className="text-sm text-brand-muted">${item.product.price.toFixed(2)} each</p>
                       </div>
 
-                      {item.boxFlavors && (item.boxFlavors.length > 1 || item.product.isSoldInBox) ? (
-                        <div className="flex items-center justify-center h-8 px-3 rounded-md border border-brand-border bg-brand-bg text-sm text-brand-muted">
-                          Qty {item.quantity}
-                        </div>
-                      ) : (
-                        <div className="flex items-center border border-brand-border rounded-md bg-white">
-                          <Button
-                            onClick={() => decrement(item)}
-                            aria-label={`Remove one ${item.product.name}`}
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 rounded-sm hover:bg-brand-bg"
-                          >
-                            <Minus className="h-3.5 w-3.5" strokeWidth={1.75} />
-                          </Button>
-                          <span className="w-6 text-center text-sm text-brand-text">{item.quantity}</span>
-                          <Button
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            aria-label={`Add one more ${item.product.name}`}
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 rounded-sm hover:bg-brand-bg"
-                          >
-                            <Plus className="h-3.5 w-3.5" strokeWidth={1.75} />
-                          </Button>
-                        </div>
-                      )}
+                      <div className="flex items-center border border-brand-border rounded-md bg-white">
+                        <Button
+                          onClick={() => decrement(item)}
+                          aria-label={`Remove one ${item.product.name}`}
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-sm hover:bg-brand-bg"
+                        >
+                          <Minus className="h-3.5 w-3.5" strokeWidth={1.75} />
+                        </Button>
+                        <span className="w-6 text-center text-sm text-brand-text">{item.quantity}</span>
+                        <Button
+                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          aria-label={`Add one more ${item.product.name}`}
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-sm hover:bg-brand-bg"
+                        >
+                          <Plus className="h-3.5 w-3.5" strokeWidth={1.75} />
+                        </Button>
+                      </div>
 
                       <p className="w-16 text-right font-semibold text-brand-text">
                         ${(item.product.price * item.quantity).toFixed(2)}

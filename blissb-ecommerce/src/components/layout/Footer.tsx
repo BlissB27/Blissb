@@ -75,6 +75,14 @@ export function Footer() {
           <Link href="/policies" className="hover:text-white transition-colors">
             Shipping &amp; Policies
           </Link>
+          <span className="hidden sm:inline">•</span>
+          <Link href="/terms" className="hover:text-white transition-colors">
+            Terms of Service
+          </Link>
+          <span className="hidden sm:inline">•</span>
+          <Link href="/privacy" className="hover:text-white transition-colors">
+            Privacy Policy
+          </Link>
         </div>
       </div>
     </footer>

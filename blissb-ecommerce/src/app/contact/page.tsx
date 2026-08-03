@@ -1,12 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { MapPin } from "lucide-react";
 import { WaveDivider } from "@/components/WaveDivider";
 import { ContactHero } from "@/components/category/ContactHero";
 import { FAQ } from "@/components/Faq";
-
-const MAPS_HREF = "https://www.google.com/maps/search/?api=1&query=111+Manor+Way%2C+Braselton%2C+GA+30517";
 
 type DayCell = {
   days: string[];
@@ -88,34 +85,6 @@ export default function ContactPage() {
             Order after 2:00 PM and it rolls to the next available day. Orders ship every
             Monday, and Saturdays we&apos;re at the Suwanee Farmers Market.
           </motion.p>
-
-          {/* Address — compact callout, not another block of prose */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-60px" }}
-            transition={{ type: "spring", damping: 25, stiffness: 300, delay: 0.3 }}
-            className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-2xl bg-brand-bg px-6 py-5"
-          >
-            <div className="flex items-center gap-3 text-center sm:text-left">
-              <MapPin className="h-5 w-5 text-brand-brown flex-shrink-0 hidden sm:block" strokeWidth={1.75} aria-hidden="true" />
-              <div>
-                <p className="font-medium text-brand-text">111 Manor Way, Braselton, GA 30517</p>
-                <p className="text-sm text-brand-muted">
-                  Pickup by appointment once your order&apos;s confirmed &middot; delivery is
-                  priced by distance from here
-                </p>
-              </div>
-            </div>
-            <a
-              href={MAPS_HREF}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-shrink-0 text-sm font-medium text-brand-brown hover:underline"
-            >
-              Get directions →
-            </a>
-          </motion.div>
         </div>
       </section>
 

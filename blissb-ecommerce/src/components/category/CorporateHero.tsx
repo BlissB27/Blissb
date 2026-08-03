@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { Phone, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BakeryDecor } from "@/components/category/BakeryDecor";
 
@@ -38,7 +38,10 @@ export function CorporateHero() {
           </p>
 
           <Button className="bg-white text-brand-brown hover:bg-white/90" size="lg" asChild>
-            <a href={CALL_HREF}>Book a Call</a>
+            <a href={CALL_HREF} className="flex items-center gap-2">
+              <Phone className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+              Call us
+            </a>
           </Button>
         </motion.div>
 

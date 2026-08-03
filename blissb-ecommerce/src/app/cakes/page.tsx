@@ -6,6 +6,7 @@ import { getProductsByCategoryAsync, type Product } from "@/data/products";
 export const metadata: Metadata = {
   title: "Cakes | Bliss-B Desserts",
   description: "Custom-made cakes with multiple flavor options, handcrafted for celebrations, birthdays, and special occasions in Braselton, GA.",
+  alternates: { canonical: "/cakes" },
 };
 
 export default async function CakesPage() {

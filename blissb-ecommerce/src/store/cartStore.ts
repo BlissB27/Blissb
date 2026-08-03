@@ -99,17 +99,13 @@ export const useCartStore = create<CartStore>()(
           return { success: false, error: productValidation.error };
         }
 
-        // Cajas: la cantidad total la define la suma de boxFlavors, no el parámetro quantity
-        const effectiveQuantity = boxFlavors
-          ? boxFlavors.reduce((sum, f) => sum + f.quantity, 0)
-          : quantity;
-
-        // Validar cantidad mínima (no aplica a cajas, ya validadas contra boxSize)
-        if (!boxFlavors) {
-          const quantityValidation = get().validateMinimumQuantity(normalizedProduct, effectiveQuantity);
-          if (!quantityValidation.isValid) {
-            return { success: false, error: quantityValidation.error };
-          }
+        // boxFlavors is the fixed recipe for ONE box (must sum to product.boxSize —
+        // validated above in validateProduct) — it's never the cart quantity. The
+        // cart quantity is always just `quantity` (how many boxes / units), same as
+        // any other product, defaulting to 1.
+        const quantityValidation = get().validateMinimumQuantity(normalizedProduct, quantity);
+        if (!quantityValidation.isValid) {
+          return { success: false, error: quantityValidation.error };
         }
 
         set((state) => {
@@ -119,7 +115,7 @@ export const useCartStore = create<CartStore>()(
               items: [...state.items, {
                 id: `${normalizedProduct.id}-box-${Date.now()}`,
                 product: normalizedProduct,
-                quantity: effectiveQuantity,
+                quantity,
                 boxFlavors,
               }],
               isOpen: true,
@@ -136,7 +132,7 @@ export const useCartStore = create<CartStore>()(
             return {
               items: state.items.map(item =>
                 item.id === itemId
-                  ? { ...item, quantity: item.quantity + effectiveQuantity }
+                  ? { ...item, quantity: item.quantity + quantity }
                   : item
               ),
               isOpen: true,
@@ -148,7 +144,7 @@ export const useCartStore = create<CartStore>()(
             items: [...state.items, {
               id: itemId,
               product: normalizedProduct,
-              quantity: effectiveQuantity,
+              quantity,
               flavor,
             }],
             isOpen: true,
@@ -174,12 +170,6 @@ export const useCartStore = create<CartStore>()(
           const item = state.items.find(item => item.id === productId);
           if (!item) return state;
 
-          // Cajas de tamaño fijo o repartos de varios sabores: la cantidad la define
-          // el reparto de sabores, no se puede editar desde el carrito sin reabrir el selector.
-          if (item.boxFlavors && (item.boxFlavors.length !== 1 || item.product.isSoldInBox)) {
-            return state;
-          }
-
           // Validate minimum quantity
           const validation = get().validateMinimumQuantity(item.product, quantity);
           if (!validation.isValid) {
@@ -187,17 +177,11 @@ export const useCartStore = create<CartStore>()(
             return state;
           }
 
+          // boxFlavors (the per-box flavor recipe) is untouched — quantity here
+          // is just how many boxes/units, same as any other product.
           return {
             items: state.items.map(item =>
-              item.id === productId
-                ? {
-                    ...item,
-                    quantity,
-                    boxFlavors: item.boxFlavors
-                      ? [{ ...item.boxFlavors[0], quantity }]
-                      : item.boxFlavors,
-                  }
-                : item
+              item.id === productId ? { ...item, quantity } : item
             ),
           };
         });

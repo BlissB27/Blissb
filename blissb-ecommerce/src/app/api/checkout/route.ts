@@ -8,6 +8,14 @@ import { validateCoupon } from '@/lib/coupons';
 
 const SHIPPING_COST = 15;
 
+// Verified directly against Stripe's live tax-codes API (not the account's
+// default, which was "Electronically Supplied Services" — wrong for a
+// bakery). Set explicitly per line item rather than relying on the Dashboard
+// default, per Stripe's own recommendation, so a later unrelated change to
+// the account default can't silently drift tax collection.
+const FOOD_TAX_CODE = 'txcd_40040000'; // Food for Non-Immediate Consumption — off-premises pickup/delivery/shipping, which is all we do
+const SHIPPING_TAX_CODE = 'txcd_92010001'; // Shipping
+
 // Re-validates delivery fee server-side — the client's mileage-based quote is never trusted
 // on its own, same principle already applied to product price/stock.
 async function validateDeliveryFee(
@@ -39,7 +47,7 @@ type CompactItem = {
 
 export async function POST(request: NextRequest) {
   try {
-    const { items, customerInfo, deliveryInfo, shippingAddress, couponCode, specialMessage } = await request.json();
+    const { items, customerInfo, deliveryInfo, shippingAddress, billingAddress, couponCode, specialMessage } = await request.json();
 
     // Validar que haya items
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -53,6 +61,17 @@ export async function POST(request: NextRequest) {
     if (!customerInfo?.email || !customerInfo?.name) {
       return NextResponse.json(
         { error: 'Customer information is required' },
+        { status: 400 }
+      );
+    }
+
+    // Validar dirección de facturación — se manda directo a Stripe en el
+    // payment_method_data del lado del cliente, pero igual la requerimos acá
+    // para no crear un PaymentIntent para una orden que el cliente no va a
+    // poder completar (el pago fallaría al confirmar sin esto).
+    if (!billingAddress?.street || !billingAddress?.city || !billingAddress?.state || !billingAddress?.zip) {
+      return NextResponse.json(
+        { error: 'A complete billing address is required' },
         { status: 400 }
       );
     }
@@ -109,11 +128,10 @@ export async function POST(request: NextRequest) {
             throw new Error(`Invalid flavor selection for ${strapiProduct.name}`);
           }
 
-          // Validar cantidad — con reparto de sabores, la cantidad es la suma del reparto
-          const requestedQuantity = boxFlavors
-            ? boxFlavors.reduce((sum, f) => sum + f.quantity, 0)
-            : item.quantity;
-          const validQuantity = Math.max(1, Math.min(100, requestedQuantity));
+          // boxFlavors is the fixed recipe for ONE box (already validated above to
+          // sum to boxSize) — it is never the purchase quantity. The real quantity
+          // (how many boxes/units) is always item.quantity, same as any other product.
+          const validQuantity = Math.max(1, Math.min(100, item.quantity));
           validatedSubtotal += realPrice * validQuantity;
           lineItemAmounts.push(Math.round(realPrice * validQuantity * 100));
 
@@ -196,42 +214,55 @@ export async function POST(request: NextRequest) {
     // not a code one). Until then this call fails and we fail open at $0 tax so
     // checkout keeps working exactly as it does today; the moment Tax is turned on,
     // this starts calculating for real with no further code changes needed.
-    // NOTE: tax is calculated on pre-discount line amounts and skipped for pickup
-    // (no customer address to base it on) — both worth revisiting once Tax is live.
+    // NOTE: tax is calculated on pre-discount line amounts — worth revisiting once Tax is live.
     let taxAmount = 0;
     let taxCalculationId: string | undefined;
-    if (deliveryInfo.type !== 'pickup') {
-      try {
-        const taxAddress =
-          deliveryInfo.type === 'shipping'
-            ? {
-                line1: shippingAddress?.street || '',
-                city: shippingAddress?.city || '',
-                state: shippingAddress?.state || '',
-                postal_code: shippingAddress?.zip || '',
-                country: 'US',
-              }
-            : { line1: deliveryInfo.address || '', country: 'US' };
+    try {
+      // Shipping/Delivery already have a real destination address; Pickup has
+      // no delivery destination at all, so the billing address (now always
+      // collected at checkout) is the address of record for tax purposes there.
+      const taxAddress =
+        deliveryInfo.type === 'shipping'
+          ? {
+              line1: shippingAddress?.street || '',
+              city: shippingAddress?.city || '',
+              state: shippingAddress?.state || '',
+              postal_code: shippingAddress?.zip || '',
+              country: 'US',
+            }
+          : deliveryInfo.type === 'pickup'
+          ? {
+              line1: billingAddress?.street || '',
+              city: billingAddress?.city || '',
+              state: billingAddress?.state || '',
+              postal_code: billingAddress?.zip || '',
+              country: 'US',
+            }
+          : { line1: deliveryInfo.address || '', country: 'US' };
+      const taxAddressSource = deliveryInfo.type === 'pickup' ? 'billing' : 'shipping';
 
-        const taxLineItems = [
-          ...lineItemAmounts.map((amount, i) => ({ amount, reference: `item_${i}` })),
-          ...(validatedDeliveryFee > 0
-            ? [{ amount: Math.round(validatedDeliveryFee * 100), reference: 'delivery' }]
-            : []),
-        ];
+      const taxLineItems = lineItemAmounts.map((amount, i) => ({
+        amount,
+        reference: `item_${i}`,
+        tax_code: FOOD_TAX_CODE,
+      }));
 
-        const calculation = await stripe.tax.calculations.create({
-          currency: 'usd',
-          line_items: taxLineItems,
-          customer_details: { address: taxAddress, address_source: 'shipping' },
-        });
+      const calculation = await stripe.tax.calculations.create({
+        currency: 'usd',
+        line_items: taxLineItems,
+        // Shipping/delivery charges have their own dedicated param — Stripe
+        // rejects a shipping tax_code passed as a regular line item.
+        ...(validatedDeliveryFee > 0
+          ? { shipping_cost: { amount: Math.round(validatedDeliveryFee * 100), tax_code: SHIPPING_TAX_CODE } }
+          : {}),
+        customer_details: { address: taxAddress, address_source: taxAddressSource },
+      });
 
-        taxAmount = calculation.tax_amount_exclusive / 100;
-        taxCalculationId = calculation.id ?? undefined;
-      } catch (error) {
-        console.warn('Stripe Tax calculation skipped (likely not enabled yet):', error);
-        taxAmount = 0;
-      }
+      taxAmount = calculation.tax_amount_exclusive / 100;
+      taxCalculationId = calculation.id ?? undefined;
+    } catch (error) {
+      console.warn('Stripe Tax calculation skipped (likely not enabled yet):', error);
+      taxAmount = 0;
     }
 
     const processingFee = calculateProcessingFee(validatedSubtotal - discountAmount + validatedDeliveryFee + taxAmount);
@@ -252,6 +283,7 @@ export async function POST(request: NextRequest) {
         deliveryTime: deliveryInfo.time || '',
         deliveryAddress: deliveryInfo.address || '',
         shippingAddress: shippingAddress ? JSON.stringify(shippingAddress) : '',
+        billingAddress: billingAddress ? JSON.stringify(billingAddress) : '',
         subtotal: validatedSubtotal.toFixed(2),
         discountAmount: discountAmount.toFixed(2),
         deliveryFee: validatedDeliveryFee.toFixed(2),

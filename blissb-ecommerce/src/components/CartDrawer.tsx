@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { X, Plus, Minus, Cookie, CakeSlice, Dessert } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getProductImageSrc } from "@/lib/productImage";
+import { toSentenceCase } from "@/lib/text";
 
 const CATEGORY_LINKS = [
   { href: "/cookies", label: "Cookies", Icon: Cookie },
@@ -147,45 +148,41 @@ export function CartDrawer() {
                               {item.product.name}
                             </p>
                             {item.flavor && (
-                              <p className="text-xs text-brand-brown line-clamp-1 capitalize">
-                                Flavor: {item.flavor}
+                              <p className="text-xs text-brand-brown line-clamp-1">
+                                {toSentenceCase(item.flavor)}
                               </p>
                             )}
                             {item.boxFlavors && item.boxFlavors.length > 0 && (
-                              <p className="text-xs text-brand-brown line-clamp-1 capitalize">
-                                Flavors: {item.boxFlavors.map(f => f.flavor).join(', ')}
+                              <p className="text-xs text-brand-brown line-clamp-1">
+                                {item.boxFlavors.map(f => toSentenceCase(f.flavor)).join(', ')}
                               </p>
                             )}
                             <p className="text-xs text-brand-muted">${item.product.price.toFixed(2)} each</p>
                           </div>
 
-                          {/* Quantity Controls - locked only for fixed-size boxes or multi-flavor splits */}
+                          {/* Quantity Controls */}
                           <div className="flex-1 flex justify-center">
-                            {item.boxFlavors && (item.boxFlavors.length > 1 || item.product.isSoldInBox) ? (
-                              <span className="text-xs text-brand-muted">x{item.quantity}</span>
-                            ) : (
-                              <div className="flex items-center border border-brand-border rounded-md bg-white">
-                                <Button
-                                  onClick={() => decrement(item)}
-                                  aria-label={`Remove one ${item.product.name}`}
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6 rounded-sm hover:bg-brand-bg"
-                                >
-                                  <Minus className="h-3 w-3" strokeWidth={1.75} />
-                                </Button>
-                                <span className="w-5 text-center text-xs text-brand-text">{item.quantity}</span>
-                                <Button
-                                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                  aria-label={`Add one more ${item.product.name}`}
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6 rounded-sm hover:bg-brand-bg"
-                                >
-                                  <Plus className="h-3 w-3" strokeWidth={1.75} />
-                                </Button>
-                              </div>
-                            )}
+                            <div className="flex items-center border border-brand-border rounded-md bg-white">
+                              <Button
+                                onClick={() => decrement(item)}
+                                aria-label={`Remove one ${item.product.name}`}
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 rounded-sm hover:bg-brand-bg"
+                              >
+                                <Minus className="h-3 w-3" strokeWidth={1.75} />
+                              </Button>
+                              <span className="w-5 text-center text-xs text-brand-text">{item.quantity}</span>
+                              <Button
+                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                aria-label={`Add one more ${item.product.name}`}
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 rounded-sm hover:bg-brand-bg"
+                              >
+                                <Plus className="h-3 w-3" strokeWidth={1.75} />
+                              </Button>
+                            </div>
                           </div>
 
                           {/* Remove button */}

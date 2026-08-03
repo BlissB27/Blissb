@@ -2,26 +2,39 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { AnimatePresence, motion } from "framer-motion";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { useCartStore, type CartItem, type AppliedCoupon } from "@/store/cartStore";
-import { useDeliveryStore } from "@/store/deliveryStore";
+import { useDeliveryStore, type ShippingAddress } from "@/store/deliveryStore";
 import { useHydrated } from "@/hooks/useHydrated";
 import { getFulfillmentOptions } from "@/lib/deliverySchedule";
 import { validateCoupon } from "@/lib/coupons";
 import { DeliverySelector } from "@/components/DeliverySelector";
+import { AddressFields } from "@/components/AddressFields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { FieldGroup, GroupField } from "@/components/ui/field-group";
-import { AlertCircle, ChevronDown, Lock } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AlertCircle, CheckCircle2, ChevronDown, Lock } from "lucide-react";
 import { calculateProcessingFee } from "@/lib/orderFees";
 import { getProductImageSrc } from "@/lib/productImage";
+import { toSentenceCase } from "@/lib/text";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 function emailLooksValid(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+function isAddressComplete(a: ShippingAddress) {
+  return a.street.trim().length > 0 && a.city.trim().length > 0 && a.state.trim().length > 0 && a.zip.trim().length > 0;
+}
+
+function joinAddress(a: ShippingAddress) {
+  return [a.street, `${a.city}, ${a.state} ${a.zip}`.trim()].filter(Boolean).join(", ");
 }
 
 function nameLooksValid(name: string) {
@@ -53,59 +66,123 @@ function ErrorText({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Mounted only once a PaymentIntent exists, so it — and its Pay button — live
-// together in one place. No cross-column bridging needed: this whole section
-// is self-contained inside its own <Elements>.
-function PaymentSectionInner({
-  clientSecret,
+type CheckoutRequestBody = {
+  items: CartItem[];
+  customerInfo: { name: string; email: string; phone: string };
+  deliveryInfo: { type: string; address: string; date: string; time: string; fee: number };
+  shippingAddress: ShippingAddress | undefined;
+  billingAddress: ShippingAddress;
+  couponCode: string | undefined;
+};
+
+// Lives inside <Elements>, which is now mounted immediately (deferred-intent
+// pattern: no PaymentIntent needs to exist yet for the card form to render).
+// The real PaymentIntent is only created right here, at the moment "Pay" is
+// clicked — after everything else has been validated — so there's no
+// separate "Continue to Payment" step, and no stale-intent bookkeeping to
+// invalidate later, since every click creates a fresh one against current data.
+function PaymentSection({
+  total,
+  onValidateAll,
+  buildRequestBody,
   customerName,
   shippingForConfirm,
-  total,
 }: {
-  clientSecret: string;
-  customerName: string;
-  shippingForConfirm: { name: string; address: { line1: string; city?: string; state?: string; postal_code?: string; country: string } } | undefined;
   total: number;
+  onValidateAll: () => boolean;
+  buildRequestBody: () => CheckoutRequestBody;
+  customerName: string;
+  billingAddress: ShippingAddress;
+  shippingForConfirm: { name: string; address: { line1: string; city?: string; state?: string; postal_code?: string; country: string } } | undefined;
 }) {
   const router = useRouter();
   const stripe = useStripe();
   const elements = useElements();
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [payState, setPayState] = useState<"idle" | "processing" | "success">("idle");
   const [error, setError] = useState<string | null>(null);
+  const [isAmountUpdating, setIsAmountUpdating] = useState(false);
+  const isFirstAmount = useRef(true);
+
+  // Keeps the estimated amount shown in the payment form (and in wallet UIs
+  // like Apple Pay/Google Pay) in sync as delivery fee/coupon/etc. change —
+  // this is only ever an estimate until the real PaymentIntent is created below.
+  // The button shows a brief spinner on every change after the first mount so
+  // switching fulfillment method visibly reflects the new total, not a silent jump.
+  useEffect(() => {
+    elements?.update({ amount: Math.round(total * 100) });
+    if (isFirstAmount.current) {
+      isFirstAmount.current = false;
+      return;
+    }
+    setIsAmountUpdating(true);
+    const timer = setTimeout(() => setIsAmountUpdating(false), 450);
+    return () => clearTimeout(timer);
+  }, [elements, total]);
 
   const handlePay = async () => {
     if (!stripe || !elements) return;
-    setIsProcessing(true);
     setError(null);
+
+    if (!onValidateAll()) return;
+
+    setPayState("processing");
 
     const { error: submitError } = await elements.submit();
     if (submitError) {
       setError(submitError.message ?? "Please check your payment details.");
-      setIsProcessing(false);
+      setPayState("idle");
       return;
     }
 
-    const { error, paymentIntent } = await stripe.confirmPayment({
+    let clientSecret: string;
+    try {
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(buildRequestBody()),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.error ?? "Something went wrong. Please try again.");
+        setPayState("idle");
+        return;
+      }
+      clientSecret = data.clientSecret;
+    } catch (requestError) {
+      console.error("Error creating payment intent:", requestError);
+      setError("Something went wrong. Please check your connection and try again.");
+      setPayState("idle");
+      return;
+    }
+
+    const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
       elements,
       clientSecret,
       confirmParams: {
         return_url: `${window.location.origin}/order-success`,
-        payment_method_data: { billing_details: { name: customerName } },
+        payment_method_data: {
+          billing_details: { name: customerName },
+        },
         ...(shippingForConfirm ? { shipping: shippingForConfirm } : {}),
       },
       redirect: "if_required",
     });
 
-    if (error) {
-      setError(error.message ?? "Payment failed. Please try again.");
-      setIsProcessing(false);
+    if (confirmError) {
+      setError(confirmError.message ?? "Payment failed. Please try again.");
+      setPayState("idle");
       return;
     }
 
     if (paymentIntent?.status === "succeeded") {
-      router.push(`/order-success?payment_intent=${paymentIntent.id}`);
+      setPayState("success");
+      // A brief beat on the success state before leaving the page, so the
+      // confirmation actually registers instead of an instant redirect.
+      setTimeout(() => {
+        router.push(`/order-success?payment_intent=${paymentIntent.id}`);
+      }, 900);
     } else {
-      setIsProcessing(false);
+      setPayState("idle");
     }
   };
 
@@ -121,21 +198,71 @@ function PaymentSectionInner({
       <Button
         type="button"
         onClick={handlePay}
-        disabled={!stripe || !elements || isProcessing}
-        className="w-full bg-brand-success hover:bg-brand-success-hover text-white py-3 font-medium text-lg"
+        disabled={!stripe || !elements || payState !== "idle"}
+        className="w-full bg-brand-success hover:bg-brand-success-hover text-white py-3 font-medium text-lg overflow-hidden"
         size="lg"
       >
-        {isProcessing ? (
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            Processing...
-          </div>
-        ) : (
-          `Pay $${total.toFixed(2)}`
-        )}
+        <AnimatePresence mode="wait" initial={false}>
+          {payState === "success" ? (
+            <motion.div
+              key="success"
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              className="flex items-center gap-2"
+            >
+              <motion.div
+                initial={{ scale: 0, rotate: -45 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+              >
+                <CheckCircle2 className="w-5 h-5" />
+              </motion.div>
+              Payment successful
+            </motion.div>
+          ) : payState === "processing" ? (
+            <motion.div
+              key="processing"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            </motion.div>
+          ) : isAmountUpdating ? (
+            <motion.div
+              key="updating"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            </motion.div>
+          ) : (
+            <motion.span
+              key="idle"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              {`Pay $${total.toFixed(2)}`}
+            </motion.span>
+          )}
+        </AnimatePresence>
       </Button>
       <p className="text-xs text-brand-muted text-center">
-        By completing your order, you agree to our Terms of Service and Privacy Policy.
+        By completing your order, you agree to our{" "}
+        <Link href="/terms" target="_blank" className="text-brand-brown hover:underline">
+          Terms of Service
+        </Link>{" "}
+        and{" "}
+        <Link href="/privacy" target="_blank" className="text-brand-brown hover:underline">
+          Privacy Policy
+        </Link>
+        .
       </p>
     </div>
   );
@@ -157,6 +284,7 @@ function OrderSummaryPanel({
   processingFee,
   total,
   selectedType,
+  isRecalculating,
 }: {
   items: CartItem[];
   appliedCoupon: AppliedCoupon | null;
@@ -169,6 +297,7 @@ function OrderSummaryPanel({
   processingFee: number;
   total: number;
   selectedType: "shipping" | "delivery" | "pickup";
+  isRecalculating: boolean;
 }) {
   const [couponInput, setCouponInput] = useState("");
   const [couponError, setCouponError] = useState<string | null>(null);
@@ -190,9 +319,15 @@ function OrderSummaryPanel({
       {/* The logo file itself has built-in left padding before the "B" glyph
           starts, so a negative margin is needed to true it up with the text
           below it, which has none. */}
-      <img src="/img/logobb.png" alt="Bliss-B Desserts" className="h-16 w-auto mb-6 -ml-5" />
+      <Link href="/" className="inline-block mb-6 -ml-5">
+        <img src="/img/logobb.png" alt="Bliss-B Desserts" className="h-16 w-auto" />
+      </Link>
       <p className="text-sm text-brand-muted mb-1">Pay</p>
-      <p className="text-4xl font-bold text-brand-text mb-8">${total.toFixed(2)}</p>
+      {isRecalculating ? (
+        <Skeleton className="h-10 w-32 mb-8" />
+      ) : (
+        <p className="text-4xl font-bold text-brand-text mb-8">${total.toFixed(2)}</p>
+      )}
 
       <div className="space-y-4">
         {items.map((item) => (
@@ -211,10 +346,13 @@ function OrderSummaryPanel({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-brand-text truncate">{item.product.name}</p>
-              {item.flavor && <p className="text-xs text-brand-muted">Flavor: {item.flavor}</p>}
-              {item.boxFlavors && item.boxFlavors.length > 0 && (
+              {item.flavor && <p className="text-xs text-brand-muted">{toSentenceCase(item.flavor)}</p>}
+              {item.boxFlavors && item.boxFlavors.length === 1 && (
+                <p className="text-xs text-brand-muted">{toSentenceCase(item.boxFlavors[0].flavor)}</p>
+              )}
+              {item.boxFlavors && item.boxFlavors.length > 1 && (
                 <p className="text-xs text-brand-muted">
-                  Flavors: {item.boxFlavors.map((f) => `${f.flavor} x${f.quantity}`).join(", ")}
+                  {item.boxFlavors.map((f) => `${toSentenceCase(f.flavor)} x${f.quantity}`).join(", ")}
                 </p>
               )}
             </div>
@@ -277,7 +415,11 @@ function OrderSummaryPanel({
 
         <div className="flex justify-between text-brand-muted">
           <span>{selectedType === "shipping" ? "Shipping" : selectedType === "delivery" ? "Delivery" : "Pickup"}</span>
-          <span className="text-brand-text">{deliveryFee > 0 ? `$${deliveryFee.toFixed(2)}` : "Free"}</span>
+          {isRecalculating ? (
+            <Skeleton className="h-4 w-14" />
+          ) : (
+            <span className="text-brand-text">{deliveryFee > 0 ? `$${deliveryFee.toFixed(2)}` : "Free"}</span>
+          )}
         </div>
 
         {taxAmount > 0 && (
@@ -289,13 +431,17 @@ function OrderSummaryPanel({
 
         <div className="flex justify-between gap-4 text-brand-muted">
           <span>Card processing fee (2.9% + $0.80)</span>
-          <span className="flex-shrink-0 text-brand-text">${processingFee.toFixed(2)}</span>
+          {isRecalculating ? (
+            <Skeleton className="h-4 w-12 flex-shrink-0" />
+          ) : (
+            <span className="flex-shrink-0 text-brand-text">${processingFee.toFixed(2)}</span>
+          )}
         </div>
       </div>
 
       <div className="border-t border-brand-border mt-4 pt-4 flex justify-between text-base font-bold text-brand-text">
         <span>Total due</span>
-        <span>${total.toFixed(2)}</span>
+        {isRecalculating ? <Skeleton className="h-5 w-16" /> : <span>${total.toFixed(2)}</span>}
       </div>
     </div>
   );
@@ -307,40 +453,38 @@ export default function CheckoutPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   const { items, getTotalPrice, getShippingInfo, getMinimumOrderInfo, appliedCoupon, setCoupon, clearCoupon } = useCartStore();
-  const { selectedType, address, shippingAddress } = useDeliveryStore();
+  const {
+    selectedType,
+    billingAddress,
+    deliveryAddress,
+    deliveryAddressSameAsBilling,
+    shippingAddress,
+    shippingAddressSameAsBilling,
+    setBillingAddress,
+  } = useDeliveryStore();
 
   const [customerInfo, setCustomerInfo] = useState({ name: "", email: "", phone: "" });
   const [contactErrors, setContactErrors] = useState<{ name?: string; email?: string; phone?: string }>({});
-  // Before the first "Continue to Payment" click, blur shouldn't nag about an
-  // untouched empty field — only about content that's actually wrong (a
-  // malformed email, an incomplete phone). After a submit attempt, blur
-  // enforces "required" too, since the user has now tried to proceed.
+  // Before the first "Pay" click, blur shouldn't nag about an untouched empty
+  // field — only about content that's actually wrong (a malformed email, an
+  // incomplete phone). After a submit attempt, blur enforces "required" too,
+  // since the user has now tried to proceed.
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [deliveryError, setDeliveryError] = useState<string | null>(null);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [isCreatingIntent, setIsCreatingIntent] = useState(false);
+  const [billingError, setBillingError] = useState<string | null>(null);
   const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
-  // Fingerprint of every input that affects the PaymentIntent's amount/contents
-  // at the time it was last created — if anything drifts afterward, the intent
-  // is stale and gets invalidated instead of silently charging an old amount.
-  const confirmedFingerprintRef = useRef<string | null>(null);
-  const [serverBreakdown, setServerBreakdown] = useState<{
-    subtotal: number;
-    discountAmount: number;
-    deliveryFee: number;
-    taxAmount: number;
-    processingFee: number;
-    total: number;
-  } | null>(null);
+  const [isDeliveryQuoting, setIsDeliveryQuoting] = useState(false);
 
   const subtotal = getTotalPrice();
   const shippingInfo = getShippingInfo();
   const orderInfo = getMinimumOrderInfo();
   const discountAmount = appliedCoupon ? Math.round(subtotal * (appliedCoupon.percentOff / 100) * 100) / 100 : 0;
-  const processingFee = serverBreakdown?.processingFee ?? calculateProcessingFee(subtotal - discountAmount + deliveryFee);
-  const taxAmount = serverBreakdown?.taxAmount ?? 0;
-  const total = serverBreakdown?.total ?? subtotal - discountAmount + deliveryFee + processingFee;
+  // Estimated client-side throughout — the real amount is only computed
+  // server-side at the moment of payment (see PaymentSection.buildRequestBody).
+  const processingFee = calculateProcessingFee(subtotal - discountAmount + deliveryFee);
+  const taxAmount = 0;
+  const total = subtotal - discountAmount + deliveryFee + processingFee;
 
   const fulfillment = getFulfillmentOptions();
 
@@ -357,32 +501,14 @@ export default function CheckoutPage() {
     }
   }, [isLoading, items.length, router]);
 
-  const isDeliveryValid = selectedType !== "delivery" || address.trim().length >= 8;
-  const isShippingAddressValid =
-    selectedType !== "shipping" ||
-    (shippingAddress.street.trim().length > 0 &&
-      shippingAddress.city.trim().length > 0 &&
-      shippingAddress.state.trim().length > 0 &&
-      shippingAddress.zip.trim().length > 0);
-
-  const computeFingerprint = () => {
-    const itemsSignature = items
-      .map((i) => `${i.id}:${i.quantity}:${i.flavor ?? ""}:${(i.boxFlavors ?? []).map((f) => `${f.flavor}x${f.quantity}`).join("+")}`)
-      .join("|");
-    return JSON.stringify({ itemsSignature, selectedType, address, shippingAddress, deliveryFee, coupon: appliedCoupon?.code, customerInfo });
-  };
-
-  // If anything relevant changes after a PaymentIntent was created, the intent
-  // is stale — drop it so the Payment section disappears and "Continue to
-  // Payment" reappears, instead of letting a stale amount get charged.
-  useEffect(() => {
-    if (!clientSecret) return;
-    if (confirmedFingerprintRef.current !== computeFingerprint()) {
-      setClientSecret(null);
-      setServerBreakdown(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedType, address, shippingAddress, deliveryFee, appliedCoupon, customerInfo, items]);
+  // Billing is the one address always required, collected right after contact
+  // info — Delivery/Shipping each default to it unless the customer says the
+  // order goes somewhere different.
+  const isBillingAddressValid = isAddressComplete(billingAddress);
+  const effectiveDeliveryAddress = deliveryAddressSameAsBilling ? billingAddress : deliveryAddress;
+  const effectiveShippingAddress = shippingAddressSameAsBilling ? billingAddress : shippingAddress;
+  const isDeliveryValid = selectedType !== "delivery" || isAddressComplete(effectiveDeliveryAddress);
+  const isShippingAddressValid = selectedType !== "shipping" || isAddressComplete(effectiveShippingAddress);
 
   const handleInputChange = (field: "name" | "email" | "phone", value: string) => {
     const nextValue = field === "phone" ? formatPhoneNumber(value) : value;
@@ -413,76 +539,51 @@ export default function CheckoutPage() {
     setContactErrors((prev) => ({ ...prev, [field]: validateContactField(field, value) }));
   };
 
-  const confirmDetails = async () => {
+  // Runs everything at once (rather than stopping at the first problem) so
+  // the customer sees every field that needs fixing in one pass, not one at a time.
+  const validateAll = (): boolean => {
     setHasAttemptedSubmit(true);
-    const errors: { name?: string; email?: string; phone?: string } = {
+
+    const contactFieldErrors = {
       name: validateContactField("name", customerInfo.name),
       email: validateContactField("email", customerInfo.email),
       phone: validateContactField("phone", customerInfo.phone),
     };
-    const hasErrors = Object.values(errors).some(Boolean);
-    if (hasErrors) {
-      setContactErrors(errors);
-      return;
-    }
-    setContactErrors({});
+    setContactErrors(contactFieldErrors);
+    const contactOk = !Object.values(contactFieldErrors).some(Boolean);
+
+    const billingOk = isBillingAddressValid;
+    setBillingError(billingOk ? null : "A complete billing address is required.");
 
     const deliveryErrs: string[] = [];
     if (selectedType === "delivery" && !isDeliveryValid) deliveryErrs.push("A complete delivery address is required.");
     if (selectedType === "shipping" && !isShippingAddressValid) deliveryErrs.push("A complete shipping address is required.");
-    if (deliveryErrs.length > 0) {
-      setDeliveryError(deliveryErrs.join(" "));
-      return;
-    }
-    setDeliveryError(null);
+    setDeliveryError(deliveryErrs.length > 0 ? deliveryErrs.join(" ") : null);
 
-    setIsCreatingIntent(true);
-    setClientSecret(null);
-    setServerBreakdown(null);
+    return contactOk && billingOk && deliveryErrs.length === 0;
+  };
 
-    try {
-      const window_ = selectedType !== "shipping" ? fulfillment[selectedType] : null;
-      const deliveryInfo = {
+  const buildRequestBody = (): CheckoutRequestBody => {
+    const window_ = selectedType !== "shipping" ? fulfillment[selectedType] : null;
+    return {
+      items,
+      customerInfo,
+      deliveryInfo: {
         type: selectedType,
-        address: selectedType === "delivery" ? address : "",
+        address: selectedType === "delivery" ? joinAddress(effectiveDeliveryAddress) : "",
         date: window_?.date ?? "",
         time: window_?.window ?? "",
         fee: deliveryFee,
-      };
-
-      const response = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items,
-          customerInfo,
-          deliveryInfo,
-          shippingAddress: selectedType === "shipping" ? shippingAddress : undefined,
-          couponCode: appliedCoupon?.code,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setDeliveryError(data.error ?? "Something went wrong. Please try again.");
-        return;
-      }
-
-      setClientSecret(data.clientSecret);
-      if (data.breakdown) setServerBreakdown(data.breakdown);
-      confirmedFingerprintRef.current = computeFingerprint();
-    } catch (error) {
-      console.error("Error creating payment intent:", error);
-      setDeliveryError("Something went wrong. Please check your connection and try again.");
-    } finally {
-      setIsCreatingIntent(false);
-    }
+      },
+      shippingAddress: selectedType === "shipping" ? effectiveShippingAddress : undefined,
+      billingAddress,
+      couponCode: appliedCoupon?.code,
+    };
   };
 
   if (!hydrated || isLoading) {
     return (
-      <div className="flex items-center justify-center bg-brand-bg py-24">
+      <div className="flex items-center justify-center min-h-screen bg-brand-bg">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-brand-brown border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-brand-muted">Loading your order...</p>
@@ -495,21 +596,20 @@ export default function CheckoutPage() {
     return null; // redirecting
   }
 
+  const addressForFulfillment = selectedType === "shipping" ? effectiveShippingAddress : effectiveDeliveryAddress;
   const shippingForConfirm =
     selectedType === "pickup"
       ? undefined
-      : selectedType === "shipping"
-      ? {
+      : {
           name: customerInfo.name,
           address: {
-            line1: shippingAddress.street,
-            city: shippingAddress.city,
-            state: shippingAddress.state,
-            postal_code: shippingAddress.zip,
+            line1: addressForFulfillment.street,
+            city: addressForFulfillment.city,
+            state: addressForFulfillment.state,
+            postal_code: addressForFulfillment.zip,
             country: "US",
           },
-        }
-      : { name: customerInfo.name, address: { line1: address, country: "US" } };
+        };
 
   const summaryProps = {
     items,
@@ -523,6 +623,7 @@ export default function CheckoutPage() {
     processingFee,
     total,
     selectedType,
+    isRecalculating: isDeliveryQuoting,
   };
 
   return (
@@ -550,9 +651,13 @@ export default function CheckoutPage() {
         )}
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 md:px-8 py-8 md:py-14">
+      {/* Desktop: pinned to the viewport with `fixed` (not `sticky`), so the
+          page itself never scrolls — only the form column's own overflow does.
+          Centered via left-1/2 + -translate-x-1/2 rather than left+right so the
+          max-w-5xl cap resolves correctly for a fixed-position box. */}
+      <div className="max-w-5xl mx-auto px-4 md:px-8 py-8 md:py-14 lg:fixed lg:inset-y-0 lg:left-1/2 lg:-translate-x-1/2 lg:w-full lg:max-w-5xl lg:overflow-hidden lg:flex lg:flex-col lg:py-0">
         {!orderInfo.hasMinimumOrder && (
-          <Card className="bg-yellow-50 border-yellow-200 mb-6 py-4">
+          <Card className="bg-yellow-50 border-yellow-200 mb-6 py-4 lg:mt-14 lg:flex-shrink-0">
             <CardContent className="px-4 text-sm text-yellow-800">
               Your cart subtotal must be at least ${orderInfo.minimumRequired.toFixed(2)} to check out
               (currently ${orderInfo.currentTotal.toFixed(2)}).
@@ -560,18 +665,24 @@ export default function CheckoutPage() {
           </Card>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-start lg:flex-1 lg:min-h-0">
           {/* Left: plain, cardless summary — Stripe's own checkout keeps this
-              side quiet; the elevated card is reserved for the form. */}
-          <div className="hidden lg:block">
+              side quiet; the elevated card is reserved for the form. Truly
+              fixed (parent is `position:fixed`) — it never moves, regardless
+              of how far the form column scrolls. */}
+          <div className="hidden lg:block lg:h-full lg:overflow-y-auto lg:py-14">
             <OrderSummaryPanel {...summaryProps} />
           </div>
 
-          {/* Right: one card holding contact, delivery, and payment — same
-              shape as Stripe's own full-page checkout. Offset down to align
-              with the price line, not the logo — the logo stays the single
-              tallest element on the page. */}
-          <div className="lg:mt-[5.5rem]">
+          {/* Right: one card holding contact, billing, delivery, and payment —
+              same shape as Stripe's own full-page checkout. Offset down to
+              align with the price line, not the logo — the logo stays the
+              single tallest element on the page. This is the only column that
+              scrolls on desktop. The 5.5rem/3.5rem offsets are margin (outside
+              the scroll box) rather than padding, so the scrollbar's track
+              hugs the card's own height exactly instead of including empty
+              offset space above/below it. */}
+          <div className="lg:mt-[5.5rem] lg:mb-14 lg:max-h-[calc(100%-9rem)] lg:overflow-y-auto lg:pr-[15px] checkout-scrollbar">
             <Card className="bg-white border-brand-border">
               <CardContent className="space-y-6">
                 <div>
@@ -617,12 +728,23 @@ export default function CheckoutPage() {
                 </div>
 
                 <div>
+                  <h2 className="text-base font-semibold text-brand-text mb-3">Billing address</h2>
+                  <AddressFields value={billingAddress} onChange={setBillingAddress} />
+                  {billingError && (
+                    <div className="mt-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                      <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                      <span>{billingError}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div>
                   <h2 className="text-base font-semibold text-brand-text mb-3">Delivery method</h2>
                   <DeliverySelector
                     subtotal={subtotal}
                     shippingCost={shippingInfo.shippingCost}
                     onDeliveryFeeChange={setDeliveryFee}
-                    customerName={customerInfo.name}
+                    onQuotingChange={setIsDeliveryQuoting}
                   />
                   {deliveryError && (
                     <div className="mt-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
@@ -634,54 +756,32 @@ export default function CheckoutPage() {
 
                 <div>
                   <h2 className="text-base font-semibold text-brand-text mb-3">Payment method</h2>
-                  {!clientSecret && (
-                    <p className="text-sm text-brand-muted">
-                      Continue below to enter your payment details.
-                    </p>
-                  )}
-                  {clientSecret && (
-                    <Elements
-                      stripe={stripePromise}
-                      options={{
-                        clientSecret,
-                        appearance: {
-                          variables: {
-                            colorPrimary: "#9B562C",
-                            colorText: "#211A16",
-                            colorTextSecondary: "#6B5D54",
-                            borderRadius: "8px",
-                          },
+                  <Elements
+                    stripe={stripePromise}
+                    options={{
+                      mode: "payment",
+                      currency: "usd",
+                      amount: Math.max(50, Math.round(total * 100)),
+                      appearance: {
+                        variables: {
+                          colorPrimary: "#9B562C",
+                          colorText: "#211A16",
+                          colorTextSecondary: "#6B5D54",
+                          borderRadius: "8px",
                         },
-                      }}
-                    >
-                      <PaymentSectionInner
-                        clientSecret={clientSecret}
-                        customerName={customerInfo.name}
-                        shippingForConfirm={shippingForConfirm}
-                        total={total}
-                      />
-                    </Elements>
-                  )}
-                </div>
-
-                {!clientSecret && (
-                  <Button
-                    type="button"
-                    onClick={confirmDetails}
-                    disabled={isCreatingIntent || !orderInfo.hasMinimumOrder}
-                    className="w-full py-3 font-medium text-lg"
-                    size="lg"
+                      },
+                    }}
                   >
-                    {isCreatingIntent ? (
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Preparing your order...
-                      </div>
-                    ) : (
-                      "Continue to Payment"
-                    )}
-                  </Button>
-                )}
+                    <PaymentSection
+                      total={total}
+                      onValidateAll={validateAll}
+                      buildRequestBody={buildRequestBody}
+                      customerName={customerInfo.name}
+                      billingAddress={billingAddress}
+                      shippingForConfirm={shippingForConfirm}
+                    />
+                  </Elements>
+                </div>
 
                 <p className="flex items-center justify-center gap-1.5 text-xs text-brand-muted">
                   <Lock className="h-3 w-3" aria-hidden="true" />

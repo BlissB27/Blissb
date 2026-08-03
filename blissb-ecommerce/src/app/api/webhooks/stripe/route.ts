@@ -4,6 +4,7 @@ import { stripe, unchunkMetadata } from '@/lib/stripe';
 import { sendOrderEmails } from '@/lib/email';
 import { getProductByIdAsync } from '@/data/products';
 import { decrementProductStock } from '@/services/products';
+import { toSentenceCase } from '@/lib/text';
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
@@ -68,8 +69,12 @@ export async function POST(request: NextRequest) {
             }
 
             const size = item.bf?.length
-              ? item.bf.map((f) => `${f.flavor} x${f.quantity}`).join(', ')
-              : item.f || undefined;
+              ? item.bf.length === 1
+                ? toSentenceCase(item.bf[0].flavor)
+                : item.bf.map((f) => `${toSentenceCase(f.flavor)} x${f.quantity}`).join(', ')
+              : item.f
+              ? toSentenceCase(item.f)
+              : undefined;
 
             return {
               id: hashToNumericId(item.id),
