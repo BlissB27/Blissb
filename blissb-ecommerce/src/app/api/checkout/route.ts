@@ -271,7 +271,7 @@ export async function POST(request: NextRequest) {
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(total * 100),
       currency: 'usd',
-      payment_method_types: ['card'], // matches the previous session (card-only)
+      automatic_payment_methods: { enabled: true },
       receipt_email: customerInfo.email,
       metadata: {
         customerName: customerInfo.name,

@@ -30,7 +30,7 @@ export default function ContactPage() {
           shows as a visible seam between the two. */}
       <section className="relative bg-white">
         <WaveDivider direction="top" color="#9B562C" className="absolute left-0 right-0" />
-        <div className="max-w-3xl mx-auto px-4 py-16">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}

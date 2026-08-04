@@ -10,7 +10,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { FlavorSelector } from "@/components/FlavorSelector";
 import { useProductAddToCart } from "@/hooks/useProductAddToCart";
@@ -38,7 +37,7 @@ export function CakeFeatureSection({ product, index }: CakeFeatureSectionProps) 
 
   return (
     <section id={index === 0 ? "cakes" : undefined} className="bg-white">
-      <div className="mx-auto max-w-[1100px] px-4 py-12 md:py-16">
+      <div className="mx-auto max-w-[1100px] px-4 sm:px-6 lg:px-8 py-12 md:py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -111,7 +110,6 @@ export function CakeFeatureSection({ product, index }: CakeFeatureSectionProps) 
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-brand-brown">{product.name}</DialogTitle>
-            <DialogDescription>Choose your options before adding this to your cart.</DialogDescription>
           </DialogHeader>
 
           {hasFlavorSelector && (

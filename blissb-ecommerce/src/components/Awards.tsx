@@ -47,14 +47,14 @@ export function Awards() {
 
   return (
     <section className="bg-white">
-      <div className="mx-auto max-w-[1200px] px-4 py-14 md:py-16">
+      <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8 py-14 md:py-16">
         <div id="awards-gallery" className="space-y-12">
           {/* 2024 Awards */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             {/* Left: 2024 Text */}
             <div>
               <Card className="bg-transparent border-none shadow-none">
-                <CardContent className="p-0">
+                <CardContent className="p-0 text-center md:text-left">
                   <h2 className="text-2xl md:text-3xl font-bold text-brand-brown mb-2">
                     Top 5 GA Dessert Wars
                   </h2>
@@ -80,7 +80,7 @@ export function Awards() {
             {/* Left: 2023 Text */}
             <div>
               <Card className="bg-transparent border-none shadow-none">
-                <CardContent className="p-0">
+                <CardContent className="p-0 text-center md:text-left">
                   <h2 className="text-2xl md:text-3xl font-bold text-brand-brown mb-2">
                     Top 20 Nationwide
                   </h2>

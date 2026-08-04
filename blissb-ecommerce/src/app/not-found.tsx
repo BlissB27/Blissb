@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { House, Cookie, CakeSlice, IceCreamCone } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FaqWaveDivider } from "@/components/FaqWaveDivider";
+import { WaveDivider } from "@/components/WaveDivider";
 
 const CATEGORIES = [
   { href: "/cookies", label: "Cookies", Icon: Cookie },
@@ -53,7 +53,7 @@ export default function NotFound() {
         </div>
       </motion.div>
 
-      <FaqWaveDivider direction="bottom" color="#5C3319" className="bottom-0 left-0 right-0" />
+      <WaveDivider direction="bottom" color="#5C3319" className="absolute bottom-0 left-0 right-0" />
     </section>
     </div>
   );

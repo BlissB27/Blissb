@@ -60,13 +60,13 @@ export function CategoryShowcase({ category, title, blurb, tinted = false }: Cat
 
   return (
     <section className={tinted ? "bg-brand-bg" : "bg-white"}>
-      <div className="mx-auto max-w-[1200px] px-4 py-12 md:py-16">
+      <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8 py-12 md:py-16">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ type: "spring", damping: 25, stiffness: 300, duration: 0.6 }}
-          className="mb-8"
+          className="mb-8 text-center md:text-left"
         >
           <h2 className="text-2xl md:text-3xl font-bold text-brand-brown">{title}</h2>
           <p className="text-brand-muted text-sm md:text-base mt-1">{blurb}</p>

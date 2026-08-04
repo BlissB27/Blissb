@@ -4,19 +4,10 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { Cookie } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AddToCartButton } from "@/components/AddToCartButton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { FlavorSelector } from "@/components/FlavorSelector";
+import { FlavorConfirmDialog } from "@/components/FlavorConfirmDialog";
 import { useProductAddToCart } from "@/hooks/useProductAddToCart";
 import type { Product } from "@/data/products";
-import { WaveDivider } from "@/components/WaveDivider";
-import { BakeryDecor } from "@/components/category/BakeryDecor";
+import { HeroShell, HeroEyebrow } from "@/components/category/HeroShell";
 
 // Orchestrates the reveal: title/subtitle/button together, then the photo shortly after.
 const containerVariants = {
@@ -42,21 +33,16 @@ type CookiesHeroProps = {
 
 export function CookiesHero({ product }: CookiesHeroProps) {
   return (
-    <section className="relative overflow-hidden bg-brand-brown">
-      <BakeryDecor />
-
+    <HeroShell>
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="relative mx-auto max-w-[1200px] px-4 pt-12 pb-20 md:pt-20 md:pb-28 grid grid-cols-1 md:grid-cols-2 gap-10 items-center"
+        className="relative mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8 pt-12 pb-20 md:pt-20 md:pb-28 grid grid-cols-1 md:grid-cols-2 gap-10 items-center"
       >
         {/* Title, subtitle, and button reveal together as one group */}
         <motion.div variants={fadeUpVariants} className="text-center md:text-left">
-          <div className="mb-4 flex items-center justify-center md:justify-start gap-2">
-            <Cookie className="h-5 w-5 text-white" strokeWidth={1.75} />
-            <span className="text-sm font-medium text-white">Our Most-Gifted Box</span>
-          </div>
+          <HeroEyebrow icon={Cookie} align="start">Our Most-Gifted Box</HeroEyebrow>
 
           <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight mb-4">
             The Mini Cookie Box
@@ -93,15 +79,12 @@ export function CookiesHero({ product }: CookiesHeroProps) {
           </motion.div>
         </motion.div>
       </motion.div>
-
-      <WaveDivider direction="bottom" color="#FFFFFF" className="absolute bottom-0 left-0 right-0" />
-    </section>
+    </HeroShell>
   );
 }
 
 function MiniCookieBoxCta({ product }: { product: Product | null }) {
   const {
-    hasFlavorSelector,
     isOptionsOpen,
     setIsOptionsOpen,
     boxFlavors,
@@ -132,38 +115,19 @@ function MiniCookieBoxCta({ product }: { product: Product | null }) {
         </p>
       )}
 
-      <Dialog open={isOptionsOpen} onOpenChange={setIsOptionsOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-brand-brown">{product.name}</DialogTitle>
-            <DialogDescription>Choose your options before adding this to your cart.</DialogDescription>
-          </DialogHeader>
-
-          {hasFlavorSelector && (
-            <FlavorSelector
-              flavors={product.flavors ?? []}
-              fixedTarget
-              targetQuantity={product.boxSize}
-              onSelectionChange={setBoxFlavors}
-            />
-          )}
-
-          {errorMessage && (
-            <p role="alert" className="text-sm text-red-600">
-              {errorMessage}
-            </p>
-          )}
-
-          <AddToCartButton
-            onAdd={handleConfirmOptions}
-            onAnimationComplete={() => setIsOptionsOpen(false)}
-            disabled={!boxFlavors}
-            className="w-full"
-          >
-            Add to Cart
-          </AddToCartButton>
-        </DialogContent>
-      </Dialog>
+      <FlavorConfirmDialog
+        open={isOptionsOpen}
+        onOpenChange={setIsOptionsOpen}
+        title={product.name}
+        flavors={product.flavors ?? []}
+        fixedTarget
+        targetQuantity={product.boxSize}
+        onSelectionChange={setBoxFlavors}
+        errorMessage={errorMessage}
+        onConfirm={handleConfirmOptions}
+        onConfirmed={() => setIsOptionsOpen(false)}
+        confirmDisabled={!boxFlavors}
+      />
     </>
   );
 }

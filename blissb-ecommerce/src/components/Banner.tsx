@@ -92,7 +92,7 @@ export default function Banner() {
       {/* Wave divider at the top */}
       <WaveDivider direction="top" color="#FFFFFF" className="absolute left-0 right-0" />
 
-      <div className="mx-auto max-w-[1200px] px-4 py-8 md:py-8 my-8 md:my-8">
+      <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8 py-8 md:py-8 my-8 md:my-8">
         {/* Título */}
         <motion.div
           initial={{ opacity: 0, y: 50 }}

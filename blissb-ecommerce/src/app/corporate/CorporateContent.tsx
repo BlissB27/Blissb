@@ -75,7 +75,7 @@ export function CorporateContent() {
       {/* Booking basics - the numbers a corporate/event buyer needs before reaching out */}
       <section className="relative bg-brand-bg">
         <WaveDivider direction="top" color="#9B562C" className="absolute left-0 right-0" />
-        <div className="max-w-6xl mx-auto px-4 py-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {FEATURES.map((feature) => (
               <div key={feature.title} className="text-center">
@@ -92,7 +92,7 @@ export function CorporateContent() {
       </section>
       {/* Catering & Events */}
       <section id="catering" className="py-12 md:py-16 bg-white scroll-mt-[150px] md:scroll-mt-[185px]">
-        <div className="max-w-6xl mx-auto px-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
             {/* Left Content */}
             <motion.div
@@ -221,7 +221,7 @@ export function CorporateContent() {
       {/* Corporate Gifting Section */}
       <section id="corporate-gifting" className="relative bg-brand-bg scroll-mt-[150px] md:scroll-mt-[185px]">
         <WaveDivider direction="top" color="#FFFFFF" className="absolute left-0 right-0" />
-        <div className="max-w-6xl mx-auto px-2 py-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Left Content - Gift Boxes */}
             <div className="relative w-full h-[300px] md:h-[400px] lg:h-[500px] order-2 lg:order-1">
@@ -269,7 +269,7 @@ export function CorporateContent() {
 
       {/* Cookie Cart Experience Section */}
       <section id="cookie-cart" className="py-16 bg-white scroll-mt-[150px] md:scroll-mt-[185px]">
-        <div className="max-w-6xl mx-auto px-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
             <div className="order-2 lg:order-1">
@@ -353,7 +353,7 @@ export function CorporateContent() {
       {/* Gallery - proof of work for a buyer deciding whether to trust us with their event */}
       <section className="relative bg-brand-bg">
         <WaveDivider direction="top" color="#FFFFFF" className="absolute left-0 right-0" />
-        <div className="max-w-6xl mx-auto px-4 py-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="text-center mb-8 md:mb-10">
             <h2 className="text-3xl md:text-4xl font-bold text-brand-brown mb-3">
               See Us In Action

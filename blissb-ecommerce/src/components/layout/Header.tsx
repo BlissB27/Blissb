@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, Search, ShoppingCart } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useCartStore } from "@/store/cartStore";
 import { SearchModal } from "../SearchModal";
 import { useHydrated } from "@/hooks/useHydrated";
@@ -20,7 +21,13 @@ const NAV = [
 ];
 
 // Componente separado para el carrito que maneja la hidratación
-function CartButton() {
+function CartButton({
+  className = "",
+  iconClassName = "w-5 h-5",
+}: {
+  className?: string;
+  iconClassName?: string;
+}) {
   const { getTotalItems, toggleCart } = useCartStore();
   const hydrated = useHydrated();
 
@@ -30,10 +37,10 @@ function CartButton() {
   return (
     <button
       onClick={toggleCart}
-      className="inline-block relative text-brand-muted hover:text-brand-brown transition-colors"
+      className={`inline-block relative text-brand-muted hover:text-brand-brown transition-colors ${className}`}
       aria-label="Cart"
     >
-      <ShoppingCart className="w-5 h-5" strokeWidth={1.75} />
+      <ShoppingCart className={iconClassName} strokeWidth={1.75} />
 
       {/* Counter badge - solo mostrar cuando hay items y está hidratado */}
       {hydrated && totalItems > 0 && (
@@ -77,13 +84,13 @@ export default function Header() {
         <Carrusel/>
 
         {/* Main nav */}
-        <div className=" border-b-0.5 border-brand-border">
+        <div className="relative border-b-0.5 border-brand-border">
           <div className="mx-auto flex max-w-[1200px] items-center justify-between px-4 py-4">
             {/* Left: Logo + mobile toggle */}
-            <div className="flex w-full items-center justify-between md:w-auto md:justify-start gap-4 md:gap-6">
+            <div className="flex w-full items-center gap-4 lg:w-auto lg:justify-start lg:gap-6">
               {/* Mobile: menu toggle */}
               <button
-                className="md:hidden text-brand-muted hover:text-brand-brown p-1 rounded-md hover:bg-brand-bg transition-all duration-200"
+                className="lg:hidden text-brand-muted hover:text-brand-brown p-1 rounded-md hover:bg-brand-bg transition-all duration-200"
                 onClick={() => setIsMobileOpen(!isMobileOpen)}
                 aria-label="Toggle menu"
               >
@@ -104,14 +111,14 @@ export default function Header() {
               {/* Logo */}
               <Link
                 href="/"
-                className="text-lg font-bold tracking-wide text-brand-brown flex items-center gap-2"
+                className="text-lg font-bold tracking-wide text-brand-brown flex flex-1 items-center justify-center gap-2 lg:flex-none lg:justify-start"
               >
                 <Image
                   src="/img/logobb.png"
                   width={300}
                   height={200}
                   alt="logo"
-                  className="h-20 w-auto"
+                  className="h-14 lg:h-20 w-auto"
                   style={{ width: 'auto' }}
                   priority
                 />
@@ -120,18 +127,21 @@ export default function Header() {
                   width={79}
                   height={112}
                   alt="Best of Georgia 2025"
-                  className="hidden md:block h-28 w-auto"
+                  className="block h-14 lg:h-28 w-auto"
                   style={{ width: 'auto' }}
                 />
               </Link>
 
-              <div className="md:hidden">
-                <CartButton />
+              <div className="lg:hidden">
+                <CartButton
+                  className="p-1 rounded-md hover:bg-brand-bg transition-all duration-200"
+                  iconClassName="h-6 w-6"
+                />
               </div>
             </div>
 
 
-            <nav className="hidden md:flex gap-6 items-center">
+            <nav className="hidden lg:flex gap-6 items-center">
               {NAV.map((item) => {
                 const isActive =
                   item.href === "/"
@@ -145,7 +155,7 @@ export default function Header() {
             </nav>
 
             {/* Right side */}
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden lg:flex items-center gap-4">
               <button
                 onClick={() => setIsSearchOpen(true)}
                 className="text-brand-muted hover:text-brand-brown transition-colors p-2 hover:bg-brand-bg rounded-md"
@@ -159,48 +169,57 @@ export default function Header() {
           </div>
 
           {/* Mobile menu */}
-          {isMobileOpen && (
-            <nav className="md:hidden px-4 pb-6 animate-in slide-in-from-top-2 duration-300 fade-in-0">
-              <ul className="space-y-3 mt-2">
-                {NAV.map((item) => {
-                  const isActive =
-                    item.href === "/"
-                      ? pathname === "/"
-                      : pathname.startsWith(item.href);
-                  return (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        onClick={() => setIsMobileOpen(false)}
-                        className={`block text-base ${
-                          isActive
-                            ? "text-brand-brown font-medium"
-                            : "text-brand-muted hover:text-brand-brown"
-                        }`}
-                      >
-                        {item.label}
-                      </Link>
-                    </li>
-                  );
-                })}
+          <AnimatePresence>
+            {isMobileOpen && (
+              <motion.nav
+                key="mobile-menu"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="lg:hidden absolute left-0 right-0 top-full z-40 bg-white/95 backdrop-blur-sm rounded-b-2xl border-b border-brand-border shadow-lg overflow-hidden"
+              >
+                <ul className="space-y-3 px-4 pt-4 pb-6">
+                  {NAV.map((item) => {
+                    const isActive =
+                      item.href === "/"
+                        ? pathname === "/"
+                        : pathname.startsWith(item.href);
+                    return (
+                      <li key={item.href}>
+                        <Link
+                          href={item.href}
+                          onClick={() => setIsMobileOpen(false)}
+                          className={`block text-center text-base ${
+                            isActive
+                              ? "text-brand-brown font-medium"
+                              : "text-brand-muted hover:text-brand-brown"
+                          }`}
+                        >
+                          {item.label}
+                        </Link>
+                      </li>
+                    );
+                  })}
 
-                {/* Contact us */}
-                <li>
-                  <Link
-                    href="/contact"
-                    onClick={() => setIsMobileOpen(false)}
-                    className={`block text-base ${
-                      pathname.startsWith("/contact")
-                        ? "text-brand-brown font-medium"
-                        : "text-brand-muted hover:text-brand-brown"
-                    }`}
-                  >
-                    Contact us
-                  </Link>
-                </li>
-              </ul>
-            </nav>
-          )}
+                  {/* Contact us */}
+                  <li>
+                    <Link
+                      href="/contact"
+                      onClick={() => setIsMobileOpen(false)}
+                      className={`block text-center text-base ${
+                        pathname.startsWith("/contact")
+                          ? "text-brand-brown font-medium"
+                          : "text-brand-muted hover:text-brand-brown"
+                      }`}
+                    >
+                      Contact us
+                    </Link>
+                  </li>
+                </ul>
+              </motion.nav>
+            )}
+          </AnimatePresence>
         </div>
       </header>
       <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />

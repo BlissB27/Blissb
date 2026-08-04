@@ -21,7 +21,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default function TermsPage() {
   return (
     <div className="min-h-screen bg-brand-bg">
-      <div className="max-w-3xl mx-auto px-4 pt-16 pb-24">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-24">
         <h1 className="text-4xl md:text-5xl font-bold text-brand-brown mb-2">Terms of Service</h1>
         <p className="text-sm text-brand-muted mb-10">Last updated: {LAST_UPDATED}</p>
 

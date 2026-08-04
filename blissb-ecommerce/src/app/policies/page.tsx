@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { Package, MapPin, Truck, Clock, AlertCircle, RefreshCw, X, type LucideIcon } from "lucide-react";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
-import { FaqWaveDivider } from "@/components/FaqWaveDivider";
+import { WaveDivider } from "@/components/WaveDivider";
 
 type PolicySection = {
   Icon: LucideIcon;
@@ -97,7 +97,7 @@ const POLICY_SECTIONS: PolicySection[] = [
   },
   {
     Icon: RefreshCw,
-    title: "Cancellations or Modifications",
+    title: "Cancellations & Changes",
     items: [
       <>To cancel or modify an order, please contact us through our website&apos;s Contact section. We will do our best to accommodate your request and provide a positive experience.</>,
       <>All cancellations must be made at least 3 business days prior to the scheduled pick-up or shipping date. Once the preparation of your order has begun, no changes, modifications, or cancellations can be made.</>,
@@ -143,7 +143,7 @@ export default function PoliciesPage() {
 
   return (
     <div className="relative min-h-screen bg-brand-bg">
-      <div className="max-w-4xl mx-auto px-4 pt-16 pb-28">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-28">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 50 }}
@@ -207,7 +207,7 @@ export default function PoliciesPage() {
         </motion.div>
       </div>
 
-      <FaqWaveDivider direction="bottom" color="#5C3319" className="bottom-0 left-0 right-0" />
+      <WaveDivider direction="bottom" color="#5C3319" className="absolute bottom-0 left-0 right-0" />
     </div>
   );
 }

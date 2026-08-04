@@ -111,7 +111,7 @@ export function ProductDetailPage({ product, allProducts }: ProductDetailPagePro
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="max-w-[1200px] mx-auto px-4 py-8">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumb */}
         <nav className="text-sm text-brand-muted mb-6">
           <Link href="/" className="hover:text-brand-brown">Home</Link>
@@ -294,7 +294,7 @@ export function ProductDetailPage({ product, allProducts }: ProductDetailPagePro
       <section className="relative mt-16 bg-brand-bg">
         <WaveDivider direction="top" color="#FFFFFF" className="absolute left-0 right-0" />
 
-        <div className="max-w-[1200px] mx-auto px-4 py-16">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <h2 className="text-2xl font-bold text-brand-brown text-center mb-12">
             {product.category === "cookies" ? "Cookie care" : "Product care"}
           </h2>

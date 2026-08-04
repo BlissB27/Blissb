@@ -4,28 +4,23 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { Phone, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BakeryDecor } from "@/components/category/BakeryDecor";
+import { HeroShell, HeroEyebrow } from "@/components/category/HeroShell";
 
 const CALL_HREF = "tel:+14708835035";
 
 export function CorporateHero() {
   return (
-    <section className="relative overflow-hidden bg-brand-brown">
-      <BakeryDecor />
-
-      <div className="relative mx-auto max-w-[1200px] px-4 pt-12 pb-20 md:pt-20 md:pb-28 grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+    <HeroShell withWave={false}>
+      <div className="relative mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8 pt-12 pb-20 md:pt-20 md:pb-28 grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
         <motion.div
           initial={{ opacity: 0, x: -40 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ type: "spring", damping: 25, stiffness: 300, duration: 0.6 }}
           className="text-center md:text-left"
         >
-          <div className="mb-4 flex items-center justify-center md:justify-start gap-2">
-            <Sparkles className="h-5 w-5 text-white" strokeWidth={1.75} />
-            <span className="text-sm font-medium text-white">
-              Weddings &middot; Corporate Events &middot; Private Celebrations
-            </span>
-          </div>
+          <HeroEyebrow icon={Sparkles} align="start">
+            Weddings &middot; Corporate Events &middot; Private Celebrations
+          </HeroEyebrow>
 
           <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight mb-4">
             Desserts That Make Your Event Unforgettable
@@ -84,6 +79,6 @@ export function CorporateHero() {
           </motion.div>
         </motion.div>
       </div>
-    </section>
+    </HeroShell>
   );
 }

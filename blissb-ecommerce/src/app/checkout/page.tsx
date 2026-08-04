@@ -22,19 +22,12 @@ import { AlertCircle, CheckCircle2, ChevronDown, Lock } from "lucide-react";
 import { calculateProcessingFee } from "@/lib/orderFees";
 import { getProductImageSrc } from "@/lib/productImage";
 import { toSentenceCase } from "@/lib/text";
+import { isAddressComplete, joinAddress } from "@/lib/address";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 function emailLooksValid(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-}
-
-function isAddressComplete(a: ShippingAddress) {
-  return a.street.trim().length > 0 && a.city.trim().length > 0 && a.state.trim().length > 0 && a.zip.trim().length > 0;
-}
-
-function joinAddress(a: ShippingAddress) {
-  return [a.street, `${a.city}, ${a.state} ${a.zip}`.trim()].filter(Boolean).join(", ");
 }
 
 function nameLooksValid(name: string) {
@@ -66,6 +59,15 @@ function ErrorText({ children }: { children: React.ReactNode }) {
   );
 }
 
+function InlineErrorBanner({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600 ${className}`}>
+      <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+      <span>{children}</span>
+    </div>
+  );
+}
+
 type CheckoutRequestBody = {
   items: CartItem[];
   customerInfo: { name: string; email: string; phone: string };
@@ -92,7 +94,6 @@ function PaymentSection({
   onValidateAll: () => boolean;
   buildRequestBody: () => CheckoutRequestBody;
   customerName: string;
-  billingAddress: ShippingAddress;
   shippingForConfirm: { name: string; address: { line1: string; city?: string; state?: string; postal_code?: string; country: string } } | undefined;
 }) {
   const router = useRouter();
@@ -189,12 +190,7 @@ function PaymentSection({
   return (
     <div className="space-y-4">
       <PaymentElement />
-      {error && (
-        <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
-          <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-          <span>{error}</span>
-        </div>
-      )}
+      {error && <InlineErrorBanner>{error}</InlineErrorBanner>}
       <Button
         type="button"
         onClick={handlePay}
@@ -644,11 +640,21 @@ export default function CheckoutPage() {
           </span>
           <span className="text-sm font-semibold text-brand-brown">${total.toFixed(2)}</span>
         </button>
-        {mobileSummaryOpen && (
-          <div className="px-4 pb-4 pt-1 border-t border-brand-border">
-            <OrderSummaryPanel {...summaryProps} />
-          </div>
-        )}
+        <AnimatePresence initial={false}>
+          {mobileSummaryOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="overflow-hidden border-t border-brand-border"
+            >
+              <div className="px-4 pb-4 pt-3">
+                <OrderSummaryPanel {...summaryProps} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Desktop: pinned to the viewport with `fixed` (not `sticky`), so the
@@ -730,12 +736,7 @@ export default function CheckoutPage() {
                 <div>
                   <h2 className="text-base font-semibold text-brand-text mb-3">Billing address</h2>
                   <AddressFields value={billingAddress} onChange={setBillingAddress} />
-                  {billingError && (
-                    <div className="mt-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
-                      <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                      <span>{billingError}</span>
-                    </div>
-                  )}
+                  {billingError && <InlineErrorBanner className="mt-3">{billingError}</InlineErrorBanner>}
                 </div>
 
                 <div>
@@ -746,12 +747,7 @@ export default function CheckoutPage() {
                     onDeliveryFeeChange={setDeliveryFee}
                     onQuotingChange={setIsDeliveryQuoting}
                   />
-                  {deliveryError && (
-                    <div className="mt-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
-                      <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                      <span>{deliveryError}</span>
-                    </div>
-                  )}
+                  {deliveryError && <InlineErrorBanner className="mt-4">{deliveryError}</InlineErrorBanner>}
                 </div>
 
                 <div>
@@ -777,7 +773,6 @@ export default function CheckoutPage() {
                       onValidateAll={validateAll}
                       buildRequestBody={buildRequestBody}
                       customerName={customerInfo.name}
-                      billingAddress={billingAddress}
                       shippingForConfirm={shippingForConfirm}
                     />
                   </Elements>

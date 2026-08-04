@@ -6,16 +6,9 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { AddToCartButton } from "@/components/AddToCartButton";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { FlavorConfirmDialog } from "@/components/FlavorConfirmDialog";
 import type { Product } from "@/data/products";
 import { motion } from "framer-motion";
-import { FlavorSelector } from "@/components/FlavorSelector";
 import { useProductAddToCart } from "@/hooks/useProductAddToCart";
 import { getProductUrl } from "@/lib/productUrl";
 
@@ -136,39 +129,20 @@ export function ProductCard({ product }: ProductCardProps) {
       </div>
 
       {/* Options modal — flavor split, kept out of the card so every card looks the same */}
-      <Dialog open={isOptionsOpen} onOpenChange={setIsOptionsOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-brand-brown">{product.name}</DialogTitle>
-            <DialogDescription>Choose your options before adding this to your cart.</DialogDescription>
-          </DialogHeader>
-
-          {hasFlavorSelector && (
-            <FlavorSelector
-              flavors={product.flavors ?? []}
-              flavorOptions={product.flavorOptions}
-              fixedTarget={!!product.isSoldInBox}
-              targetQuantity={product.isSoldInBox ? (product.boxSize as number) : undefined}
-              onSelectionChange={setBoxFlavors}
-            />
-          )}
-
-          {errorMessage && (
-            <p role="alert" className="text-sm text-red-600">
-              {errorMessage}
-            </p>
-          )}
-
-          <AddToCartButton
-            onAdd={handleConfirm}
-            onAnimationComplete={() => setIsOptionsOpen(false)}
-            disabled={hasFlavorSelector ? !boxFlavors : false}
-            className="w-full"
-          >
-            Add to Cart
-          </AddToCartButton>
-        </DialogContent>
-      </Dialog>
+      <FlavorConfirmDialog
+        open={isOptionsOpen}
+        onOpenChange={setIsOptionsOpen}
+        title={product.name}
+        flavors={product.flavors ?? []}
+        flavorOptions={product.flavorOptions}
+        fixedTarget={!!product.isSoldInBox}
+        targetQuantity={product.isSoldInBox ? (product.boxSize as number) : undefined}
+        onSelectionChange={setBoxFlavors}
+        errorMessage={errorMessage}
+        onConfirm={handleConfirm}
+        onConfirmed={() => setIsOptionsOpen(false)}
+        confirmDisabled={hasFlavorSelector ? !boxFlavors : false}
+      />
     </motion.div>
   );
 }

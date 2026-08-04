@@ -4,8 +4,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { WaveDivider } from "@/components/WaveDivider";
-import { BakeryDecor } from "@/components/category/BakeryDecor";
+import { HeroShell, HeroEyebrow } from "@/components/category/HeroShell";
 import { scrollToSection } from "@/components/category/HeroFlankingPhoto";
 import type { Product } from "@/data/products";
 
@@ -18,10 +17,8 @@ export function DessertsHero({ desserts }: DessertsHeroProps) {
   const [first, second] = desserts;
 
   return (
-    <section className="relative overflow-hidden bg-brand-brown">
-      <BakeryDecor />
-
-      <div className="relative mx-auto max-w-[1200px] px-4 py-20 md:py-28 grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+    <HeroShell>
+      <div className="relative mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8 py-20 md:py-28 grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
         {/* Two photos, stacked diagonally — mirrors the Corporate hero, flipped to the left */}
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
@@ -66,10 +63,7 @@ export function DessertsHero({ desserts }: DessertsHeroProps) {
           transition={{ type: "spring", damping: 25, stiffness: 300, duration: 0.6 }}
           className="order-1 md:order-2 text-center md:text-left"
         >
-          <div className="mb-4 flex items-center justify-center md:justify-start gap-2">
-            <Sparkles className="h-5 w-5 text-white" strokeWidth={1.75} />
-            <span className="text-sm font-medium text-white">Handmade in Braselton, GA</span>
-          </div>
+          <HeroEyebrow icon={Sparkles} align="start">Handmade in Braselton, GA</HeroEyebrow>
 
           <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight mb-4">
             A Sweet Ending, Every Time
@@ -88,8 +82,6 @@ export function DessertsHero({ desserts }: DessertsHeroProps) {
           </Button>
         </motion.div>
       </div>
-
-      <WaveDivider direction="bottom" color="#FFFFFF" className="absolute bottom-0 left-0 right-0" />
-    </section>
+    </HeroShell>
   );
 }

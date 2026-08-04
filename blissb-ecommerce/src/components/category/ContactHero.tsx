@@ -3,25 +3,20 @@
 import { motion } from "framer-motion";
 import { Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BakeryDecor } from "@/components/category/BakeryDecor";
+import { HeroShell, HeroEyebrow } from "@/components/category/HeroShell";
 
 const CALL_HREF = "tel:+14708835035";
 
 export function ContactHero() {
   return (
-    <section className="relative overflow-hidden bg-brand-brown">
-      <BakeryDecor />
-
-      <div className="relative mx-auto max-w-[900px] px-4 py-20 md:py-28 text-center">
+    <HeroShell withWave={false}>
+      <div className="relative mx-auto max-w-[900px] px-4 sm:px-6 lg:px-8 py-20 md:py-28 text-center">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", damping: 25, stiffness: 300, duration: 0.6 }}
         >
-          <div className="mb-4 flex items-center justify-center gap-2">
-            <Phone className="h-5 w-5 text-white" strokeWidth={1.75} />
-            <span className="text-sm font-medium text-white">We&apos;d Love to Hear From You</span>
-          </div>
+          <HeroEyebrow icon={Phone}>We&apos;d Love to Hear From You</HeroEyebrow>
 
           <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight">
             Let&apos;s Talk
@@ -46,6 +41,6 @@ export function ContactHero() {
           </motion.div>
         </motion.div>
       </div>
-    </section>
+    </HeroShell>
   );
 }

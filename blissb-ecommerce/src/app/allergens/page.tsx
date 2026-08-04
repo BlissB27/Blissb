@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AlertTriangle, Wheat, Milk, Egg, Bean, TreePine, Sprout, type LucideIcon } from "lucide-react";
-import { FaqWaveDivider } from "@/components/FaqWaveDivider";
+import { WaveDivider } from "@/components/WaveDivider";
 
 export const metadata: Metadata = {
   title: "Allergen Information | Bliss-B Desserts",
@@ -21,7 +21,7 @@ const ALLERGENS: { label: string; Icon: LucideIcon }[] = [
 export default function AllergensPage() {
   return (
     <div className="relative min-h-screen bg-brand-bg">
-      <div className="max-w-3xl mx-auto px-4 pt-16 pb-28">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-28">
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-brand-brown mb-4">
             Allergen Information
@@ -83,7 +83,7 @@ export default function AllergensPage() {
         </div>
       </div>
 
-      <FaqWaveDivider direction="bottom" color="#5C3319" className="bottom-0 left-0 right-0" />
+      <WaveDivider direction="bottom" color="#5C3319" className="absolute bottom-0 left-0 right-0" />
     </div>
   );
 }

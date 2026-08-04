@@ -1,20 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AddToCartButton } from "@/components/AddToCartButton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { FlavorSelector } from "@/components/FlavorSelector";
-import { useCartStore } from "@/store/cartStore";
-import type { BoxFlavor } from "@/store/cartStore";
+import { FlavorConfirmDialog } from "@/components/FlavorConfirmDialog";
+import { useProductAddToCart } from "@/hooks/useProductAddToCart";
 import type { Product } from "@/data/products";
 import { getProductUrl } from "@/lib/productUrl";
 
@@ -26,38 +17,17 @@ export function ProductHighlightCard({
   /** Truncate the description to 2 lines — use in tighter, multi-column grids so rows stay even. */
   clampDescription?: boolean;
 }) {
-  const { addItem } = useCartStore();
-  const [isOpen, setIsOpen] = useState(false);
-  const [boxFlavors, setBoxFlavors] = useState<BoxFlavor[] | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const hasFlavorSelector = !!product.flavors && product.flavors.length > 0;
-
-  const finishAdd = (options: { boxFlavors?: BoxFlavor[] }): boolean => {
-    setErrorMessage(null);
-    const result = addItem(product, { quantity: 1, ...options });
-    if (!result.success) {
-      setErrorMessage(result.error ?? "Couldn't add this to your cart.");
-      return false;
-    }
-    setBoxFlavors(null);
-    return true;
-  };
-
-  const handleAddClick = (): boolean => {
-    if (hasFlavorSelector) {
-      setIsOpen(true);
-      return false;
-    }
-    return finishAdd({});
-  };
-
-  const handleConfirm = (): boolean => {
-    if (hasFlavorSelector && !boxFlavors) return false;
-    return finishAdd({
-      boxFlavors: hasFlavorSelector ? boxFlavors ?? undefined : undefined,
-    });
-  };
+  const {
+    hasFlavorSelector,
+    isUnconfiguredBox,
+    isOptionsOpen,
+    setIsOptionsOpen,
+    boxFlavors,
+    setBoxFlavors,
+    errorMessage,
+    handleAddToCart,
+    handleConfirmOptions,
+  } = useProductAddToCart(product);
 
   return (
     <>
@@ -91,9 +61,13 @@ export function ProductHighlightCard({
             <span className="font-display text-lg font-bold text-brand-brown">
               ${product.price.toFixed(2)}
             </span>
-            <AddToCartButton onAdd={handleAddClick} size="sm">
-              Add to Cart
-            </AddToCartButton>
+            {isUnconfiguredBox ? (
+              <p className="text-xs text-brand-muted">Contact us to order this box.</p>
+            ) : (
+              <AddToCartButton onAdd={handleAddToCart} size="sm">
+                Add to Cart
+              </AddToCartButton>
+            )}
           </div>
           {errorMessage && (
             <p role="alert" className="text-xs text-red-600 mt-2">
@@ -103,37 +77,18 @@ export function ProductHighlightCard({
         </div>
       </div>
 
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-brand-brown">{product.name}</DialogTitle>
-            <DialogDescription>Choose your options before adding this to your cart.</DialogDescription>
-          </DialogHeader>
-
-          {hasFlavorSelector && (
-            <FlavorSelector
-              flavors={product.flavors ?? []}
-              fixedTarget={false}
-              onSelectionChange={setBoxFlavors}
-            />
-          )}
-
-          {errorMessage && (
-            <p role="alert" className="text-sm text-red-600">
-              {errorMessage}
-            </p>
-          )}
-
-          <AddToCartButton
-            onAdd={handleConfirm}
-            onAnimationComplete={() => setIsOpen(false)}
-            disabled={hasFlavorSelector ? !boxFlavors : false}
-            className="w-full"
-          >
-            Add to Cart
-          </AddToCartButton>
-        </DialogContent>
-      </Dialog>
+      <FlavorConfirmDialog
+        open={isOptionsOpen}
+        onOpenChange={setIsOptionsOpen}
+        title={product.name}
+        flavors={product.flavors ?? []}
+        fixedTarget={false}
+        onSelectionChange={setBoxFlavors}
+        errorMessage={errorMessage}
+        onConfirm={handleConfirmOptions}
+        onConfirmed={() => setIsOptionsOpen(false)}
+        confirmDisabled={hasFlavorSelector ? !boxFlavors : false}
+      />
     </>
   );
 }

@@ -6,6 +6,7 @@ import { AddressFields } from "@/components/AddressFields";
 import { useDeliveryStore, type DeliveryType, type ShippingAddress } from "@/store/deliveryStore";
 import { getFulfillmentOptions } from "@/lib/deliverySchedule";
 import { BAKERY_ADDRESS } from "@/lib/bakeryLocation";
+import { isAddressComplete, joinAddress } from "@/lib/address";
 import { AlertCircle, CheckCircle2, MapPin, Package, ShoppingBag, Truck, type LucideIcon } from "lucide-react";
 
 const GOOGLE_MAPS_DIRECTIONS_URL = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(BAKERY_ADDRESS)}`;
@@ -38,14 +39,6 @@ function formatWindowDate(dateISO: string, isToday: boolean) {
   const date = new Date(`${dateISO}T12:00:00Z`);
   const formatted = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "long", month: "short", day: "numeric" }).format(date);
   return isToday ? `Today, ${formatted}` : formatted;
-}
-
-function isAddressComplete(a: ShippingAddress) {
-  return a.street.trim().length > 0 && a.city.trim().length > 0 && a.state.trim().length > 0 && a.zip.trim().length > 0;
-}
-
-function joinAddress(a: ShippingAddress) {
-  return [a.street, `${a.city}, ${a.state} ${a.zip}`.trim()].filter(Boolean).join(", ");
 }
 
 // Per our shipping policy we only ship on Mondays via UPS (no per-order date
@@ -188,7 +181,6 @@ export function DeliverySelector({ subtotal, shippingCost, onDeliveryFeeChange, 
                 <MapPin className="w-4 h-4" />
                 <span className="text-sm font-medium">Pick up here</span>
               </div>
-              <p className="text-sm text-brand-text">{BAKERY_ADDRESS}</p>
               <a
                 href={GOOGLE_MAPS_DIRECTIONS_URL}
                 target="_blank"

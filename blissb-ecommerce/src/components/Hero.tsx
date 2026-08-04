@@ -7,13 +7,13 @@ import { motion } from "framer-motion";
 export function Hero() {
   return (
     <section className="bg-white relative">
-      <div className="mx-auto max-w-[1600px] flex flex-col-reverse md:flex-row items-center justify-between">
+      <div className="mx-auto max-w-[1600px] flex flex-col md:flex-row items-center justify-between">
         {/* Text left */}
         <motion.div
           initial={{ opacity: 0, x: -50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ type: "spring", damping: 25, stiffness: 300, duration: 0.6 }}
-          className="w-full md:p-30 text-center md:text-left"
+          className="w-full px-6 pt-10 pb-4 md:p-30 text-center md:text-left"
         >
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -30,8 +30,12 @@ export function Hero() {
               className="h-7 w-auto"
               style={{ width: 'auto' }}
             />
-            <span className="text-sm font-medium text-brand-brown">
-              Best of Georgia 2025 &middot; Top 5 dessert competition 2024
+            <span className="text-sm font-medium text-brand-brown text-center md:text-left">
+              <span className="block md:hidden">Best of Georgia 2025</span>
+              <span className="hidden md:inline">
+                Best of Georgia 2025 &middot; Top 5 dessert competition 2024
+              </span>
+              <span className="block md:hidden">Top 5 dessert competition 2024</span>
             </span>
           </motion.div>
 
@@ -56,6 +60,7 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300, delay: 0.6, duration: 0.6 }}
+            className="mb-10 md:mb-0"
           >
             <Button asChild size="lg">
               <a

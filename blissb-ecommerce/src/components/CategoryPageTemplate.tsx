@@ -36,7 +36,7 @@ export function CategoryPageTemplate({
     <div className="min-h-screen bg-white">
       {hero}
 
-      <div id="collection" className="max-w-[1200px] mx-auto px-4 py-16">
+      <div id="collection" className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-16">
         {/* Intro */}
         <div className="text-center mb-12">
           <h1 className="text-3xl md:text-4xl font-bold text-brand-brown mb-4">
@@ -56,7 +56,7 @@ export function CategoryPageTemplate({
       <section className="relative bg-brand-bg">
         <WaveDivider direction="top" color="#FFFFFF" className="absolute left-0 right-0" />
 
-        <div className="max-w-[1200px] mx-auto px-4 py-16">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {infoCards.map((card) => (
               <div key={card.title} className="text-center">

@@ -34,7 +34,7 @@ export function CakesContent({ cakes }: CakesContentProps) {
       {cakes.length > 0 ? (
         cakes.map((cake, index) => <CakeFeatureSection key={cake.id} product={cake} index={index} />)
       ) : (
-        <div className="mx-auto max-w-[1100px] px-4 py-16 text-center">
+        <div className="mx-auto max-w-[1100px] px-4 sm:px-6 lg:px-8 py-16 text-center">
           <Cake className="w-12 h-12 text-brand-brown mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-brand-text mb-2">No Cakes Available</h2>
           <p className="text-brand-muted">We&apos;re currently updating our cake selection. Check back soon!</p>
@@ -45,7 +45,7 @@ export function CakesContent({ cakes }: CakesContentProps) {
       <section className="relative bg-brand-bg">
         <WaveDivider direction="top" color="#FFFFFF" className="absolute left-0 right-0" />
 
-        <div className="max-w-[1200px] mx-auto px-4 py-16">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {INFO_CARDS.map((card) => (
               <div key={card.title} className="text-center">

@@ -12,7 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { getProductImageSrc } from '@/lib/productImage';
 import { validateCoupon } from '@/lib/coupons';
 import { toSentenceCase } from '@/lib/text';
-import { FaqWaveDivider } from '@/components/FaqWaveDivider';
+import { WaveDivider } from '@/components/WaveDivider';
 
 export default function CartPage() {
   const router = useRouter();
@@ -74,7 +74,7 @@ export default function CartPage() {
 
   return (
     <div className="relative min-h-[70vh] bg-brand-bg">
-      <div className="max-w-6xl mx-auto px-4 pt-6 pb-20">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-20">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-12 mb-6">
           <h1 className="text-3xl font-bold text-brand-brown">Your Cart</h1>
         </motion.div>
@@ -257,7 +257,7 @@ export default function CartPage() {
         </div>
       </div>
 
-      <FaqWaveDivider direction="bottom" color="#5C3319" className="bottom-0 left-0 right-0" />
+      <WaveDivider direction="bottom" color="#5C3319" className="absolute bottom-0 left-0 right-0" />
     </div>
   );
 }

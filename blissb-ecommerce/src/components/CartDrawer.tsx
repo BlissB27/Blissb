@@ -63,7 +63,7 @@ export function CartDrawer() {
               stiffness: 300,
               duration: 0.3
             }}
-            className="fixed right-4 top-4 bottom-4 w-full max-w-md bg-brand-bg z-50 shadow-xl rounded-2xl overflow-hidden"
+            className="fixed left-4 right-4 sm:left-auto top-4 bottom-4 w-auto sm:w-full sm:max-w-md bg-brand-bg z-50 shadow-xl rounded-2xl overflow-hidden"
           >
         <div className="flex flex-col h-full">
           {/* Minimum order warning */}

@@ -20,7 +20,7 @@ export default function Home() {
       <Hero />
       <Banner />
       <section id="cookie-box-builder" className="bg-white scroll-mt-[150px] md:scroll-mt-[185px]">
-        <div className="max-w-[1200px] mx-auto px-4 py-12 md:py-16">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
           <CookieBoxBuilder />
         </div>
       </section>

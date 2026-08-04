@@ -28,18 +28,19 @@ export function CakesHighlight() {
     <section className="relative bg-brand-brown">
       <WaveDivider direction="top" color="#FFFFFF" className="absolute left-0 right-0" />
 
-      <div className="mx-auto max-w-[1200px] px-4 py-8 md:py-8 my-8 md:my-8">
+      <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8 py-8 md:py-8 my-8 md:my-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ type: "spring", damping: 25, stiffness: 300, duration: 0.6 }}
+            className="text-center md:text-left"
           >
             <h2 className="text-3xl md:text-4xl font-bold text-white leading-tight">
               Custom Birthday Cakes, Baked Fresh in Braselton, GA
             </h2>
-            <p className="mt-4 text-white/85 text-sm md:text-base leading-relaxed max-w-md">
+            <p className="mt-4 text-white/85 text-sm md:text-base leading-relaxed max-w-md mx-auto md:mx-0">
               Make their birthday unforgettable with a handcrafted birthday cake made to order.
               Pick your favorite flavor, add a personal message, and celebrate with a cake baked
               fresh just for the occasion.

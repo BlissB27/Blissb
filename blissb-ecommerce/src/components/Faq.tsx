@@ -1,7 +1,7 @@
 'use client';
 
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
-import { FaqWaveDivider } from './FaqWaveDivider';
+import { WaveDivider } from './WaveDivider';
 
 export type FaqEntry = { question: string; answer: React.ReactNode };
 
@@ -35,7 +35,7 @@ export const FAQ_DATA: FaqEntry[] = [
   {
     question: 'Can I pick up my order?',
     answer:
-      "Yes! Pickup is available at 111 Manor Way, Braselton, GA 30517. Once your order is confirmed, you'll receive pickup instructions by email.",
+      "Yes! Once your order is confirmed, you'll receive pickup instructions and our address by email.",
   },
   {
     question: 'What happens if I miss my pickup?',
@@ -115,7 +115,7 @@ export function FAQ({
 
   return (
     <section className={`relative bg-[#ffeccf] py-16 pb-24 ${className ?? ''}`}>
-      {withWaveDivider && <FaqWaveDivider direction="top" color="#FFFFFF" className="top-0 left-0 right-0" />}
+      {withWaveDivider && <WaveDivider direction="top" color="#FFFFFF" className="absolute top-0 left-0 right-0" />}
 
       <div className={`mx-auto max-w-5xl px-4 ${withWaveDivider ? 'my-8 md:my-10' : ''}`}>
         <h2 className="text-center text-3xl md:text-4xl font-bold text-brand-brown mb-12">{title}</h2>
@@ -126,7 +126,7 @@ export function FAQ({
         </div>
       </div>
 
-      {withWaveDivider && <FaqWaveDivider direction="bottom" color="#5C3319" className="bottom-0 left-0 right-0" />}
+      {withWaveDivider && <WaveDivider direction="bottom" color="#5C3319" className="absolute bottom-0 left-0 right-0" />}
     </section>
   );
 }
