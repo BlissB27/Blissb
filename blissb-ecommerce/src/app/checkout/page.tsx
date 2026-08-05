@@ -39,7 +39,11 @@ function nameLooksValid(name: string) {
 
 // Formats digits as the user types into (404) 952-7610 — US phone numbers only.
 function formatPhoneNumber(value: string) {
-  const digits = value.replace(/\D/g, "").slice(0, 10);
+  let digits = value.replace(/\D/g, "");
+  // Browser autofill often includes the +1 country code (e.g. "+1 (404) 952-7610"),
+  // which would otherwise shift every digit and drop the real last one.
+  if (digits.length === 11 && digits[0] === "1") digits = digits.slice(1);
+  digits = digits.slice(0, 10);
   if (digits.length === 0) return "";
   if (digits.length < 4) return `(${digits}`;
   if (digits.length < 7) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
@@ -72,6 +76,9 @@ type CheckoutRequestBody = {
   items: CartItem[];
   customerInfo: { name: string; email: string; phone: string };
   deliveryInfo: { type: string; address: string; date: string; time: string; fee: number };
+  // Structured (street/city/state/zip), unlike deliveryInfo.address above (a
+  // single joined line for Google Maps) — Stripe Tax needs a real postal_code.
+  deliveryAddress: ShippingAddress | undefined;
   shippingAddress: ShippingAddress | undefined;
   billingAddress: ShippingAddress;
   couponCode: string | undefined;
@@ -471,6 +478,8 @@ export default function CheckoutPage() {
   const [billingError, setBillingError] = useState<string | null>(null);
   const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
   const [isDeliveryQuoting, setIsDeliveryQuoting] = useState(false);
+  const [taxAmount, setTaxAmount] = useState(0);
+  const [isTaxQuoting, setIsTaxQuoting] = useState(false);
 
   const subtotal = getTotalPrice();
   const shippingInfo = getShippingInfo();
@@ -478,9 +487,10 @@ export default function CheckoutPage() {
   const discountAmount = appliedCoupon ? Math.round(subtotal * (appliedCoupon.percentOff / 100) * 100) / 100 : 0;
   // Estimated client-side throughout — the real amount is only computed
   // server-side at the moment of payment (see PaymentSection.buildRequestBody).
-  const processingFee = calculateProcessingFee(subtotal - discountAmount + deliveryFee);
-  const taxAmount = 0;
-  const total = subtotal - discountAmount + deliveryFee + processingFee;
+  // taxAmount itself is a live preview from /api/tax-quote (below), mirroring
+  // exactly how /api/checkout computes it, so this total matches what gets charged.
+  const processingFee = calculateProcessingFee(subtotal - discountAmount + deliveryFee + taxAmount);
+  const total = subtotal - discountAmount + deliveryFee + taxAmount + processingFee;
 
   const fulfillment = getFulfillmentOptions();
 
@@ -505,6 +515,50 @@ export default function CheckoutPage() {
   const effectiveShippingAddress = shippingAddressSameAsBilling ? billingAddress : shippingAddress;
   const isDeliveryValid = selectedType !== "delivery" || isAddressComplete(effectiveDeliveryAddress);
   const isShippingAddressValid = selectedType !== "shipping" || isAddressComplete(effectiveShippingAddress);
+
+  // Live tax preview (see /api/tax-quote) — keeps the order summary, sticky
+  // total, and the amount shown in the Payment Element / Apple Pay / Google Pay
+  // sheet in sync with what /api/checkout will actually charge at "Pay" time.
+  const itemsSignature = JSON.stringify(
+    items.map((i) => ({ id: i.product.id, q: i.quantity, f: i.flavor, bf: i.boxFlavors }))
+  );
+  const taxReady =
+    items.length > 0 &&
+    (selectedType === "pickup" ? isBillingAddressValid : selectedType === "delivery" ? isDeliveryValid : isShippingAddressValid);
+
+  useEffect(() => {
+    if (!taxReady) {
+      setTaxAmount(0);
+      setIsTaxQuoting(false);
+      return;
+    }
+
+    setIsTaxQuoting(true);
+    const timer = setTimeout(() => {
+      fetch("/api/tax-quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items,
+          deliveryInfo: {
+            type: selectedType,
+            address: selectedType === "delivery" ? joinAddress(effectiveDeliveryAddress) : "",
+            fee: deliveryFee,
+          },
+          deliveryAddress: selectedType === "delivery" ? effectiveDeliveryAddress : undefined,
+          shippingAddress: selectedType === "shipping" ? effectiveShippingAddress : undefined,
+          billingAddress,
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => setTaxAmount(typeof data.taxAmount === "number" ? data.taxAmount : 0))
+        .catch(() => setTaxAmount(0))
+        .finally(() => setIsTaxQuoting(false));
+    }, 500);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taxReady, itemsSignature, selectedType, deliveryFee, JSON.stringify(billingAddress), JSON.stringify(effectiveDeliveryAddress), JSON.stringify(effectiveShippingAddress)]);
 
   const handleInputChange = (field: "name" | "email" | "phone", value: string) => {
     const nextValue = field === "phone" ? formatPhoneNumber(value) : value;
@@ -571,6 +625,7 @@ export default function CheckoutPage() {
         time: window_?.window ?? "",
         fee: deliveryFee,
       },
+      deliveryAddress: selectedType === "delivery" ? effectiveDeliveryAddress : undefined,
       shippingAddress: selectedType === "shipping" ? effectiveShippingAddress : undefined,
       billingAddress,
       couponCode: appliedCoupon?.code,
@@ -619,7 +674,7 @@ export default function CheckoutPage() {
     processingFee,
     total,
     selectedType,
-    isRecalculating: isDeliveryQuoting,
+    isRecalculating: isDeliveryQuoting || isTaxQuoting,
   };
 
   return (
