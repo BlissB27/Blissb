@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { CalendarClock, MapPin, Phone, Sparkles } from "lucide-react";
+import { CalendarClock, MapPin, Mail, Sparkles } from "lucide-react";
 import PhotoSwipeLightbox from "photoswipe/lightbox";
 import "photoswipe/style.css";
 import { Button } from "@/components/ui/button";
@@ -11,8 +11,7 @@ import { WaveDivider } from "@/components/WaveDivider";
 import { CorporateHero } from "@/components/category/CorporateHero";
 import { motion } from "framer-motion";
 
-const PHONE_NUMBER = "+14708835035";
-const CALL_HREF = `tel:${PHONE_NUMBER}`;
+const EMAIL_HREF = "mailto:blissbdesserts@gmail.com";
 
 const SECTION_IDS = ["catering", "corporate-gifting", "cookie-cart"];
 
@@ -185,9 +184,9 @@ export function CorporateContent() {
                   asChild
                   className="text-sm md:text-base px-4 md:px-6 py-2 md:py-3 w-full sm:w-auto"
                 >
-                  <a href={CALL_HREF} className="flex items-center gap-2">
-                    <Phone className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-                    Call us
+                  <a href={EMAIL_HREF} className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+                    Email us
                   </a>
                 </Button>
               </motion.div>
@@ -254,9 +253,9 @@ export function CorporateContent() {
                     asChild
                     className="text-sm md:text-base px-4 md:px-6 py-2 md:py-3 w-full sm:w-auto"
                   >
-                    <a href={CALL_HREF} className="flex items-center gap-2">
-                    <Phone className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-                    Call us
+                    <a href={EMAIL_HREF} className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+                    Email us
                   </a>
                   </Button>
                 </div>
@@ -328,9 +327,9 @@ export function CorporateContent() {
                   asChild
                   className="text-sm md:text-base px-4 md:px-6 py-2 md:py-3 w-full sm:w-auto"
                 >
-                  <a href={CALL_HREF} className="flex items-center gap-2">
-                    <Phone className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-                    Call us
+                  <a href={EMAIL_HREF} className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+                    Email us
                   </a>
                 </Button>
               </div>

@@ -2,11 +2,11 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Phone, Sparkles } from "lucide-react";
+import { Mail, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HeroShell, HeroEyebrow } from "@/components/category/HeroShell";
 
-const CALL_HREF = "tel:+14708835035";
+const EMAIL_HREF = "mailto:blissbdesserts@gmail.com";
 
 export function CorporateHero() {
   return (
@@ -33,9 +33,9 @@ export function CorporateHero() {
           </p>
 
           <Button className="bg-white text-brand-brown hover:bg-white/90" size="lg" asChild>
-            <a href={CALL_HREF} className="flex items-center gap-2">
-              <Phone className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-              Call us
+            <a href={EMAIL_HREF} className="flex items-center gap-2">
+              <Mail className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+              Email us
             </a>
           </Button>
         </motion.div>

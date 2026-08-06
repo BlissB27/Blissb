@@ -8,6 +8,14 @@ import { FlavorConfirmDialog } from "@/components/FlavorConfirmDialog";
 import { useProductAddToCart } from "@/hooks/useProductAddToCart";
 import type { Product } from "@/data/products";
 import { HeroShell, HeroEyebrow } from "@/components/category/HeroShell";
+import { getProductImageSrc } from "@/lib/productImage";
+
+// Used only if the server-side Strapi fetch genuinely failed (see cookies/page.tsx) —
+// keeps the hero from rendering blank instead of reflecting missing product data.
+const FALLBACK_TITLE = "The Mini Cookie Box";
+const FALLBACK_DESCRIPTION =
+  "Fifty mini cookies, your way. Mix up to five flavors — chocolate chip, red velvet, M&M, Biscoff, Pirulin, choco brownie with oreo, or let us assort them for you. Perfect for gifting or celebrating.";
+const FALLBACK_IMAGE = "/img/cookies-hero.png";
 
 // Orchestrates the reveal: title/subtitle/button together, then the photo shortly after.
 const containerVariants = {
@@ -32,6 +40,10 @@ type CookiesHeroProps = {
 };
 
 export function CookiesHero({ product }: CookiesHeroProps) {
+  const title = product?.name || FALLBACK_TITLE;
+  const description = product?.description || FALLBACK_DESCRIPTION;
+  const image = product?.image ? getProductImageSrc(product.image) : FALLBACK_IMAGE;
+
   return (
     <HeroShell>
       <motion.div
@@ -45,13 +57,11 @@ export function CookiesHero({ product }: CookiesHeroProps) {
           <HeroEyebrow icon={Cookie} align="start">Our Most-Gifted Box</HeroEyebrow>
 
           <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight mb-4">
-            The Mini Cookie Box
+            {title}
           </h1>
 
           <p className="text-white/85 text-base md:text-lg mb-6 max-w-md mx-auto md:mx-0">
-            Fifty mini cookies, your way. Mix up to five flavors — chocolate chip, red
-            velvet, M&amp;M, Biscoff, Pirulin, choco brownie with oreo, or let us assort
-            them for you. Perfect for gifting or celebrating.
+            {description}
           </p>
 
           <MiniCookieBoxCta product={product} />
@@ -69,8 +79,8 @@ export function CookiesHero({ product }: CookiesHeroProps) {
             className="relative aspect-[4/3] w-full max-w-md overflow-hidden rounded-2xl shadow-2xl cursor-pointer"
           >
             <Image
-              src="/img/cookies-hero.png"
-              alt="A gift box overflowing with warm, freshly baked Bliss-B mini cookies"
+              src={image}
+              alt={title}
               fill
               className="object-cover"
               sizes="(max-width: 768px) 90vw, 480px"
