@@ -243,10 +243,14 @@ export function CorporateContent() {
                 <p>
                   Don't worry, we're here for you, whether you're celebrating
                   work anniversaries, welcoming new hires, celebrating
-                  milestones or sending holiday gifts. We have both pre-made and
-                  custom corporate gift options - or make a simple, self-service
-                  option to save you time, and a concierge option if you're
-                  looking for something bespoke.
+                  milestones or sending holiday gifts.
+                </p>
+                <p>
+                  <span className="font-semibold text-brand-text">
+                    Corporate Gifts, made simple.
+                  </span>{" "}
+                  Choose from our curated gift options, ready to send, or tell
+                  us your vision and we'll take care of every detail for you.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Button
@@ -285,9 +289,9 @@ export function CorporateContent() {
                 </p>
                 <p>
                   You choose your cookie flavors, and we'll handle the rest from
-                  setup to serving. Think of it like an ice cream cart, but with
-                  fresh-baked cookies and premium toppings like Oreos, Biscoff
-                  crumble, marshmallows, sprinkles, and more.
+                  setup to serving. Think of it as a cookie bar, warm, fresh, and
+                  finished with your choice of Oreos, Biscoff crumble,
+                  marshmallows, sprinkles, and more.
                 </p>
               </div>
 

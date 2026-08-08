@@ -45,7 +45,7 @@ export function Hero() {
             transition={{ type: "spring", damping: 25, stiffness: 300, delay: 0.2, duration: 0.6 }}
             className="text-4xl md:text-7xl font-bold text-brand-text leading-tight mb-4"
           >
-            Bliss-B is more <br className="hidden md:block" /> than a bakery
+            Bliss-B is not a place, <br className="hidden md:block" /> it&apos;s a taste.
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -53,8 +53,8 @@ export function Hero() {
             transition={{ type: "spring", damping: 25, stiffness: 300, delay: 0.4, duration: 0.6 }}
             className="text-brand-muted text-base md:text-lg mb-6"
           >
-            At <span className="text-brand-brown font-medium">Bliss-B Desserts</span>, we believe that desserts
-            should not only taste amazing but also tell a story.
+            Cookies, cakes, and desserts crafted to turn any gathering into
+            something guests remember.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 20 }}

@@ -38,12 +38,11 @@ export function CakesHighlight() {
             className="text-center md:text-left"
           >
             <h2 className="text-3xl md:text-4xl font-bold text-white leading-tight">
-              Custom Birthday Cakes, Baked Fresh in Braselton, GA
+              Cakes for Every Occasion
             </h2>
             <p className="mt-4 text-white/85 text-sm md:text-base leading-relaxed max-w-md mx-auto md:mx-0">
-              Make their birthday unforgettable with a handcrafted birthday cake made to order.
-              Pick your favorite flavor, add a personal message, and celebrate with a cake baked
-              fresh just for the occasion.
+              A craving, an anniversary, a milestone worth celebrating, any reason is
+              reason enough. Choose your flavor, add a name, and let the cake do the rest.
             </p>
             <Button asChild className="mt-6 bg-white text-brand-brown hover:bg-white/90">
               <Link href="/cakes">Shop All Cakes</Link>

@@ -28,7 +28,7 @@ export default async function DessertsPage() {
       hero={<DessertsHero desserts={desserts} />}
       title="Gourmet Desserts"
       categoryLabel="Desserts"
-      blurb="Indulgent desserts crafted with precision and care. From classic favorites to innovative creations, each dessert is a perfect ending to any meal."
+      blurb="Elegant desserts, crafted with the same precision and care as everything we bake. From cookie fries perfect for sharing to individually portioned brownies, cookie cups, and alfajores, each one is designed to be the perfect ending to any occasion."
       infoCards={[
         {
           Icon: Utensils,

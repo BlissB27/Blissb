@@ -27,8 +27,8 @@ export default function Home() {
       <CakesHighlight />
       <CategoryShowcase
         category="desserts"
-        title="Decadent Desserts, Made Fresh Daily"
-        blurb="From rich tiramisu to creamy New York cheesecake, every dessert is handcrafted in small batches in Braselton, GA — the perfect sweet ending for any occasion."
+        title="Desserts, Made Fresh Daily"
+        blurb="From cookie fries and brownies to brownie cups, mini cookies, and alfajores, and more, each one handcrafted in small batches and finished with the same care as everything we bake."
       />
       <InstagramGallery />
       <Awards />

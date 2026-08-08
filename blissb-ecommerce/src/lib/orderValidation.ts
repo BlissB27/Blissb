@@ -11,7 +11,12 @@ export type CompactItem = {
   q: number;
   f?: string;
   bf?: { flavor: string; quantity: number }[];
+  m?: string; // Mensaje corto en chocolate (solo cakes)
 };
+
+// Igual que CAKE_MESSAGE_MAX_LENGTH en el store — se re-aplica en el servidor
+// para no confiar en el largo que mande el cliente.
+const CAKE_MESSAGE_MAX_LENGTH = 20;
 
 // 🔒 Re-validates every item against Strapi (price/stock/flavor selection) —
 // shared by /api/checkout (which charges the customer) and /api/tax-quote
@@ -85,11 +90,20 @@ export async function validateAndPriceItems(items: any[]): Promise<{
           throw new Error('One or more items in your cart are currently unavailable. Please remove them and try again.');
         }
 
+        // El mensaje en chocolate solo aplica a cakes — se ignora en cualquier
+        // otro producto aunque el cliente lo mande.
+        const rawMessage = typeof item.message === 'string' ? item.message.trim() : '';
+        const message =
+          strapiProduct.category === 'cakes' && rawMessage.length > 0
+            ? rawMessage.slice(0, CAKE_MESSAGE_MAX_LENGTH)
+            : undefined;
+
         return {
           id: strapiProduct.id,
           q: validQuantity,
           f: item.flavor,
           bf: boxFlavors,
+          m: message,
         };
       } catch (error) {
         console.error(`Error validating product ${item.product.id}:`, error);

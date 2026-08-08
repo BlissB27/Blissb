@@ -7,13 +7,13 @@ import type { Product } from "@/data/products";
 const INFO_CARDS = [
   {
     Icon: Palette,
-    title: "Custom Flavors",
-    description: "Choose from multiple flavor options for each cake. Each flavor is carefully crafted for the perfect taste.",
+    title: "Flavor Options",
+    description: "Choose from our selection of flavors, each one crafted for the perfect taste.",
   },
   {
     Icon: CalendarClock,
     title: "Advance Notice",
-    description: "Custom cakes require 24-48 hours advance notice for preparation and decoration.",
+    description: "Cakes require at least 5 business days advance notice for preparation.",
   },
   {
     Icon: ChefHat,

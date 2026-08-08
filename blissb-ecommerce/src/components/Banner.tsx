@@ -119,7 +119,7 @@ export default function Banner() {
         >
           <BannerCard
             title="Events"
-            description="We bring our cookie and cake carts on-site, serving fresh desserts at your party from start to finish."
+            description="Bliss-B travels to you. Our cookie and cake carts bring a full dessert experience to your event, served fresh from start to finish."
             imageSrc="/img/carrito.jpeg"
             href="/corporate?section=cookie-cart"
             ctaLabel="Book Our Cart"
@@ -128,7 +128,7 @@ export default function Banner() {
           />
           <BannerCard
             title="Corporate Gifts"
-            description="Share Bliss-B flavors with clients or teams through custom cookie boxes, a sweet thank-you."
+            description="Share Bliss-B with clients and teams. Each cookie carries your logo, packaged fresh in a clean, ready-to-share box."
             imageSrc="/img/corporate.jpeg"
             href="/corporate?section=corporate-gifting"
             ctaLabel="Get a Quote"
@@ -137,7 +137,7 @@ export default function Banner() {
           />
           <BannerCard
             title="Catering"
-            description="Order large quantities of cookies, brownies, and more, perfect for weddings, parties, and gatherings."
+            description="Cookies, brownies, and more, in the quantities your event calls for. Perfect for weddings, parties, and gatherings."
             imageSrc="/img/caterine.jpeg"
             href="/corporate?section=catering"
             ctaLabel="See Catering Options"

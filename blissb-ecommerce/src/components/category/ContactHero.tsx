@@ -1,11 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Phone } from "lucide-react";
+import { Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HeroShell, HeroEyebrow } from "@/components/category/HeroShell";
 
-const CALL_HREF = "tel:+14708835035";
+const EMAIL_HREF = "mailto:blissbdesserts@gmail.com";
 
 export function ContactHero() {
   return (
@@ -16,14 +16,14 @@ export function ContactHero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", damping: 25, stiffness: 300, duration: 0.6 }}
         >
-          <HeroEyebrow icon={Phone}>We&apos;d Love to Hear From You</HeroEyebrow>
+          <HeroEyebrow icon={Mail}>We&apos;d Love to Hear From You</HeroEyebrow>
 
           <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight">
             Let&apos;s Talk
           </h1>
           <p className="mt-4 text-white/85 text-base md:text-lg leading-relaxed max-w-xl mx-auto">
-            The fastest way to get an answer is to call — no forms, no waiting on email.
-            We pick up during business hours, and we&apos;ll text you back if we miss you.
+            Send us a message and we&apos;ll get back to you within one business day,
+            it&apos;s the easiest way to start planning your order or event.
           </p>
 
           <motion.div
@@ -33,9 +33,9 @@ export function ContactHero() {
             className="mt-8"
           >
             <Button asChild size="lg" className="bg-white text-brand-brown hover:bg-white/90 text-lg px-8 py-6">
-              <a href={CALL_HREF}>
-                <Phone className="h-5 w-5" strokeWidth={2} />
-                Get Help With Your Order
+              <a href={EMAIL_HREF}>
+                <Mail className="h-5 w-5" strokeWidth={2} />
+                Email Us
               </a>
             </Button>
           </motion.div>

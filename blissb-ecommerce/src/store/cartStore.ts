@@ -14,7 +14,12 @@ export type CartItem = {
   quantity: number;
   flavor?: string; // Para cakes que requieren sabor específico
   boxFlavors?: BoxFlavor[]; // Para cajas con reparto de sabores (ej. Mini Cookie Box)
+  message?: string; // Mensaje corto en chocolate para cakes (se edita solo en /cart)
 };
+
+// Tope del mensaje en chocolate: alcanza para un "Happy Birthday" o un nombre, no
+// para personalización libre.
+export const CAKE_MESSAGE_MAX_LENGTH = 20;
 
 export type AddItemOptions = {
   quantity?: number;
@@ -38,6 +43,7 @@ type CartStore = {
   addItem: (product: Product, options?: AddItemOptions) => AddItemResult;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
+  setItemMessage: (productId: string, message: string) => void;
   clearCart: () => void;
   toggleCart: () => void;
   openCart: () => void;
@@ -187,6 +193,17 @@ export const useCartStore = create<CartStore>()(
         });
       },
       
+      setItemMessage: (productId, message) => {
+        const trimmed = message.slice(0, CAKE_MESSAGE_MAX_LENGTH);
+        set((state) => ({
+          items: state.items.map((item) =>
+            item.id === productId
+              ? { ...item, message: trimmed.length > 0 ? trimmed : undefined }
+              : item
+          ),
+        }));
+      },
+
       clearCart: () => {
         set({ items: [], appliedCoupon: null });
       },

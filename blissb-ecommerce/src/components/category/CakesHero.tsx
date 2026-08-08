@@ -25,15 +25,14 @@ export function CakesHero({ cakes }: CakesHeroProps) {
             transition={{ type: "spring", damping: 25, stiffness: 300, duration: 0.6 }}
             className="text-center max-w-xl"
           >
-            <HeroEyebrow icon={Cake}>Custom Cakes, Made to Order</HeroEyebrow>
+            <HeroEyebrow icon={Cake}>Cakes for Every Occasion</HeroEyebrow>
 
             <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight">
               Cakes Worth Celebrating
             </h1>
             <p className="mt-4 text-white/85 text-base md:text-lg leading-relaxed">
-              Every cake is made to order — handcrafted layer by layer, filled and finished
-              with your choice of flavor. Give us 24–48 hours notice and we&apos;ll do the
-              rest.
+              Handcrafted layer by layer, filled and finished with your choice of flavor.
+              Give us at least 5 business days notice and we&apos;ll do the rest.
             </p>
             <Button
               className="mt-6 bg-white text-brand-brown hover:bg-white/90"

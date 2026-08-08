@@ -42,8 +42,7 @@ export default function ContactPage() {
               Fresh, On Your Schedule
             </h2>
             <p className="text-brand-muted max-w-xl mx-auto">
-              We&apos;re a home bakery in Braselton, GA, not a walk-in storefront — here&apos;s
-              exactly how the week runs.
+              Here&apos;s exactly how the week runs, and when we&apos;re available to help.
             </p>
           </motion.div>
 

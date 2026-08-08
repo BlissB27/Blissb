@@ -13,6 +13,7 @@ type CompactItem = {
   q: number;
   f?: string;
   bf?: { flavor: string; quantity: number }[];
+  m?: string; // Mensaje corto en chocolate (solo cakes)
 };
 
 // Deterministic numeric id for the email template's `Product.id` field — it's
@@ -84,6 +85,7 @@ export async function POST(request: NextRequest) {
               quantity: item.q,
               image: product.image,
               size,
+              message: item.m,
             };
           })
         )

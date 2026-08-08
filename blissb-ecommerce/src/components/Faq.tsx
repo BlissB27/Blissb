@@ -58,7 +58,7 @@ export const FAQ_DATA: FaqEntry[] = [
   },
   {
     question: 'Can I customize my order?',
-    answer: 'We do not offer custom options for individual treats, but customization is available for catering orders.',
+    answer: 'We don\'t offer full customization, but every cake can be finished with a short message in chocolate, a name, a date, or a simple "Happy Birthday", and corporate gift cookies can carry your company\'s logo.',
   },
   {
     question: 'Do you work with other businesses?',

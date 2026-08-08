@@ -69,9 +69,9 @@ export function DessertsHero({ desserts }: DessertsHeroProps) {
             A Sweet Ending, Every Time
           </h1>
           <p className="text-white/85 text-base md:text-lg mb-6 max-w-md mx-auto md:mx-0">
-            From personalized brownies to individually portioned cups, every dessert is
-            crafted fresh with real ingredients and the kind of detail that makes it
-            worth saving room for.
+            From crisp cookie fries to warm brownies, brownie cups, mini cookies, and
+            delicate alfajores, and more, every dessert is crafted fresh with real
+            ingredients and the kind of detail that makes it worth saving room for.
           </p>
           <Button
             className="bg-white text-brand-brown hover:bg-white/90"

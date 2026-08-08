@@ -6,6 +6,7 @@ interface Product {
   image?: string;
   size?: string;
   color?: string;
+  message?: string; // Mensaje corto en chocolate para cakes
 }
 
 interface ShippingAddress {
@@ -48,6 +49,11 @@ export function generateOrderConfirmationHTML(data: {
           ${product.size ? ` • Size: ${product.size}` : ''}
           ${product.color ? ` • Color: ${product.color}` : ''}
         </div>
+        ${
+          product.message
+            ? `<div style="font-size: 14px; color: #9B562C; margin-top: 4px;">Message in chocolate: “${product.message}”</div>`
+            : ''
+        }
       </div>
       <div style="font-weight: 600; color: #667eea;">
         $${(product.price * product.quantity).toFixed(2)}
@@ -172,6 +178,11 @@ export function generateAdminOrderHTML(data: {
           ${product.size ? ` • Size: ${product.size}` : ''}
           ${product.color ? ` • Color: ${product.color}` : ''}
         </div>
+        ${
+          product.message
+            ? `<div style="font-size: 13px; color: #9B562C; margin-top: 4px;"><strong>Message in chocolate:</strong> “${product.message}”</div>`
+            : ''
+        }
         <div style="font-size: 13px; color: #6b7280;">
           Unit price: $${product.price.toFixed(2)}
         </div>

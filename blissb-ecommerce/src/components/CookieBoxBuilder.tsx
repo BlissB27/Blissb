@@ -396,7 +396,7 @@ export function CookieBoxBuilder() {
             Build Your Own Cookie Box
           </h2>
           <p className="text-brand-muted max-w-xl mx-auto">
-            Mix and match every flavor we bake. Pick as many as you like, and we&apos;ll box them up fresh, made your way.
+            Mix and match every flavor we bake. Fresh, boxed, and made your way.
           </p>
         </div>
 

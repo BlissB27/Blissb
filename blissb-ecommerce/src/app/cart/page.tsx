@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertCircle, Minus, Plus, X } from 'lucide-react';
-import { useCartStore, type CartItem } from '@/store/cartStore';
+import { AlertCircle, ChevronDown, Minus, Pencil, Plus, X } from 'lucide-react';
+import { useCartStore, type CartItem, CAKE_MESSAGE_MAX_LENGTH } from '@/store/cartStore';
 import { useHydrated } from '@/hooks/useHydrated';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,7 @@ export default function CartPage() {
     items,
     updateQuantity,
     removeItem,
+    setItemMessage,
     getTotalPrice,
     getMinimumOrderInfo,
     appliedCoupon,
@@ -30,6 +31,8 @@ export default function CartPage() {
 
   const [couponInput, setCouponInput] = useState('');
   const [couponError, setCouponError] = useState<string | null>(null);
+  // Qué ítem tiene abierto el editor de mensaje en chocolate (solo uno a la vez).
+  const [openMessageId, setOpenMessageId] = useState<string | null>(null);
 
   const subtotal = getTotalPrice();
   const orderInfo = getMinimumOrderInfo();
@@ -104,7 +107,8 @@ export default function CartPage() {
                     transition={{ duration: 0.3, ease: 'easeInOut' }}
                     className="overflow-hidden"
                   >
-                    <div className="flex items-center gap-4 bg-white rounded-xl py-4 pl-4 pr-8 border border-brand-border">
+                    <div className="bg-white rounded-xl border border-brand-border">
+                    <div className="flex items-center gap-4 py-4 pl-4 pr-8">
                       <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-brand-bg">
                         <img
                           src={getProductImageSrc(item.product.image)}
@@ -160,6 +164,67 @@ export default function CartPage() {
                       >
                         <X className="h-4 w-4" strokeWidth={1.75} />
                       </button>
+                    </div>
+
+                    {/* Mensaje en chocolate — solo para cakes, se edita únicamente acá en /cart */}
+                    {item.product.category === 'cakes' && (
+                      <div className="border-t border-brand-border px-4 pb-3">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setOpenMessageId((prev) => (prev === item.id ? null : item.id))
+                          }
+                          aria-expanded={openMessageId === item.id}
+                          className="flex w-full items-center gap-2 py-2.5 text-sm text-brand-brown hover:text-brand-brown-hover"
+                        >
+                          <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+                          <span className="font-medium">
+                            {item.message ? 'Message in chocolate' : 'Add a message in chocolate'}
+                          </span>
+                          {item.message && (
+                            <span className="max-w-[45%] truncate text-brand-muted font-normal">
+                              &ldquo;{item.message}&rdquo;
+                            </span>
+                          )}
+                          <ChevronDown
+                            className={`ml-auto h-4 w-4 transition-transform ${
+                              openMessageId === item.id ? 'rotate-180' : ''
+                            }`}
+                            strokeWidth={1.75}
+                          />
+                        </button>
+
+                        <AnimatePresence initial={false}>
+                          {openMessageId === item.id && (
+                            <motion.div
+                              key="message-editor"
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.2, ease: 'easeInOut' }}
+                              className="overflow-hidden"
+                            >
+                              <div className="pb-1 pt-1">
+                                <textarea
+                                  value={item.message ?? ''}
+                                  onChange={(e) => setItemMessage(item.id, e.target.value)}
+                                  maxLength={CAKE_MESSAGE_MAX_LENGTH}
+                                  rows={2}
+                                  placeholder={'e.g. "Happy Birthday"'}
+                                  className="w-full resize-none rounded-lg border border-brand-border bg-brand-bg px-3 py-2 text-sm text-brand-text placeholder:text-brand-muted focus:border-brand-brown focus:outline-none"
+                                />
+                                <div className="mt-1 flex items-center justify-between text-xs text-brand-muted">
+                                  <span>Piped in chocolate on your cake.</span>
+                                  <span>
+                                    {(item.message?.length ?? 0)}/{CAKE_MESSAGE_MAX_LENGTH}
+                                  </span>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    )}
                     </div>
                   </motion.div>
                 ))}
