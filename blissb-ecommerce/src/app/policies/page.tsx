@@ -37,7 +37,7 @@ const POLICY_SECTIONS: PolicySection[] = [
     title: "Local Delivery",
     items: [
       <>
-        We deliver within a <strong className="text-brand-text">25-mile radius</strong> of our bakery at 111 Manor Way, Braselton, GA 30517. Enter your address at checkout to see your exact delivery fee, calculated by real driving distance.
+        We deliver within a <strong className="text-brand-text">25-mile radius</strong> of our bakery in Braselton. Enter your address at checkout to see your exact delivery fee, calculated by real driving distance.
       </>,
       <>
         Delivery fees: <strong className="text-brand-text">free within 7 miles</strong>, $7 for 7.1–12 miles, $10 for 12.1–17 miles, and $15 for 17.1–25 miles.
@@ -53,7 +53,7 @@ const POLICY_SECTIONS: PolicySection[] = [
     title: "Pick-Up Days and Policies",
     items: [
       <>
-        <strong className="text-brand-text">Tuesday–Friday:</strong> pickup at 111 Manor Way, Braselton, GA 30517, between 6pm–8pm (same-day if ordered before the 2:00pm cutoff).
+        <strong className="text-brand-text">Tuesday–Friday:</strong> pickup in Braselton, between 6pm–8pm (same-day if ordered before the 2:00pm cutoff).
       </>,
       <>
         <strong className="text-brand-text">Saturday:</strong> pickup only at the Suwanee Farmers Market, 8am–12pm.

@@ -27,8 +27,8 @@ export default function TermsPage() {
 
         <Section title="1. Who we are">
           <p>
-            Bliss-B Desserts (&quot;Bliss-B,&quot; &quot;we,&quot; &quot;us&quot;) is a home bakery based at 111 Manor
-            Way, Braselton, GA 30517. These Terms of Service govern your use of blissbbakery.com (the
+            Bliss-B Desserts (&quot;Bliss-B,&quot; &quot;we,&quot; &quot;us&quot;) is a home bakery based in
+            Braselton. These Terms of Service govern your use of blissbbakery.com (the
             &quot;Site&quot;) and any order you place through it.
           </p>
         </Section>

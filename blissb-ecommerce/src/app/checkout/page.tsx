@@ -355,7 +355,12 @@ function OrderSummaryPanel({
               )}
               {item.boxFlavors && item.boxFlavors.length > 1 && (
                 <p className="text-xs text-brand-muted">
-                  {item.boxFlavors.map((f) => `${toSentenceCase(f.flavor)} x${f.quantity}`).join(", ")}
+                  {item.boxFlavors.map((f) => toSentenceCase(f.flavor)).join(", ")}
+                </p>
+              )}
+              {item.message && (
+                <p className="text-xs text-brand-muted italic truncate">
+                  Message: &ldquo;{item.message}&rdquo;
                 </p>
               )}
             </div>

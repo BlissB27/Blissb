@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Product } from '@/data/products';
 import { getProductImageSrc } from '@/lib/productImage';
+import { FREE_SHIPPING_SUBTOTAL_THRESHOLD } from '@/lib/deliveryPricing';
 
 export type BoxFlavor = {
   flavor: string;
@@ -17,9 +18,9 @@ export type CartItem = {
   message?: string; // Mensaje corto en chocolate para cakes (se edita solo en /cart)
 };
 
-// Tope del mensaje en chocolate: alcanza para un "Happy Birthday" o un nombre, no
-// para personalización libre.
-export const CAKE_MESSAGE_MAX_LENGTH = 20;
+// Tope del mensaje en chocolate: alcanza para un nombre corto o "Happy Birthday",
+// no para personalización libre.
+export const CAKE_MESSAGE_MAX_LENGTH = 13;
 
 export type AddItemOptions = {
   quantity?: number;
@@ -251,10 +252,16 @@ export const useCartStore = create<CartStore>()(
         );
         const totalCookies = cookieItems.reduce((sum, item) => sum + item.quantity, 0);
         const dozensRequired = Math.ceil(totalCookies / COOKIES_PER_DOZEN);
-        const shippingCost = dozensRequired * SHIPPING_COST_PER_DOZEN;
+
+        // Envío gratis a partir del umbral de subtotal (misma regla que valida el backend).
+        const subtotal = get().getTotalPrice();
+        const qualifiesFreeShipping = subtotal >= FREE_SHIPPING_SUBTOTAL_THRESHOLD;
+        const shippingCost = qualifiesFreeShipping ? 0 : dozensRequired * SHIPPING_COST_PER_DOZEN;
 
         let message = '';
-        if (totalCookies === 0) {
+        if (qualifiesFreeShipping) {
+          message = `Free shipping on orders over $${FREE_SHIPPING_SUBTOTAL_THRESHOLD}`;
+        } else if (totalCookies === 0) {
           message = 'Shipping costs calculated at checkout';
         } else if (totalCookies < COOKIES_PER_DOZEN) {
           message = `Shipping cost: $${SHIPPING_COST_PER_DOZEN} for up to ${COOKIES_PER_DOZEN} cookies`;

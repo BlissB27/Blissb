@@ -16,7 +16,7 @@ export type CompactItem = {
 
 // Igual que CAKE_MESSAGE_MAX_LENGTH en el store — se re-aplica en el servidor
 // para no confiar en el largo que mande el cliente.
-const CAKE_MESSAGE_MAX_LENGTH = 20;
+const CAKE_MESSAGE_MAX_LENGTH = 13;
 
 // 🔒 Re-validates every item against Strapi (price/stock/flavor selection) —
 // shared by /api/checkout (which charges the customer) and /api/tax-quote

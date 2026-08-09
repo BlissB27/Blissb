@@ -13,6 +13,14 @@ const PRODUCT_POPULATE = {
 
 // Convert Strapi product to our app's product format
 export function transformStrapiProduct(strapiProduct: any): Product {
+  // flavorOptions (nombre + foto) es la única fuente de verdad del selector de
+  // sabores: la lista de nombres `flavors` que consume el resto de la app se
+  // deriva de aquí, así en Strapi solo se llena este campo (el viejo campo
+  // `flavors` ya no existe en el schema).
+  const flavorOptions = (strapiProduct.flavorOptions || [])
+    .filter((f: any) => f?.name && f?.image?.url)
+    .map((f: any) => ({ name: f.name, image: getStrapiMediaUrl(f.image.url) }));
+
   // Strapi v5 format - no attributes wrapper, direct fields
   return {
     id: strapiProduct.documentId || strapiProduct.id.toString(),
@@ -28,10 +36,8 @@ export function transformStrapiProduct(strapiProduct: any): Product {
     isNew: strapiProduct.isNew || false,
     isOnOffer: strapiProduct.isOnOffer || false,
     originalPrice: strapiProduct.originalPrice,
-    flavors: strapiProduct.flavors || [],
-    flavorOptions: (strapiProduct.flavorOptions || [])
-      .filter((f: any) => f?.name && f?.image?.url)
-      .map((f: any) => ({ name: f.name, image: getStrapiMediaUrl(f.image.url) })),
+    flavors: flavorOptions.map((f: { name: string }) => f.name),
+    flavorOptions,
     allowCustomMessage: strapiProduct.allowCustomMessage || false,
     // Agregar galería de imágenes
     gallery: strapiProduct.gallery?.map((img: any) => getStrapiMediaUrl(img.url)) || [],

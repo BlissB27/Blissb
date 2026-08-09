@@ -470,7 +470,6 @@ export interface ApiProductProduct extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     description: Schema.Attribute.Blocks;
     flavorOptions: Schema.Attribute.Component<'flavor.flavor-option', true>;
-    flavors: Schema.Attribute.JSON;
     gallery: Schema.Attribute.Media<
       'images' | 'files' | 'videos' | 'audios',
       true

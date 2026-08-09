@@ -125,7 +125,7 @@ export default function CartPage() {
                         )}
                         {item.boxFlavors && item.boxFlavors.length > 1 && (
                           <p className="text-xs text-brand-brown">
-                            {item.boxFlavors.map((f) => `${toSentenceCase(f.flavor)} x${f.quantity}`).join(', ')}
+                            {item.boxFlavors.map((f) => toSentenceCase(f.flavor)).join(', ')}
                           </p>
                         )}
                         <p className="text-sm text-brand-muted">${item.product.price.toFixed(2)} each</p>

@@ -1,5 +1,8 @@
 export const MAX_DELIVERY_MILES = 25;
 export const FREE_DELIVERY_SUBTOTAL_THRESHOLD = 60;
+// Envío (UPS) gratis a partir de este subtotal. Fuente de verdad única, usada
+// tanto en el front (carrito/checkout) como en la re-validación del backend.
+export const FREE_SHIPPING_SUBTOTAL_THRESHOLD = 65;
 
 export type DeliveryQuote = {
   eligible: boolean;

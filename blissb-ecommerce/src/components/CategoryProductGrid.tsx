@@ -38,10 +38,15 @@ export function CategoryProductGrid({
     setLoadingMore(false);
     getProductsByCategoryAsync(category)
       .then((data) => {
-        // Pre-made boxes (e.g. Mini Cookie Box) aren't an individual cookie
-        // choice — keep them out of this grid so they don't sit mixed in
-        // with the actual cookies (still reachable via their own product page).
-        if (!cancelled) setProducts(data.filter((product) => !product.isSoldInBox));
+        // En cookies, las cajas pre-armadas (ej. Mini Cookie Box) no son una
+        // galleta individual — se mantienen fuera del grid para no mezclarlas
+        // con las cookies sueltas (siguen accesibles vía su propia página y el
+        // hero). En el resto de categorías (ej. desserts) sí se muestran.
+        if (!cancelled) {
+          setProducts(
+            category === "cookies" ? data.filter((product) => !product.isSoldInBox) : data
+          );
+        }
       })
       .catch((error) => {
         console.error(`Error fetching ${category} products:`, error);

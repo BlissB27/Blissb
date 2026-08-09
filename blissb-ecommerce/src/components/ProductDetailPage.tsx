@@ -128,7 +128,7 @@ export function ProductDetailPage({ product, allProducts }: ProductDetailPagePro
           <div>
             <div
               id="product-gallery"
-              className="relative bg-white border border-brand-border rounded-2xl p-8 mb-4 aspect-square"
+              className="relative overflow-hidden bg-white border border-brand-border rounded-2xl mb-4 aspect-square"
             >
               {validImages.map((image, index) => (
                 <a

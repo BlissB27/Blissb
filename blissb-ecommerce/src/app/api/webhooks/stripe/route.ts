@@ -70,9 +70,7 @@ export async function POST(request: NextRequest) {
             }
 
             const size = item.bf?.length
-              ? item.bf.length === 1
-                ? toSentenceCase(item.bf[0].flavor)
-                : item.bf.map((f) => `${toSentenceCase(f.flavor)} x${f.quantity}`).join(', ')
+              ? item.bf.map((f) => toSentenceCase(f.flavor)).join(', ')
               : item.f
               ? toSentenceCase(item.f)
               : undefined;

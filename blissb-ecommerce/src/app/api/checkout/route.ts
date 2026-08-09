@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { stripe, chunkMetadata } from '@/lib/stripe';
 import { calculateProcessingFee } from '@/lib/orderFees';
 import { getDrivingMilesFromOrigin } from '@/lib/googleMaps';
-import { getDeliveryQuote } from '@/lib/deliveryPricing';
+import { getDeliveryQuote, FREE_SHIPPING_SUBTOTAL_THRESHOLD } from '@/lib/deliveryPricing';
 import { validateCoupon } from '@/lib/coupons';
 import { validateAndPriceItems } from '@/lib/orderValidation';
 import { buildTaxAddress, calculateOrderTax } from '@/lib/stripeTax';
@@ -17,7 +17,10 @@ async function validateDeliveryFee(
   subtotal: number
 ): Promise<{ fee: number; eligible: boolean }> {
   if (type === 'pickup') return { fee: 0, eligible: true };
-  if (type === 'shipping') return { fee: SHIPPING_COST, eligible: true };
+  if (type === 'shipping') {
+    const fee = subtotal >= FREE_SHIPPING_SUBTOTAL_THRESHOLD ? 0 : SHIPPING_COST;
+    return { fee, eligible: true };
+  }
   if (type === 'delivery') {
     const miles = await getDrivingMilesFromOrigin(address);
     return getDeliveryQuote(miles, subtotal);

@@ -47,9 +47,6 @@
       "type": "decimal",
       "required": true
     },
-    "flavors": {
-      "type": "json"
-    },
     "image": {
       "type": "media",
       "multiple": false,
