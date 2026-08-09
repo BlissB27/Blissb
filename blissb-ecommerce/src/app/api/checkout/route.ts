@@ -105,13 +105,13 @@ export async function POST(request: NextRequest) {
       // Usar el fee validado del backend
     }
 
-    // 🔒 CUPÓN — validado contra la lista fija del servidor, nunca se confía en el % que mande el cliente
+    // 🔒 CUPÓN — validado contra Strapi, nunca se confía en el % que mande el cliente
     let discountAmount = 0;
     let appliedCouponCode: string | undefined;
     if (couponCode) {
-      const { valid, percentOff } = validateCoupon(couponCode);
+      const { valid, percentOff, error } = await validateCoupon(couponCode, validatedSubtotal);
       if (!valid) {
-        return NextResponse.json({ error: 'That discount code is not valid.' }, { status: 400 });
+        return NextResponse.json({ error: error ?? 'That discount code is not valid.' }, { status: 400 });
       }
       discountAmount = Math.round(validatedSubtotal * (percentOff / 100) * 100) / 100;
       appliedCouponCode = couponCode.trim().toUpperCase();

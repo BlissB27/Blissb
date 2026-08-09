@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { getProductImageSrc } from '@/lib/productImage';
-import { validateCoupon } from '@/lib/coupons';
 import { toSentenceCase } from '@/lib/text';
 import { WaveDivider } from '@/components/WaveDivider';
 
@@ -31,6 +30,7 @@ export default function CartPage() {
 
   const [couponInput, setCouponInput] = useState('');
   const [couponError, setCouponError] = useState<string | null>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   // Qué ítem tiene abierto el editor de mensaje en chocolate (solo uno a la vez).
   const [openMessageId, setOpenMessageId] = useState<string | null>(null);
 
@@ -54,13 +54,26 @@ export default function CartPage() {
     }
   };
 
-  const handleApplyCoupon = () => {
-    const result = validateCoupon(couponInput);
-    if (result.valid) {
-      setCoupon({ code: couponInput.trim().toUpperCase(), percentOff: result.percentOff });
-      setCouponError(null);
-    } else {
-      setCouponError("That code isn't valid.");
+  const handleApplyCoupon = async () => {
+    if (!couponInput.trim() || isApplyingCoupon) return;
+    setIsApplyingCoupon(true);
+    setCouponError(null);
+    try {
+      const res = await fetch('/api/validate-coupon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: couponInput, subtotal }),
+      });
+      const result = await res.json();
+      if (result.valid) {
+        setCoupon({ code: couponInput.trim().toUpperCase(), percentOff: result.percentOff });
+      } else {
+        setCouponError(result.error ?? "That code isn't valid.");
+      }
+    } catch {
+      setCouponError("Couldn't check that code right now. Please try again.");
+    } finally {
+      setIsApplyingCoupon(false);
     }
   };
 
@@ -282,8 +295,13 @@ export default function CartPage() {
                       placeholder="Discount code"
                       className="border-brand-border focus:border-brand-brown"
                     />
-                    <Button type="button" variant="outline" onClick={handleApplyCoupon}>
-                      Apply
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleApplyCoupon}
+                      disabled={isApplyingCoupon || !couponInput.trim()}
+                    >
+                      {isApplyingCoupon ? 'Checking…' : 'Apply'}
                     </Button>
                   </div>
                   {couponError && <p className="text-xs text-red-600 mt-1">{couponError}</p>}

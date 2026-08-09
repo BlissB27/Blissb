@@ -10,7 +10,6 @@ import { useCartStore, type CartItem, type AppliedCoupon } from "@/store/cartSto
 import { useDeliveryStore, type ShippingAddress } from "@/store/deliveryStore";
 import { useHydrated } from "@/hooks/useHydrated";
 import { getFulfillmentOptions } from "@/lib/deliverySchedule";
-import { validateCoupon } from "@/lib/coupons";
 import { DeliverySelector } from "@/components/DeliverySelector";
 import { AddressFields } from "@/components/AddressFields";
 import { Button } from "@/components/ui/button";
@@ -304,16 +303,29 @@ function OrderSummaryPanel({
 }) {
   const [couponInput, setCouponInput] = useState("");
   const [couponError, setCouponError] = useState<string | null>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
 
-  const handleApplyCoupon = () => {
-    if (!couponInput.trim()) return;
-    const result = validateCoupon(couponInput);
-    if (result.valid) {
-      setCoupon({ code: couponInput.trim().toUpperCase(), percentOff: result.percentOff });
-      setCouponError(null);
-      setCouponInput("");
-    } else {
-      setCouponError("That code isn't valid.");
+  const handleApplyCoupon = async () => {
+    if (!couponInput.trim() || isApplyingCoupon) return;
+    setIsApplyingCoupon(true);
+    setCouponError(null);
+    try {
+      const res = await fetch("/api/validate-coupon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponInput, subtotal }),
+      });
+      const result = await res.json();
+      if (result.valid) {
+        setCoupon({ code: couponInput.trim().toUpperCase(), percentOff: result.percentOff });
+        setCouponInput("");
+      } else {
+        setCouponError(result.error ?? "That code isn't valid.");
+      }
+    } catch {
+      setCouponError("Couldn't check that code right now. Please try again.");
+    } finally {
+      setIsApplyingCoupon(false);
     }
   };
 
@@ -399,8 +411,8 @@ function OrderSummaryPanel({
                 placeholder="Discount code"
                 className="bg-white border-brand-border focus:border-brand-brown"
               />
-              <Button type="button" onClick={handleApplyCoupon} disabled={!couponInput.trim()}>
-                Apply
+              <Button type="button" onClick={handleApplyCoupon} disabled={isApplyingCoupon || !couponInput.trim()}>
+                {isApplyingCoupon ? "Checking…" : "Apply"}
               </Button>
             </div>
             {couponError && <ErrorText>{couponError}</ErrorText>}
