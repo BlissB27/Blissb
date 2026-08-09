@@ -1,20 +1,14 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { Check } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+import { Check } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
-const SUBSCRIBED_KEY = "bliss-b-newsletter-subscribed";
-const LAST_SHOWN_KEY = "bliss-b-newsletter-modal-last-shown";
+const SUBSCRIBED_KEY = 'bliss-b-newsletter-subscribed';
+const LAST_SHOWN_KEY = 'bliss-b-newsletter-modal-last-shown';
 const FIRST_SHOW_DELAY_MS = 4_000;
 const REAPPEAR_INTERVAL_MS = 30 * 60 * 1000;
 
@@ -35,7 +29,7 @@ function CookieMark({ className }: { className?: string }) {
 
 export function NewsletterDiscountModal() {
   const [isOpen, setIsOpen] = useState(false);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [subscribed, setSubscribed] = useState(false);
@@ -48,9 +42,7 @@ export function NewsletterDiscountModal() {
     if (localStorage.getItem(SUBSCRIBED_KEY)) return;
 
     const lastShown = Number(localStorage.getItem(LAST_SHOWN_KEY) || 0);
-    const delay = lastShown
-      ? Math.max(REAPPEAR_INTERVAL_MS - (Date.now() - lastShown), 0)
-      : FIRST_SHOW_DELAY_MS;
+    const delay = lastShown ? Math.max(REAPPEAR_INTERVAL_MS - (Date.now() - lastShown), 0) : FIRST_SHOW_DELAY_MS;
 
     const timer = window.setTimeout(() => setIsOpen(true), delay);
     return () => window.clearTimeout(timer);
@@ -72,22 +64,22 @@ export function NewsletterDiscountModal() {
     setError(null);
 
     try {
-      const response = await fetch("/api/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error ?? "Something went wrong. Please try again.");
+        setError(data.error ?? 'Something went wrong. Please try again.');
         return;
       }
 
       setSubscribed(true);
-      localStorage.setItem(SUBSCRIBED_KEY, "true");
+      localStorage.setItem(SUBSCRIBED_KEY, 'true');
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError('Something went wrong. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -101,7 +93,7 @@ export function NewsletterDiscountModal() {
             <motion.div
               initial={{ scale: 0, rotate: -45 }}
               animate={{ scale: 1, rotate: 0 }}
-              transition={{ type: "spring", damping: 15, stiffness: 300, delay: 0.1 }}
+              transition={{ type: 'spring', damping: 15, stiffness: 300, delay: 0.1 }}
               className="mx-auto mb-5 flex h-11 w-11 items-center justify-center rounded-full bg-brand-success"
             >
               <Check className="h-5 w-5 text-white" strokeWidth={2} aria-hidden="true" />
@@ -130,11 +122,9 @@ export function NewsletterDiscountModal() {
             <div className="flex flex-col items-center px-6 pt-8 pb-2 text-center">
               <CookieMark className="mb-3 h-14 w-14" />
               <DialogHeader className="items-center gap-2 text-center">
-                <DialogTitle className="text-2xl font-bold leading-tight text-brand-brown">
-                  Get 5% off your first order
-                </DialogTitle>
+                <DialogTitle className="text-2xl font-bold leading-tight text-brand-brown">A Sweet Welcome</DialogTitle>
                 <DialogDescription className="text-base leading-6 text-brand-muted">
-                  Sign up for our newsletter and we&apos;ll send you a discount code right away.
+                  Subscribe to our newsletter and enjoy 10% off your first order.
                 </DialogDescription>
               </DialogHeader>
             </div>
@@ -151,7 +141,7 @@ export function NewsletterDiscountModal() {
               />
               {error && <p className="text-sm text-red-600">{error}</p>}
               <Button type="submit" disabled={isSubmitting} className="w-full">
-                {isSubmitting ? "Signing up..." : "Get my code"}
+                {isSubmitting ? 'Signing up...' : 'Get my code'}
               </Button>
               <button
                 type="button"
