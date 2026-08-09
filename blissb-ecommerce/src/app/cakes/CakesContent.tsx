@@ -3,6 +3,7 @@ import { WaveDivider } from "@/components/WaveDivider";
 import { CakesHero } from "@/components/category/CakesHero";
 import { CakeFeatureSection } from "@/components/category/CakeFeatureSection";
 import type { Product } from "@/data/products";
+import type { HeroConfig } from "@/services/heroes";
 
 const INFO_CARDS = [
   {
@@ -24,12 +25,13 @@ const INFO_CARDS = [
 
 type CakesContentProps = {
   cakes: Product[];
+  hero?: HeroConfig | null;
 };
 
-export function CakesContent({ cakes }: CakesContentProps) {
+export function CakesContent({ cakes, hero }: CakesContentProps) {
   return (
     <div className="min-h-screen bg-white">
-      <CakesHero cakes={cakes} />
+      <CakesHero cakes={cakes} hero={hero} />
 
       {cakes.length > 0 ? (
         cakes.map((cake, index) => <CakeFeatureSection key={cake.id} product={cake} index={index} />)

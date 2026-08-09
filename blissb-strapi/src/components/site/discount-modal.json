@@ -1,0 +1,24 @@
+{
+  "collectionName": "components_site_discount_modals",
+  "info": {
+    "displayName": "discount-modal"
+  },
+  "options": {},
+  "attributes": {
+    "enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "percentOff": {
+      "type": "integer",
+      "min": 1,
+      "max": 100
+    },
+    "title": {
+      "type": "string"
+    },
+    "subtitle": {
+      "type": "text"
+    }
+  }
+}

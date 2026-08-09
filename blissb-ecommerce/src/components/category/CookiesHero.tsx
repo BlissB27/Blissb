@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { FlavorConfirmDialog } from "@/components/FlavorConfirmDialog";
 import { useProductAddToCart } from "@/hooks/useProductAddToCart";
 import type { Product } from "@/data/products";
+import type { HeroConfig } from "@/services/heroes";
 import { HeroShell, HeroEyebrow } from "@/components/category/HeroShell";
 import { getProductImageSrc } from "@/lib/productImage";
 
@@ -37,12 +38,16 @@ type CookiesHeroProps = {
   /** Fetched server-side (see cookies/page.tsx) so the button never waits on a
    * client-side round trip to Strapi — null only if that fetch genuinely failed. */
   product: Product | null;
+  /** Overrides editables desde Strapi (Hero key="cookies"). Cada campo cae al
+   * valor del producto / hardcodeado si no está seteado. */
+  hero?: HeroConfig | null;
 };
 
-export function CookiesHero({ product }: CookiesHeroProps) {
-  const title = product?.name || FALLBACK_TITLE;
-  const description = product?.description || FALLBACK_DESCRIPTION;
-  const image = product?.image ? getProductImageSrc(product.image) : FALLBACK_IMAGE;
+export function CookiesHero({ product, hero }: CookiesHeroProps) {
+  const eyebrow = hero?.eyebrow || "Our Most-Gifted Box";
+  const title = hero?.title || product?.name || FALLBACK_TITLE;
+  const description = hero?.subtitle || product?.description || FALLBACK_DESCRIPTION;
+  const image = hero?.image || (product?.image ? getProductImageSrc(product.image) : FALLBACK_IMAGE);
 
   return (
     <HeroShell>
@@ -54,7 +59,7 @@ export function CookiesHero({ product }: CookiesHeroProps) {
       >
         {/* Title, subtitle, and button reveal together as one group */}
         <motion.div variants={fadeUpVariants} className="text-center md:text-left">
-          <HeroEyebrow icon={Cookie} align="start">Our Most-Gifted Box</HeroEyebrow>
+          <HeroEyebrow icon={Cookie} align="start">{eyebrow}</HeroEyebrow>
 
           <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight mb-4">
             {title}

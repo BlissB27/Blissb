@@ -1,0 +1,25 @@
+{
+  "kind": "singleType",
+  "collectionName": "site_settings",
+  "info": {
+    "singularName": "site-setting",
+    "pluralName": "site-settings",
+    "displayName": "Site Settings"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "announcements": {
+      "type": "component",
+      "repeatable": true,
+      "component": "site.announcement"
+    },
+    "discountModal": {
+      "type": "component",
+      "repeatable": false,
+      "component": "site.discount-modal"
+    }
+  }
+}

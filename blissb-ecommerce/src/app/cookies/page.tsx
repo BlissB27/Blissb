@@ -3,6 +3,7 @@ import { Cookie, Palette, Star } from "lucide-react";
 import { CategoryPageTemplate } from "@/components/CategoryPageTemplate";
 import { CookiesHero } from "@/components/category/CookiesHero";
 import { getProductBySlug } from "@/data/products";
+import { getHero } from "@/services/heroes";
 
 // The real Strapi slug for the Mini Cookie Box product.
 const MINI_COOKIE_BOX_SLUG = "MiniCookie-box";
@@ -17,13 +18,16 @@ export default async function CookiesPage() {
   // Fetched here (server-side) instead of in CookiesHero so the hero's button
   // and image can animate on the same deterministic timeline — no client-side
   // Strapi round trip to wait on before the CTA is fully interactive.
-  const miniCookieBox = await getProductBySlug(MINI_COOKIE_BOX_SLUG);
+  // El producto destacado y los textos son editables desde Strapi (Hero
+  // key="cookies"); si no hay override, se usa el Mini Cookie Box por defecto.
+  const hero = await getHero("cookies");
+  const featured = await getProductBySlug(hero?.featuredProductSlug || MINI_COOKIE_BOX_SLUG);
 
   return (
     <CategoryPageTemplate
       category="cookies"
       Icon={Cookie}
-      hero={<CookiesHero product={miniCookieBox} />}
+      hero={<CookiesHero product={featured} hero={hero} />}
       title="Our Cookie Collection"
       categoryLabel="Cookies"
       blurb="Handcrafted with premium ingredients and baked fresh to order. Remember: minimum 4 cookies total required per order."

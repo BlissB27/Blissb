@@ -25,6 +25,8 @@ export type DeliveryQuote = { eligible: boolean; fee: number; miles: number };
 type DeliverySelectorProps = {
   subtotal: number;
   shippingCost: number;
+  /** Fechas (YYYY-MM-DD) bloqueadas por la dueña; el calendario las salta. */
+  blockedDates?: string[];
   onDeliveryFeeChange: (fee: number) => void;
   onQuotingChange?: (quoting: boolean) => void;
 };
@@ -51,7 +53,7 @@ function getNextShipDate(now: Date): { dateISO: string; isToday: boolean } {
   return { dateISO: target.toISOString().slice(0, 10), isToday: daysUntilMonday === 0 };
 }
 
-export function DeliverySelector({ subtotal, shippingCost, onDeliveryFeeChange, onQuotingChange }: DeliverySelectorProps) {
+export function DeliverySelector({ subtotal, shippingCost, blockedDates = [], onDeliveryFeeChange, onQuotingChange }: DeliverySelectorProps) {
   const {
     selectedType,
     billingAddress,
@@ -69,7 +71,7 @@ export function DeliverySelector({ subtotal, shippingCost, onDeliveryFeeChange, 
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [isQuoting, setIsQuoting] = useState(false);
 
-  const fulfillment = getFulfillmentOptions();
+  const fulfillment = getFulfillmentOptions(new Date(), blockedDates);
   const shipDate = getNextShipDate(new Date());
 
   // Defaults to the billing address collected up top — only the override

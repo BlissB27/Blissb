@@ -56,14 +56,18 @@ function dateStringForOffset(baseDateISO: string, offsetDays: number): { dateISO
 
 const isTueFri = (weekday: string) => ["Tuesday", "Wednesday", "Thursday", "Friday"].includes(weekday);
 
-function findNextWindow(type: FulfillmentType, now: Date): FulfillmentWindow {
+function findNextWindow(type: FulfillmentType, now: Date, blockedDates: Set<string>): FulfillmentWindow {
   const bakeryNow = getBakeryLocalParts(now);
   const cutoffPassedToday =
     bakeryNow.hour > CUTOFF_HOUR || (bakeryNow.hour === CUTOFF_HOUR && bakeryNow.minute > 0);
 
-  for (let offset = 0; offset <= 14; offset++) {
+  for (let offset = 0; offset <= 60; offset++) {
     const { dateISO, weekday } = dateStringForOffset(bakeryNow.dateISO, offset);
     const isFirstDay = offset === 0;
+
+    // Días bloqueados manualmente por la dueña (Strapi): no se ofrece delivery
+    // ni pickup ese día. Shipping (UPS) no se ve afectado.
+    if (blockedDates.has(dateISO)) continue;
 
     if (isTueFri(weekday)) {
       if (isFirstDay && cutoffPassedToday) continue; // today's window already closed
@@ -99,10 +103,14 @@ export type FulfillmentOptions = {
   pickup: FulfillmentWindow;
 };
 
-export function getFulfillmentOptions(now: Date = new Date()): FulfillmentOptions {
+export function getFulfillmentOptions(
+  now: Date = new Date(),
+  blockedDates: string[] = []
+): FulfillmentOptions {
+  const blocked = new Set(blockedDates);
   return {
     shippingAvailable: true,
-    delivery: findNextWindow("delivery", now),
-    pickup: findNextWindow("pickup", now),
+    delivery: findNextWindow("delivery", now, blocked),
+    pickup: findNextWindow("pickup", now, blocked),
   };
 }

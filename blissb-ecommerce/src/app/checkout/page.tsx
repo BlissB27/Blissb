@@ -497,6 +497,9 @@ export default function CheckoutPage() {
   const [isDeliveryQuoting, setIsDeliveryQuoting] = useState(false);
   const [taxAmount, setTaxAmount] = useState(0);
   const [isTaxQuoting, setIsTaxQuoting] = useState(false);
+  // Días bloqueados por la dueña (Strapi) — el calendario de delivery/pickup los
+  // salta. Vacío hasta que carga; si el endpoint falla, se queda vacío (sin bloqueos).
+  const [blockedDates, setBlockedDates] = useState<string[]>([]);
 
   const subtotal = getTotalPrice();
   const shippingInfo = getShippingInfo();
@@ -509,13 +512,28 @@ export default function CheckoutPage() {
   const processingFee = calculateProcessingFee(subtotal - discountAmount + deliveryFee + taxAmount);
   const total = subtotal - discountAmount + deliveryFee + taxAmount + processingFee;
 
-  const fulfillment = getFulfillmentOptions();
+  const fulfillment = getFulfillmentOptions(new Date(), blockedDates);
 
   useEffect(() => {
     if (!hydrated) return;
     const timer = setTimeout(() => setIsLoading(false), 500);
     return () => clearTimeout(timer);
   }, [hydrated]);
+
+  // Carga las fechas bloqueadas una vez al montar, para el cálculo de días de
+  // delivery/pickup. Best-effort: si falla, el checkout sigue con las reglas fijas.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/blocked-dates")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled && Array.isArray(data?.dates)) setBlockedDates(data.dates);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (isLoading) return;
@@ -816,6 +834,7 @@ export default function CheckoutPage() {
                   <DeliverySelector
                     subtotal={subtotal}
                     shippingCost={shippingInfo.shippingCost}
+                    blockedDates={blockedDates}
                     onDeliveryFeeChange={setDeliveryFee}
                     onQuotingChange={setIsDeliveryQuoting}
                   />

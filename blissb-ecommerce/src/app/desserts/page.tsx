@@ -3,6 +3,7 @@ import { IceCream, Snowflake, Sparkles, Utensils } from "lucide-react";
 import { CategoryPageTemplate } from "@/components/CategoryPageTemplate";
 import { DessertsHero } from "@/components/category/DessertsHero";
 import { getProductsByCategoryAsync, type Product } from "@/data/products";
+import { getHero } from "@/services/heroes";
 
 export const metadata: Metadata = {
   title: "Desserts | Bliss-B Desserts",
@@ -20,12 +21,13 @@ export default async function DessertsPage() {
   } catch (error) {
     console.error("Error loading desserts:", error);
   }
+  const hero = await getHero("desserts");
 
   return (
     <CategoryPageTemplate
       category="desserts"
       Icon={IceCream}
-      hero={<DessertsHero desserts={desserts} />}
+      hero={<DessertsHero desserts={desserts} hero={hero} />}
       title="Gourmet Desserts"
       categoryLabel="Desserts"
       blurb="Elegant desserts, crafted with the same precision and care as everything we bake. From cookie fries perfect for sharing to individually portioned brownies, cookie cups, and alfajores, each one is designed to be the perfect ending to any occasion."

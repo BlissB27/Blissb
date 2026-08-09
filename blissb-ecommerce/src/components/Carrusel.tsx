@@ -8,10 +8,13 @@ import { ChevronLeft, ChevronRight, Gift, Handshake, CakeSlice, type LucideIcon 
 type Cta = {
   label: string;
   href: string;
-  Icon: LucideIcon;
+  Icon?: LucideIcon;
 };
 
-const CTAS: Cta[] = [
+// Defaults — se usan hasta que Strapi responde (o si no hay announcements
+// configurados en Site Settings). La dueña puede editar estos mensajes/links
+// desde el admin sin tocar código.
+const FALLBACK_CTAS: Cta[] = [
   { label: "Try our cookie boxes", href: "/cookies", Icon: Gift },
   { label: "Corporate events", href: "/corporate", Icon: Handshake },
   { label: "Explore our desserts", href: "/desserts", Icon: CakeSlice },
@@ -28,15 +31,35 @@ const slideVariants = {
 export function Carrusel() {
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(1);
+  const [ctas, setCtas] = useState<Cta[]>(FALLBACK_CTAS);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Carga los mensajes del cintillo desde Strapi (Site Settings → announcements).
+  // Best-effort: si falla o está vacío, se quedan los FALLBACK_CTAS.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/site-settings")
+      .then((res) => res.json())
+      .then((data) => {
+        const items = Array.isArray(data?.announcements) ? data.announcements : [];
+        if (!cancelled && items.length > 0) {
+          setCtas(items.map((a: { label: string; href: string }) => ({ label: a.label, href: a.href })));
+          setIndex(0);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const restartTimer = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       setDirection(1);
-      setIndex((prev) => (prev + 1) % CTAS.length);
+      setIndex((prev) => (prev + 1) % ctas.length);
     }, ROTATE_MS);
-  }, []);
+  }, [ctas.length]);
 
   useEffect(() => {
     restartTimer();
@@ -47,11 +70,11 @@ export function Carrusel() {
 
   const handleManualNav = (delta: number) => {
     setDirection(delta);
-    setIndex((prev) => ((prev + delta) % CTAS.length + CTAS.length) % CTAS.length);
+    setIndex((prev) => ((prev + delta) % ctas.length + ctas.length) % ctas.length);
     restartTimer();
   };
 
-  const current = CTAS[index];
+  const current = ctas[index] ?? ctas[0];
 
   return (
     <div className="w-full bg-brand-brown text-white">
@@ -77,7 +100,7 @@ export function Carrusel() {
               className="absolute flex items-center gap-2 whitespace-nowrap"
             >
               <Link href={current.href} className="flex items-center gap-2 text-[14px] font-medium">
-                <current.Icon className="h-4 w-4 flex-shrink-0" strokeWidth={1.75} aria-hidden="true" />
+                {current.Icon && <current.Icon className="h-4 w-4 flex-shrink-0" strokeWidth={1.75} aria-hidden="true" />}
                 {current.label}
               </Link>
             </motion.div>

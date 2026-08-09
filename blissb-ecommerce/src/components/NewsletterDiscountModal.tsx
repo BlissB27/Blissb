@@ -27,18 +27,51 @@ function CookieMark({ className }: { className?: string }) {
   );
 }
 
+const DEFAULT_DISCOUNT = {
+  enabled: true,
+  title: 'A Sweet Welcome',
+  subtitle: 'Subscribe to our newsletter and enjoy 10% off your first order.',
+};
+
 export function NewsletterDiscountModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [subscribed, setSubscribed] = useState(false);
+  // Contenido editable desde Strapi (Site Settings → discountModal). Fallback a
+  // los valores por defecto si no está configurado o Strapi no responde.
+  const [discount, setDiscount] = useState(DEFAULT_DISCOUNT);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/site-settings')
+      .then((res) => res.json())
+      .then((data) => {
+        const dm = data?.discountModal;
+        if (cancelled || !dm) return;
+        setDiscount({
+          enabled: dm.enabled !== false,
+          title: dm.title || DEFAULT_DISCOUNT.title,
+          subtitle:
+            dm.subtitle ||
+            (dm.percentOff
+              ? `Subscribe to our newsletter and enjoy ${dm.percentOff}% off your first order.`
+              : DEFAULT_DISCOUNT.subtitle),
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Reschedules itself every time the dialog closes: once subscribed, never
   // again; otherwise wait out whatever's left of the 30-minute window since
   // it was last shown (persisted so a page reload doesn't reset the clock).
   useEffect(() => {
     if (isOpen) return;
+    if (!discount.enabled) return; // apagado desde Strapi
     if (localStorage.getItem(SUBSCRIBED_KEY)) return;
 
     const lastShown = Number(localStorage.getItem(LAST_SHOWN_KEY) || 0);
@@ -46,7 +79,7 @@ export function NewsletterDiscountModal() {
 
     const timer = window.setTimeout(() => setIsOpen(true), delay);
     return () => window.clearTimeout(timer);
-  }, [isOpen]);
+  }, [isOpen, discount.enabled]);
 
   const dismiss = () => {
     localStorage.setItem(LAST_SHOWN_KEY, String(Date.now()));
@@ -122,9 +155,9 @@ export function NewsletterDiscountModal() {
             <div className="flex flex-col items-center px-6 pt-8 pb-2 text-center">
               <CookieMark className="mb-3 h-14 w-14" />
               <DialogHeader className="items-center gap-2 text-center">
-                <DialogTitle className="text-2xl font-bold leading-tight text-brand-brown">A Sweet Welcome</DialogTitle>
+                <DialogTitle className="text-2xl font-bold leading-tight text-brand-brown">{discount.title}</DialogTitle>
                 <DialogDescription className="text-base leading-6 text-brand-muted">
-                  Subscribe to our newsletter and enjoy 10% off your first order.
+                  {discount.subtitle}
                 </DialogDescription>
               </DialogHeader>
             </div>

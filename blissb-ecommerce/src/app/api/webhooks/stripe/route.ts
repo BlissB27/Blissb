@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { stripe, unchunkMetadata } from '@/lib/stripe';
 import { sendOrderEmails } from '@/lib/email';
+import { sendOrderPush } from '@/lib/pushover';
 import { getProductByIdAsync } from '@/data/products';
 import { decrementProductStock } from '@/services/products';
 import { toSentenceCase } from '@/lib/text';
@@ -183,6 +184,16 @@ export async function POST(request: NextRequest) {
       if (!emailResult.admin.success) {
         console.error('Failed to send admin email:', emailResult.admin.error);
       }
+
+      // 📲 Notificación push a la dueña (Pushover). Best-effort — no depende del
+      // correo y nunca debe tumbar el webhook (el pago ya se cobró).
+      await sendOrderPush({
+        orderNumber,
+        customerName: metadata.customerName || 'Cliente',
+        total,
+        itemCount: products.reduce((sum, p) => sum + p.quantity, 0),
+        deliveryType: metadata.deliveryType || undefined,
+      }).catch((err) => console.error('Pushover push failed:', err));
 
       // 🧾 Stripe Tax — records the transaction for reporting/remittance. Only
       // runs when /api/checkout actually got a calculation (i.e. Tax is enabled

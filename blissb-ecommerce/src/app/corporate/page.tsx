@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { CorporateContent } from "./CorporateContent";
+import { getHero } from "@/services/heroes";
 
 export const metadata: Metadata = {
   title: "Corporate Gifting & Catering | Bliss-B Desserts",
@@ -8,10 +9,11 @@ export const metadata: Metadata = {
   alternates: { canonical: "/corporate" },
 };
 
-export default function CorporatePage() {
+export default async function CorporatePage() {
+  const hero = await getHero("corporate");
   return (
     <Suspense>
-      <CorporateContent />
+      <CorporateContent hero={hero} />
     </Suspense>
   );
 }

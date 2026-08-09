@@ -7,14 +7,22 @@ import { Button } from "@/components/ui/button";
 import { HeroShell, HeroEyebrow } from "@/components/category/HeroShell";
 import { scrollToSection } from "@/components/category/HeroFlankingPhoto";
 import type { Product } from "@/data/products";
+import type { HeroConfig } from "@/services/heroes";
 
 type DessertsHeroProps = {
   /** Real product photos for the collage — falls back gracefully while loading. */
   desserts: Product[];
+  /** Textos editables desde Strapi (Hero key="desserts"); fallback a los defaults. */
+  hero?: HeroConfig | null;
 };
 
-export function DessertsHero({ desserts }: DessertsHeroProps) {
+export function DessertsHero({ desserts, hero }: DessertsHeroProps) {
   const [first, second] = desserts;
+  const eyebrow = hero?.eyebrow || "Handmade in Braselton, GA";
+  const heading = hero?.title || "A Sweet Ending, Every Time";
+  const subtitle =
+    hero?.subtitle ||
+    "From crisp cookie fries to warm brownies, brownie cups, mini cookies, and delicate alfajores, and more, every dessert is crafted fresh with real ingredients and the kind of detail that makes it worth saving room for.";
 
   return (
     <HeroShell>
@@ -63,15 +71,13 @@ export function DessertsHero({ desserts }: DessertsHeroProps) {
           transition={{ type: "spring", damping: 25, stiffness: 300, duration: 0.6 }}
           className="order-1 md:order-2 text-center md:text-left"
         >
-          <HeroEyebrow icon={Sparkles} align="start">Handmade in Braselton, GA</HeroEyebrow>
+          <HeroEyebrow icon={Sparkles} align="start">{eyebrow}</HeroEyebrow>
 
           <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight mb-4">
-            A Sweet Ending, Every Time
+            {heading}
           </h1>
           <p className="text-white/85 text-base md:text-lg mb-6 max-w-md mx-auto md:mx-0">
-            From crisp cookie fries to warm brownies, brownie cups, mini cookies, and
-            delicate alfajores, and more, every dessert is crafted fresh with real
-            ingredients and the kind of detail that makes it worth saving room for.
+            {subtitle}
           </p>
           <Button
             className="bg-white text-brand-brown hover:bg-white/90"

@@ -9,6 +9,7 @@ import "photoswipe/style.css";
 import { Button } from "@/components/ui/button";
 import { WaveDivider } from "@/components/WaveDivider";
 import { CorporateHero } from "@/components/category/CorporateHero";
+import type { HeroConfig } from "@/services/heroes";
 import { motion } from "framer-motion";
 
 const EMAIL_HREF = "mailto:blissbdesserts@gmail.com";
@@ -43,7 +44,7 @@ const FEATURES = [
   },
 ];
 
-export function CorporateContent() {
+export function CorporateContent({ hero }: { hero?: HeroConfig | null }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -69,7 +70,7 @@ export function CorporateContent() {
 
   return (
     <div className="min-h-screen ">
-      <CorporateHero />
+      <CorporateHero hero={hero} />
 
       {/* Booking basics - the numbers a corporate/event buyer needs before reaching out */}
       <section className="relative bg-brand-bg">

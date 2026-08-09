@@ -6,6 +6,7 @@ import { CookieBoxBuilder } from "@/components/CookieBoxBuilder";
 import { CakesHighlight } from "@/components/CakesHighlight";
 import { InstagramGallery } from "@/components/InstagramGallery";
 import { Awards } from "@/components/Awards";
+import { EventsPreview } from "@/components/EventsPreview";
 import { FAQ } from "@/components/Faq";
 
 // Title/description already match the root layout's defaults, which are
@@ -31,6 +32,7 @@ export default function Home() {
         blurb="From cookie fries and brownies to brownie cups, mini cookies, and alfajores, and more, each one handcrafted in small batches and finished with the same care as everything we bake."
       />
       <InstagramGallery />
+      <EventsPreview />
       <Awards />
       <FAQ />
     </main>

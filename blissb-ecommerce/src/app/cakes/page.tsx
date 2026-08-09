@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { CakesContent } from "./CakesContent";
 import { getProductsByCategoryAsync, type Product } from "@/data/products";
+import { getHero } from "@/services/heroes";
 
 export const metadata: Metadata = {
   title: "Cakes | Bliss-B Desserts",
@@ -19,10 +20,11 @@ export default async function CakesPage() {
   } catch (error) {
     console.error("Error loading cakes:", error);
   }
+  const hero = await getHero("cakes");
 
   return (
     <Suspense>
-      <CakesContent cakes={cakes} />
+      <CakesContent cakes={cakes} hero={hero} />
     </Suspense>
   );
 }

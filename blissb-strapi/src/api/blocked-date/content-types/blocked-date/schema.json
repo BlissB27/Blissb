@@ -1,0 +1,28 @@
+{
+  "kind": "collectionType",
+  "collectionName": "blocked_dates",
+  "info": {
+    "singularName": "blocked-date",
+    "pluralName": "blocked-dates",
+    "displayName": "Blocked Date"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "date": {
+      "type": "date",
+      "required": true,
+      "unique": true
+    },
+    "reason": {
+      "type": "string"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "required": true
+    }
+  }
+}

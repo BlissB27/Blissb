@@ -1,0 +1,17 @@
+{
+  "collectionName": "components_site_announcements",
+  "info": {
+    "displayName": "announcement"
+  },
+  "options": {},
+  "attributes": {
+    "label": {
+      "type": "string",
+      "required": true
+    },
+    "href": {
+      "type": "string",
+      "required": true
+    }
+  }
+}
