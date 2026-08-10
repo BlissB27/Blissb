@@ -9,8 +9,10 @@ import "photoswipe/style.css";
 import { Button } from "@/components/ui/button";
 import { WaveDivider } from "@/components/WaveDivider";
 import { CorporateHero } from "@/components/category/CorporateHero";
+import { RichText } from "@/components/RichText";
 import type { HeroConfig } from "@/services/heroes";
 import type { GalleryPhoto } from "@/services/gallery";
+import type { CorporateSection } from "@/services/corporateSections";
 import { motion } from "framer-motion";
 
 const EMAIL_HREF = "mailto:blissbdesserts@gmail.com";
@@ -48,14 +50,21 @@ const FEATURES = [
 export function CorporateContent({
   hero,
   gallery,
+  sections,
 }: {
   hero?: HeroConfig | null;
   gallery?: GalleryPhoto[];
+  sections?: Record<string, CorporateSection>;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   // Fotos de Strapi si hay; si no, las de por defecto.
   const galleryPhotos = gallery && gallery.length > 0 ? gallery : GALLERY_PHOTOS;
+  // Secciones editables desde Strapi (título, imagen+alt, cuerpo WYSIWYG); cada
+  // campo cae a su valor por defecto si no está seteado.
+  const catering = sections?.catering;
+  const gifting = sections?.gifting;
+  const cart = sections?.["cookie-cart"];
 
   // Scroll to the requested section (from Banner's CTAs), then strip the query
   // param so the URL bar stays clean — no #hash or ?section= left behind.
@@ -127,56 +136,48 @@ export function CorporateContent({
                 }}
                 className="text-3xl md:text-4xl lg:text-5xl font-bold text-brand-brown mb-4 md:mb-6"
               >
-                Catering & Events
+                {catering?.title || "Catering & Events"}
               </motion.h2>
 
-              <div className="space-y-3 md:space-y-4 text-brand-muted mb-6 md:mb-8 text-sm md:text-base">
-                <p>Sweeten every celebration with our dessert catering.</p>
-                <p>
-                  From weddings to birthdays, we create beautiful displays of
-                  cookies and treats that make every moment unforgettable.
-                </p>
-                <p>
-                  Our catering menu includes bite-sized versions of your Bliss-B
-                  favorites:
-                </p>
-              </div>
+              {catering?.body ? (
+                <RichText
+                  content={catering.body}
+                  className="text-brand-muted mb-6 md:mb-8 text-sm md:text-base"
+                />
+              ) : (
+                <>
+                  <div className="space-y-3 md:space-y-4 text-brand-muted mb-6 md:mb-8 text-sm md:text-base">
+                    <p>Sweeten every celebration with our dessert catering.</p>
+                    <p>
+                      From weddings to birthdays, we create beautiful displays of
+                      cookies and treats that make every moment unforgettable.
+                    </p>
+                    <p>
+                      Our catering menu includes bite-sized versions of your Bliss-B
+                      favorites:
+                    </p>
+                  </div>
 
-              {/* Menu Items */}
-              <div className="space-y-2 mb-6 md:mb-8 text-sm md:text-base">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-brand-success rounded-full flex-shrink-0"></div>
-                  <span className="text-brand-muted">Cookie Cups</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-brand-success rounded-full flex-shrink-0"></div>
-                  <span className="text-brand-muted">Mini Grand Cheesecake</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-brand-success rounded-full flex-shrink-0"></div>
-                  <span className="text-brand-muted">NY Style Cookies</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-brand-success rounded-full flex-shrink-0"></div>
-                  <span className="text-brand-muted">Mini NY Style Cookies</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-brand-success rounded-full flex-shrink-0"></div>
-                  <span className="text-brand-muted">Mini Brownies</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-brand-success rounded-full flex-shrink-0"></div>
-                  <span className="text-brand-muted">Lemon Pie Shots</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-brand-success rounded-full flex-shrink-0"></div>
-                  <span className="text-brand-muted">Tres Leches Shots</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-brand-success rounded-full flex-shrink-0"></div>
-                  <span className="text-brand-muted">Mini Alfajores</span>
-                </div>
-              </div>
+                  {/* Menu Items */}
+                  <div className="space-y-2 mb-6 md:mb-8 text-sm md:text-base">
+                    {[
+                      "Cookie Cups",
+                      "Mini Grand Cheesecake",
+                      "NY Style Cookies",
+                      "Mini NY Style Cookies",
+                      "Mini Brownies",
+                      "Lemon Pie Shots",
+                      "Tres Leches Shots",
+                      "Mini Alfajores",
+                    ].map((item) => (
+                      <div key={item} className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-brand-success rounded-full flex-shrink-0"></div>
+                        <span className="text-brand-muted">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
 
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -216,8 +217,8 @@ export function CorporateContent({
               className="relative w-full h-[300px] md:h-[400px] lg:h-[500px] order-1 md:order-2"
             >
               <Image
-                src="/img/catering.png"
-                alt="Cookie Cups"
+                src={catering?.image || "/img/catering.png"}
+                alt={catering?.imageAlt || "Cookie Cups"}
                 fill
                 className="object-cover rounded-lg"
                 sizes="(max-width: 768px) 100vw, 50vw"
@@ -235,8 +236,8 @@ export function CorporateContent({
             {/* Left Content - Gift Boxes */}
             <div className="relative w-full h-[300px] md:h-[400px] lg:h-[500px] order-2 lg:order-1">
               <Image
-                src="/img/Corporate.png"
-                alt="Corporate Gift Box with Cookies"
+                src={gifting?.image || "/img/Corporate.png"}
+                alt={gifting?.imageAlt || "Corporate Gift Box with Cookies"}
                 fill
                 className="object-contain rounded-lg"
                 sizes="(max-width: 768px) 100vw, 50vw"
@@ -246,33 +247,41 @@ export function CorporateContent({
             {/* Right Content */}
             <div className="order-1 md:order-2">
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-brand-brown mb-4 md:mb-6">
-                Corporate Gifting
+                {gifting?.title || "Corporate Gifting"}
               </h2>
 
-              <div className="space-y-3 md:space-y-4 text-brand-muted mb-6 md:mb-8 text-sm md:text-base">
-                <p>
-                  Don't worry, we're here for you, whether you're celebrating
-                  work anniversaries, welcoming new hires, celebrating
-                  milestones or sending holiday gifts.
-                </p>
-                <p>
-                  <span className="font-semibold text-brand-text">
-                    Corporate Gifts, made simple.
-                  </span>{" "}
-                  Choose from our curated gift options, ready to send, or tell
-                  us your vision and we'll take care of every detail for you.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Button
-                    asChild
-                    className="text-sm md:text-base px-4 md:px-6 py-2 md:py-3 w-full sm:w-auto"
-                  >
-                    <a href={EMAIL_HREF} className="flex items-center gap-2">
+              {gifting?.body ? (
+                <RichText
+                  content={gifting.body}
+                  className="text-brand-muted mb-6 md:mb-8 text-sm md:text-base"
+                />
+              ) : (
+                <div className="space-y-3 md:space-y-4 text-brand-muted mb-6 md:mb-8 text-sm md:text-base">
+                  <p>
+                    Don't worry, we're here for you, whether you're celebrating
+                    work anniversaries, welcoming new hires, celebrating
+                    milestones or sending holiday gifts.
+                  </p>
+                  <p>
+                    <span className="font-semibold text-brand-text">
+                      Corporate Gifts, made simple.
+                    </span>{" "}
+                    Choose from our curated gift options, ready to send, or tell
+                    us your vision and we'll take care of every detail for you.
+                  </p>
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  asChild
+                  className="text-sm md:text-base px-4 md:px-6 py-2 md:py-3 w-full sm:w-auto"
+                >
+                  <a href={EMAIL_HREF} className="flex items-center gap-2">
                     <Mail className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
                     Email us
                   </a>
-                  </Button>
-                </div>
+                </Button>
               </div>
             </div>
           </div>
@@ -287,54 +296,57 @@ export function CorporateContent({
             {/* Left Content */}
             <div className="order-2 lg:order-1">
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-brand-brown mb-4 md:mb-6">
-                Cookie Cart
-                <br />
-                Experience
+                {cart?.title || (
+                  <>
+                    Cookie Cart
+                    <br />
+                    Experience
+                  </>
+                )}
               </h2>
 
-              <div className="space-y-3 md:space-y-4 text-brand-muted mb-6 md:mb-8 text-sm md:text-base">
-                <p>
-                  Want to bring the full Bliss-B magic to your event? Our
-                  signature cookie cart is available for on-site service!
-                </p>
-                <p>
-                  You choose your cookie flavors, and we'll handle the rest from
-                  setup to serving. Think of it as a cookie bar, warm, fresh, and
-                  finished with your choice of Oreos, Biscoff crumble,
-                  marshmallows, sprinkles, and more.
-                </p>
-              </div>
+              {cart?.body ? (
+                <RichText
+                  content={cart.body}
+                  className="text-brand-muted mb-6 md:mb-8 text-sm md:text-base"
+                />
+              ) : (
+                <>
+                  <div className="space-y-3 md:space-y-4 text-brand-muted mb-6 md:mb-8 text-sm md:text-base">
+                    <p>
+                      Want to bring the full Bliss-B magic to your event? Our
+                      signature cookie cart is available for on-site service!
+                    </p>
+                    <p>
+                      You choose your cookie flavors, and we'll handle the rest from
+                      setup to serving. Think of it as a cookie bar, warm, fresh, and
+                      finished with your choice of Oreos, Biscoff crumble,
+                      marshmallows, sprinkles, and more.
+                    </p>
+                  </div>
 
-              <div className="mb-6 md:mb-8">
-                <p className="font-semibold text-brand-text mb-3 md:mb-4 text-sm md:text-base">
-                  The Bliss-B cart is perfect for:
-                </p>
+                  <div className="mb-6 md:mb-8">
+                    <p className="font-semibold text-brand-text mb-3 md:mb-4 text-sm md:text-base">
+                      The Bliss-B cart is perfect for:
+                    </p>
 
-                <div className="space-y-2 text-sm md:text-base">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-brand-success rounded-full flex-shrink-0"></div>
-                    <span className="text-brand-muted">Weddings</span>
+                    <div className="space-y-2 text-sm md:text-base">
+                      {[
+                        "Weddings",
+                        "Birthday parties",
+                        "Corporate events",
+                        "Private celebrations",
+                        "Pop-ups or brand launches",
+                      ].map((item) => (
+                        <div key={item} className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-brand-success rounded-full flex-shrink-0"></div>
+                          <span className="text-brand-muted">{item}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-brand-success rounded-full flex-shrink-0"></div>
-                    <span className="text-brand-muted">Birthday parties</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-brand-success rounded-full flex-shrink-0"></div>
-                    <span className="text-brand-muted">Corporate events</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-brand-success rounded-full flex-shrink-0"></div>
-                    <span className="text-brand-muted">Private celebrations</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-brand-success rounded-full flex-shrink-0"></div>
-                    <span className="text-brand-muted">
-                      Pop-ups or brand launches
-                    </span>
-                  </div>
-                </div>
-              </div>
+                </>
+              )}
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button
@@ -352,8 +364,8 @@ export function CorporateContent({
             {/* Right Content - Cart Images */}
             <div className="relative w-full h-[300px] md:h-[400px] lg:h-[500px] order-1 lg:order-2">
               <Image
-                src="/img/carrito.jpeg"
-                alt="Bliss-B Cookie Cart at Event"
+                src={cart?.image || "/img/carrito.jpeg"}
+                alt={cart?.imageAlt || "Bliss-B Cookie Cart at Event"}
                 fill
                 className="object-cover rounded-lg"
                 sizes="(max-width: 768px) 100vw, 50vw"
