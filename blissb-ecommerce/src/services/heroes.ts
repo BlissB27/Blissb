@@ -18,6 +18,7 @@ export async function getHero(key: HeroKey): Promise<HeroConfig | null> {
     const res: any = await strapiGet('/heroes', {
       'filters[key][$eq]': key,
       'populate[image]': 'true',
+      'populate[featuredProduct]': 'true',
     });
     const d = Array.isArray(res?.data) ? res.data[0] : undefined;
     if (!d) return null;
@@ -27,7 +28,9 @@ export async function getHero(key: HeroKey): Promise<HeroConfig | null> {
       title: d.title || undefined,
       subtitle: d.subtitle || undefined,
       image: d.image?.url ? getStrapiMediaUrl(d.image.url) : undefined,
-      featuredProductSlug: d.featuredProductSlug || undefined,
+      // featuredProduct es una relación a Product (selector en el admin); se
+      // deriva su slug para que la página de cookies busque ese producto.
+      featuredProductSlug: d.featuredProduct?.slug || undefined,
     };
   } catch (error) {
     console.error(`Error fetching hero "${key}":`, error);

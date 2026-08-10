@@ -551,7 +551,10 @@ export interface ApiHeroHero extends Struct.CollectionTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     eyebrow: Schema.Attribute.String;
-    featuredProductSlug: Schema.Attribute.String;
+    featuredProduct: Schema.Attribute.Relation<
+      'oneToOne',
+      'api::product.product'
+    >;
     image: Schema.Attribute.Media<'images'>;
     key: Schema.Attribute.Enumeration<
       ['cookies', 'cakes', 'desserts', 'corporate']
