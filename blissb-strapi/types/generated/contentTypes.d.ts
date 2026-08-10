@@ -505,6 +505,37 @@ export interface ApiEventEvent extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiGalleryPhotoGalleryPhoto
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'gallery_photos';
+  info: {
+    displayName: 'Gallery Photo';
+    pluralName: 'gallery-photos';
+    singularName: 'gallery-photo';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    alt: Schema.Attribute.String;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    image: Schema.Attribute.Media<'images'> & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::gallery-photo.gallery-photo'
+    > &
+      Schema.Attribute.Private;
+    order: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiHeroHero extends Struct.CollectionTypeSchema {
   collectionName: 'heroes';
   info: {
@@ -1222,6 +1253,7 @@ declare module '@strapi/strapi' {
       'api::blocked-date.blocked-date': ApiBlockedDateBlockedDate;
       'api::coupon.coupon': ApiCouponCoupon;
       'api::event.event': ApiEventEvent;
+      'api::gallery-photo.gallery-photo': ApiGalleryPhotoGalleryPhoto;
       'api::hero.hero': ApiHeroHero;
       'api::product.product': ApiProductProduct;
       'api::site-setting.site-setting': ApiSiteSettingSiteSetting;

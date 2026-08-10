@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { CorporateContent } from "./CorporateContent";
 import { getHero } from "@/services/heroes";
+import { getGalleryPhotos } from "@/services/gallery";
 
 export const metadata: Metadata = {
   title: "Corporate Gifting & Catering | Bliss-B Desserts",
@@ -10,10 +11,10 @@ export const metadata: Metadata = {
 };
 
 export default async function CorporatePage() {
-  const hero = await getHero("corporate");
+  const [hero, gallery] = await Promise.all([getHero("corporate"), getGalleryPhotos()]);
   return (
     <Suspense>
-      <CorporateContent hero={hero} />
+      <CorporateContent hero={hero} gallery={gallery} />
     </Suspense>
   );
 }

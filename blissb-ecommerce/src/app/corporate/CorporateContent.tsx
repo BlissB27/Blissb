@@ -10,15 +10,16 @@ import { Button } from "@/components/ui/button";
 import { WaveDivider } from "@/components/WaveDivider";
 import { CorporateHero } from "@/components/category/CorporateHero";
 import type { HeroConfig } from "@/services/heroes";
+import type { GalleryPhoto } from "@/services/gallery";
 import { motion } from "framer-motion";
 
 const EMAIL_HREF = "mailto:blissbdesserts@gmail.com";
 
 const SECTION_IDS = ["catering", "corporate-gifting", "cookie-cart"];
 
-// Real event/product photography — not stock, not the transparent product renders
-// (those live elsewhere) — this is proof of what Bliss-B actually shows up with.
-const GALLERY_PHOTOS = [
+// Fotos por defecto — se usan si la dueña no ha cargado ninguna en Strapi
+// (colección "Gallery Photo"). Real event/product photography, no stock.
+const GALLERY_PHOTOS: GalleryPhoto[] = [
   { src: "/img/event1.jpeg", alt: "The Bliss-B cart set up on-site at an event", width: 3024, height: 4032 },
   { src: "/img/carrito.jpeg", alt: "The Bliss-B dessert cart styled for an event", width: 1024, height: 1043 },
   { src: "/img/catering1.jpeg", alt: "Plated mini tarts for a catered event", width: 3024, height: 4032 },
@@ -44,9 +45,17 @@ const FEATURES = [
   },
 ];
 
-export function CorporateContent({ hero }: { hero?: HeroConfig | null }) {
+export function CorporateContent({
+  hero,
+  gallery,
+}: {
+  hero?: HeroConfig | null;
+  gallery?: GalleryPhoto[];
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Fotos de Strapi si hay; si no, las de por defecto.
+  const galleryPhotos = gallery && gallery.length > 0 ? gallery : GALLERY_PHOTOS;
 
   // Scroll to the requested section (from Banner's CTAs), then strip the query
   // param so the URL bar stays clean — no #hash or ?section= left behind.
@@ -368,7 +377,7 @@ export function CorporateContent({ hero }: { hero?: HeroConfig | null }) {
           </div>
 
           <div id="corporate-gallery" className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-            {GALLERY_PHOTOS.map((photo) => (
+            {galleryPhotos.map((photo) => (
               <a
                 key={photo.src}
                 href={photo.src}
