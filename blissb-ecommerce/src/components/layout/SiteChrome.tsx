@@ -6,6 +6,8 @@ import { ParallaxFooter } from "./ParallaxFooter";
 import { CheckoutHeader } from "./CheckoutHeader";
 import { CartDrawer } from "@/components/CartDrawer";
 import { NewsletterDiscountModal } from "@/components/NewsletterDiscountModal";
+import { SeasonalDecorations } from "@/components/SeasonalDecorations";
+import { useSeasonalTheme } from "@/hooks/useSeasonalTheme";
 
 // Routes that are part of the paid checkout flow get a distraction-free shell —
 // no header nav, no footer, no cart drawer, no newsletter popup — matching how
@@ -15,6 +17,9 @@ const DISTRACTION_FREE_PREFIXES = ["/checkout", "/order-success"];
 export function SiteChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isDistractionFree = DISTRACTION_FREE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+  // Adornos estacionales del preset activo en Strapi. Sólo en el shell normal;
+  // el checkout se mantiene sin distracciones.
+  const { decoration } = useSeasonalTheme();
 
   if (isDistractionFree) {
     // /checkout renders its own logo inline (above the total, Stripe-style)
@@ -36,6 +41,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
       </ParallaxFooter>
       <CartDrawer />
       <NewsletterDiscountModal />
+      <SeasonalDecorations decoration={decoration} />
     </>
   );
 }

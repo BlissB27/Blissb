@@ -1,0 +1,69 @@
+{
+  "kind": "collectionType",
+  "collectionName": "seasonal_themes",
+  "info": {
+    "singularName": "seasonal-theme",
+    "pluralName": "seasonal-themes",
+    "displayName": "Seasonal Theme"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "key": {
+      "type": "enumeration",
+      "enum": [
+        "default",
+        "christmas",
+        "valentines",
+        "mothers-day",
+        "july-4",
+        "thanksgiving",
+        "custom"
+      ],
+      "required": true,
+      "unique": true
+    },
+    "logo": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "logoWhite": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "decoration": {
+      "type": "enumeration",
+      "enum": [
+        "none",
+        "snowfall",
+        "fireworks",
+        "autumn-leaves",
+        "hearts"
+      ],
+      "default": "none",
+      "required": true
+    },
+    "announcements": {
+      "type": "component",
+      "repeatable": true,
+      "component": "site.announcement"
+    },
+    "discountModal": {
+      "type": "component",
+      "repeatable": false,
+      "component": "site.discount-modal"
+    }
+  }
+}

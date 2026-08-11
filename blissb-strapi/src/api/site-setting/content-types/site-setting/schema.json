@@ -20,6 +20,11 @@
       "type": "component",
       "repeatable": false,
       "component": "site.discount-modal"
+    },
+    "activeTheme": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::seasonal-theme.seasonal-theme"
     }
   }
 }
