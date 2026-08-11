@@ -9,7 +9,8 @@
 //   "Sunday: Closed", so it's treated the same as Monday for delivery/pickup purposes
 //   (shipping-only) — flagged as an interpretation, not a confirmed rule, until the owner confirms it.
 
-const BAKERY_TIMEZONE = "America/New_York";
+import { BAKERY_TIMEZONE } from "@/lib/bakeryLocation";
+
 const CUTOFF_HOUR = 14; // 2:00 PM, bakery local time
 
 export type FulfillmentType = "delivery" | "pickup";

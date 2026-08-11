@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { CalendarDays, ArrowRight } from "lucide-react";
 import { getUpcomingEvents, type EventItem } from "@/services/events";
+import { BAKERY_TIMEZONE } from "@/lib/bakeryLocation";
 
 // Server component. Renders nothing when there are no events, so the home page
 // never shows an empty "Events" band (e.g. before any event is created in Strapi,
@@ -57,7 +58,9 @@ function formatShortDate(dateISO?: string): string | null {
   if (!dateISO) return null;
   const date = new Date(dateISO);
   if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric" }).format(date);
+  // Bakery-local (see events/page.tsx) so the day can't shift when the UTC time
+  // crosses midnight relative to Braselton.
+  return new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: BAKERY_TIMEZONE }).format(date);
 }
 
 function EventPreviewCard({ event }: { event: EventItem }) {

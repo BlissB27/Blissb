@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { CalendarDays, MapPin } from "lucide-react";
 import { getAllEvents, type EventItem } from "@/services/events";
+import { BAKERY_TIMEZONE } from "@/lib/bakeryLocation";
 
 export const metadata: Metadata = {
   title: "Events | Bliss-B Desserts",
@@ -53,6 +54,9 @@ function formatEventDate(dateISO?: string): string | null {
   if (!dateISO) return null;
   const date = new Date(dateISO);
   if (Number.isNaN(date.getTime())) return null;
+  // Strapi stores the datetime in UTC — always render it in the bakery's local
+  // clock so the hour matches what the owner entered, regardless of where this
+  // runs (Vercel = UTC) or the visitor's timezone.
   return new Intl.DateTimeFormat("en-US", {
     weekday: "short",
     month: "long",
@@ -60,6 +64,7 @@ function formatEventDate(dateISO?: string): string | null {
     year: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    timeZone: BAKERY_TIMEZONE,
   }).format(date);
 }
 
