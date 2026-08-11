@@ -11,6 +11,7 @@ import { useCartStore } from "@/store/cartStore";
 import { SearchModal } from "../SearchModal";
 import { useHydrated } from "@/hooks/useHydrated";
 import { Carrusel } from "../Carrusel";
+import { BrandLogo } from "../BrandLogo";
 
 const NAV = [
   { href: "/", label: "Home" },
@@ -113,8 +114,8 @@ export default function Header() {
                 href="/"
                 className="text-lg font-bold tracking-wide text-brand-brown flex flex-1 items-center justify-center gap-2 lg:flex-none lg:justify-start"
               >
-                <Image
-                  src="/img/logobb.png"
+                <BrandLogo
+                  variant="main"
                   width={300}
                   height={200}
                   alt="logo"

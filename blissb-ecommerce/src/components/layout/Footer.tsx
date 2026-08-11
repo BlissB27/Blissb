@@ -1,8 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Instagram } from "lucide-react";
 import { FaTiktok } from "react-icons/fa";
 import { FooterSubscribeForm } from "./FooterSubscribeForm";
+import { BrandLogo } from "../BrandLogo";
 
 const NAVIGATION_LINKS = [
   { href: "/", label: "Home" },
@@ -44,7 +44,7 @@ export function Footer() {
     <footer className="bg-[#5C3319] text-white shadow-[0_50vh_0_60vh_#5C3319]">
       <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8 py-14 flex flex-col items-center text-center">
         <Link href="/">
-          <Image src="/img/logo-white.png" alt="Bliss-B Desserts" width={1343} height={452} className="h-10 md:h-12 w-auto" />
+          <BrandLogo variant="white" alt="Bliss-B Desserts" width={1343} height={452} className="h-10 md:h-12 w-auto" />
         </Link>
 
         <p className="mt-4 max-w-md text-sm text-white/75">

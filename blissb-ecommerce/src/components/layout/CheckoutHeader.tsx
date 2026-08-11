@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Lock } from "lucide-react";
+import { BrandLogo } from "../BrandLogo";
 
 // Minimal top bar for the distraction-free checkout flow (/checkout, /order-success).
 // No nav, no search, no cart icon — nothing to click away to except home.
@@ -9,8 +9,8 @@ export function CheckoutHeader() {
     <header className="sticky top-0 z-50 bg-white border-b border-brand-border/50">
       <div className="mx-auto flex max-w-[1200px] items-center justify-between px-4 py-4">
         <Link href="/" className="flex items-center">
-          <Image
-            src="/img/logobb.png"
+          <BrandLogo
+            variant="main"
             width={220}
             height={140}
             alt="Bliss-B Desserts"
