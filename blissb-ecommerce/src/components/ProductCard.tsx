@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { AddToCartButton } from "@/components/AddToCartButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FlavorConfirmDialog } from "@/components/FlavorConfirmDialog";
@@ -11,6 +12,7 @@ import type { Product } from "@/data/products";
 import { motion } from "framer-motion";
 import { useProductAddToCart } from "@/hooks/useProductAddToCart";
 import { getProductUrl } from "@/lib/productUrl";
+import { isOutOfStock } from "@/lib/stock";
 
 type ProductCardProps = {
   product: Product;
@@ -19,6 +21,7 @@ type ProductCardProps = {
 export function ProductCard({ product }: ProductCardProps) {
   const [currentQuantity, setCurrentQuantity] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
+  const soldOut = isOutOfStock(product);
   const {
     hasFlavorSelector,
     isUnconfiguredBox,
@@ -66,17 +69,20 @@ export function ProductCard({ product }: ProductCardProps) {
               src={product.image}
               alt={product.name}
               fill
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              className={`object-cover transition-transform duration-300 group-hover:scale-105 ${soldOut ? "opacity-60 grayscale" : ""}`}
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
               priority={false}
             />
           </Link>
 
           <div className="pointer-events-none absolute top-3 left-3 flex flex-col gap-1.5">
-            {product.isNew && (
+            {soldOut && (
+              <Badge className="bg-brand-brown text-white text-xs font-medium">Out of Stock</Badge>
+            )}
+            {!soldOut && product.isNew && (
               <Badge className="bg-brand-success text-white text-xs font-medium">New flavor</Badge>
             )}
-            {product.isOnOffer && (
+            {!soldOut && product.isOnOffer && (
               <Badge className="bg-brand-accent text-white text-xs font-medium">Seasonal</Badge>
             )}
           </div>
@@ -109,7 +115,13 @@ export function ProductCard({ product }: ProductCardProps) {
             <p className="text-sm text-brand-muted line-clamp-2">{product.description}</p>
           )}
 
-          {isUnconfiguredBox ? (
+          {soldOut ? (
+            <div className="mt-auto pt-2">
+              <Button disabled className="w-full" size="sm" variant="outline">
+                Out of Stock
+              </Button>
+            </div>
+          ) : isUnconfiguredBox ? (
             <p className="text-xs text-brand-muted mt-auto">
               This box isn&apos;t available online yet — please contact us directly to order it.
             </p>

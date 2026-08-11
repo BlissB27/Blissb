@@ -7,6 +7,7 @@ import PhotoSwipeLightbox from "photoswipe/lightbox";
 import "photoswipe/style.css";
 import { AddToCartButton } from "@/components/AddToCartButton";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Clock, Flame, Snowflake, AlertTriangle, ChefHat, Package, CalendarClock } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import type { BoxFlavor } from "@/store/cartStore";
@@ -14,6 +15,7 @@ import type { Product } from "@/data/products";
 import { ProductCard } from "@/components/ProductCard";
 import { FlavorSelector } from "@/components/FlavorSelector";
 import { WaveDivider } from "@/components/WaveDivider";
+import { isOutOfStock } from "@/lib/stock";
 
 // Product photos don't carry real pixel dimensions through the Strapi → Product
 // pipeline, and every product image is already displayed in a square frame
@@ -74,6 +76,7 @@ export function ProductDetailPage({ product, allProducts }: ProductDetailPagePro
   // require category === "cakes" | "cookies", which silently hid the
   // selector for flavor-bearing desserts (e.g. Cookie Cups).
   const hasFlavorSelector = product.isSoldInBox || (!!product.flavors && product.flavors.length > 0);
+  const soldOut = isOutOfStock(product);
 
   const handleAddToCart = (): boolean => {
     setErrorMessage(null);
@@ -173,7 +176,11 @@ export function ProductDetailPage({ product, allProducts }: ProductDetailPagePro
           <div>
             <div className="flex items-start gap-2 mb-2">
               <h1 className="text-3xl md:text-4xl font-bold text-brand-text">{product.name}</h1>
-              {product.isNew && <Badge className="bg-brand-success text-white">New flavor</Badge>}
+              {soldOut ? (
+                <Badge className="bg-brand-brown text-white">Out of Stock</Badge>
+              ) : (
+                product.isNew && <Badge className="bg-brand-success text-white">New flavor</Badge>
+              )}
             </div>
 
             <div className="flex items-center gap-3 mb-4">
@@ -236,14 +243,25 @@ export function ProductDetailPage({ product, allProducts }: ProductDetailPagePro
             )}
 
             <div className="mb-6">
-              <AddToCartButton
-                onAdd={handleAddToCart}
-                disabled={hasFlavorSelector ? !boxFlavors : false}
-                className="w-full py-3 font-medium"
-                size="lg"
-              >
-                Add to cart
-              </AddToCartButton>
+              {soldOut ? (
+                <>
+                  <Button disabled variant="outline" className="w-full py-3 font-medium" size="lg">
+                    Out of Stock
+                  </Button>
+                  <p className="text-sm text-brand-muted mt-2">
+                    This item is currently sold out. Check back soon!
+                  </p>
+                </>
+              ) : (
+                <AddToCartButton
+                  onAdd={handleAddToCart}
+                  disabled={hasFlavorSelector ? !boxFlavors : false}
+                  className="w-full py-3 font-medium"
+                  size="lg"
+                >
+                  Add to cart
+                </AddToCartButton>
+              )}
               {errorMessage && (
                 <p role="alert" className="text-sm text-red-600 mt-2">{errorMessage}</p>
               )}

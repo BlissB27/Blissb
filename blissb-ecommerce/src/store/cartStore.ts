@@ -106,6 +106,28 @@ export const useCartStore = create<CartStore>()(
           return { success: false, error: productValidation.error };
         }
 
+        // Stock: el backend revalida en checkout, pero el carrito nunca debe
+        // dejar agregar un producto agotado ni superar el inventario disponible.
+        // Se suma la cantidad ya en el carrito de este mismo producto (líneas
+        // simples, por sabor y cajas comparten el mismo pool de stock).
+        if (typeof normalizedProduct.stock === 'number') {
+          if (normalizedProduct.stock <= 0) {
+            return { success: false, error: `${normalizedProduct.name} is out of stock.` };
+          }
+          const alreadyInCart = get().items
+            .filter((item) => item.product.id === normalizedProduct.id)
+            .reduce((sum, item) => sum + item.quantity, 0);
+          if (alreadyInCart + quantity > normalizedProduct.stock) {
+            const remaining = Math.max(0, normalizedProduct.stock - alreadyInCart);
+            return {
+              success: false,
+              error: remaining > 0
+                ? `Only ${remaining} more of ${normalizedProduct.name} available.`
+                : `You already have all available stock of ${normalizedProduct.name} in your cart.`,
+            };
+          }
+        }
+
         // boxFlavors is the fixed recipe for ONE box (must sum to product.boxSize —
         // validated above in validateProduct) — it's never the cart quantity. The
         // cart quantity is always just `quantity` (how many boxes / units), same as
@@ -182,6 +204,17 @@ export const useCartStore = create<CartStore>()(
           if (!validation.isValid) {
             console.error(validation.error);
             return state;
+          }
+
+          // No dejar que el stepper del carrito supere el inventario disponible
+          // (sumando otras líneas del mismo producto: sabores, cajas).
+          if (typeof item.product.stock === 'number') {
+            const otherLinesQty = state.items
+              .filter((other) => other.id !== productId && other.product.id === item.product.id)
+              .reduce((sum, other) => sum + other.quantity, 0);
+            if (otherLinesQty + quantity > item.product.stock) {
+              return state;
+            }
           }
 
           // boxFlavors (the per-box flavor recipe) is untouched — quantity here

@@ -217,18 +217,30 @@ export function CartDrawer() {
                 Taxes, delivery, shipping or pickup calculated at checkout
               </p>
 
-              {/* Continue Button */}
-              <Button
-                className="w-full"
-                size="lg"
-                disabled={!orderInfo.hasMinimumOrder}
-                onClick={() => {
-                  closeCart();
-                  router.push('/cart');
-                }}
-              >
-                Continue
-              </Button>
+              {/* Below the $20 minimum, checkout isn't possible — instead of a
+                  dead disabled button, offer a way back to browsing that just
+                  closes the drawer. */}
+              {orderInfo.hasMinimumOrder ? (
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={() => {
+                    closeCart();
+                    router.push('/cart');
+                  }}
+                >
+                  Continue
+                </Button>
+              ) : (
+                <Button
+                  className="w-full"
+                  size="lg"
+                  variant="outline"
+                  onClick={closeCart}
+                >
+                  Keep shopping
+                </Button>
+              )}
 
               {/* Clear Cart */}
               <button

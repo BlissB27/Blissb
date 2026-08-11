@@ -18,6 +18,7 @@ import {
 import { useCartStore } from "@/store/cartStore";
 import { getProductsByCategoryAsync, type Product } from "@/data/products";
 import { toSentenceCase } from "@/lib/text";
+import { isOutOfStock } from "@/lib/stock";
 
 const MIN_COOKIES = 4;
 // Below this, the box panel is off in the normal document flow (after the
@@ -413,6 +414,7 @@ export function CookieBoxBuilder() {
                 ))
               : cookies.map((cookie) => {
                   const qty = qtyForProduct(cookie.id);
+                  const soldOut = isOutOfStock(cookie);
                   return (
                     <div
                       key={cookie.id}
@@ -424,13 +426,19 @@ export function CookieBoxBuilder() {
                           src={cookie.image}
                           alt={cookie.name}
                           fill
-                          className="object-cover transition-transform duration-300 group-hover:scale-105"
+                          className={`object-cover transition-transform duration-300 group-hover:scale-105 ${soldOut ? "opacity-60 grayscale" : ""}`}
                           sizes="(max-width: 640px) 50vw, 20vw"
                         />
-                        {qty > 0 && (
-                          <span className="absolute top-2 right-2 rounded-full bg-brand-success px-2 py-0.5 text-xs font-medium text-white shadow-sm">
-                            {qty} in box
+                        {soldOut ? (
+                          <span className="absolute top-2 right-2 rounded-full bg-brand-brown px-2 py-0.5 text-xs font-medium text-white shadow-sm">
+                            Out of Stock
                           </span>
+                        ) : (
+                          qty > 0 && (
+                            <span className="absolute top-2 right-2 rounded-full bg-brand-success px-2 py-0.5 text-xs font-medium text-white shadow-sm">
+                              {qty} in box
+                            </span>
+                          )
                         )}
                       </div>
                       <div className="flex flex-1 flex-col gap-2 pt-3">
@@ -438,10 +446,11 @@ export function CookieBoxBuilder() {
                         <AddToCartButton
                           size="sm"
                           className="mt-auto w-full"
+                          disabled={soldOut}
                           onAdd={(e) => handleAddClick(e, cookie)}
                         >
                           <span className="flex w-full items-center justify-between">
-                            <span>Add</span>
+                            <span>{soldOut ? "Sold out" : "Add"}</span>
                             <span>${cookie.price.toFixed(2)}</span>
                           </span>
                         </AddToCartButton>

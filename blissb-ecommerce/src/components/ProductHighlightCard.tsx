@@ -3,11 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { AddToCartButton } from "@/components/AddToCartButton";
 import { FlavorConfirmDialog } from "@/components/FlavorConfirmDialog";
 import { useProductAddToCart } from "@/hooks/useProductAddToCart";
 import type { Product } from "@/data/products";
 import { getProductUrl } from "@/lib/productUrl";
+import { isOutOfStock } from "@/lib/stock";
 
 export function ProductHighlightCard({
   product,
@@ -29,6 +31,8 @@ export function ProductHighlightCard({
     handleConfirmOptions,
   } = useProductAddToCart(product);
 
+  const soldOut = isOutOfStock(product);
+
   return (
     <>
       <div className="flex gap-4 rounded-2xl border border-brand-border bg-white p-4 transition-shadow duration-200 hover:shadow-lg sm:flex-col sm:gap-0 sm:p-5">
@@ -40,9 +44,14 @@ export function ProductHighlightCard({
             src={product.image}
             alt={product.name}
             fill
-            className="object-cover transition-transform duration-300 hover:scale-105"
+            className={`object-cover transition-transform duration-300 hover:scale-105 ${soldOut ? "opacity-60 grayscale" : ""}`}
             sizes="(max-width: 640px) 96px, 240px"
           />
+          {soldOut && (
+            <span className="absolute top-2 left-2 rounded-full bg-brand-brown px-2 py-0.5 text-[10px] font-medium text-white shadow-sm">
+              Out of Stock
+            </span>
+          )}
         </Link>
 
         <div className="flex min-w-0 flex-1 flex-col sm:mt-4">
@@ -61,7 +70,11 @@ export function ProductHighlightCard({
             <span className="font-display text-lg font-bold text-brand-brown">
               ${product.price.toFixed(2)}
             </span>
-            {isUnconfiguredBox ? (
+            {soldOut ? (
+              <Button disabled size="sm" variant="outline">
+                Out of Stock
+              </Button>
+            ) : isUnconfiguredBox ? (
               <p className="text-xs text-brand-muted">Contact us to order this box.</p>
             ) : (
               <AddToCartButton onAdd={handleAddToCart} size="sm">

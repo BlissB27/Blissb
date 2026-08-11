@@ -1,0 +1,45 @@
+{
+  "kind": "collectionType",
+  "collectionName": "home_occasions",
+  "info": {
+    "singularName": "home-occasion",
+    "pluralName": "home-occasions",
+    "displayName": "Home Occasion"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "key": {
+      "type": "enumeration",
+      "enum": [
+        "events",
+        "corporate-gifts",
+        "catering"
+      ],
+      "required": true,
+      "unique": true
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "text"
+    },
+    "image": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "imageAlt": {
+      "type": "string"
+    },
+    "order": {
+      "type": "integer",
+      "default": 0
+    }
+  }
+}

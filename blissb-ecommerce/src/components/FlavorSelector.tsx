@@ -69,7 +69,10 @@ function SingleFlavorPicker({
                   isSelected ? "border-brand-brown" : "border-brand-border hover:border-brand-brown/40"
                 }`}
               >
-                <div className="relative h-full w-full overflow-hidden rounded-lg">
+                {/* aspect-square (not h-full) so the frame has an intrinsic height of its
+                    own — a percentage height here collapses to 0 inside the flex button,
+                    leaving <Image fill> with nothing to fill. */}
+                <div className="relative aspect-square w-full overflow-hidden rounded-lg">
                   {image && <Image src={image} alt="" fill className="object-cover" sizes="120px" />}
                 </div>
 
@@ -151,7 +154,10 @@ function BoxFlavorPicker({
                   isChecked ? "border-brand-brown" : "border-brand-border hover:border-brand-brown/40"
                 }`}
               >
-                <div className="relative h-full w-full overflow-hidden rounded-lg">
+                {/* aspect-square (not h-full) so the frame has an intrinsic height of its
+                    own — a percentage height here collapses to 0 inside the flex button,
+                    leaving <Image fill> with nothing to fill. */}
+                <div className="relative aspect-square w-full overflow-hidden rounded-lg">
                   {image && <Image src={image} alt="" fill className="object-cover" sizes="120px" />}
                 </div>
 
