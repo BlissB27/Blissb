@@ -1,27 +1,27 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { AnimatePresence, motion } from "framer-motion";
-import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
-import { loadStripe } from "@stripe/stripe-js";
-import { useCartStore, type CartItem, type AppliedCoupon } from "@/store/cartStore";
-import { useDeliveryStore, type ShippingAddress } from "@/store/deliveryStore";
-import { useHydrated } from "@/hooks/useHydrated";
-import { getFulfillmentOptions } from "@/lib/deliverySchedule";
-import { DeliverySelector } from "@/components/DeliverySelector";
-import { AddressFields } from "@/components/AddressFields";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { FieldGroup, GroupField } from "@/components/ui/field-group";
-import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, CheckCircle2, ChevronDown, Lock } from "lucide-react";
-import { calculateProcessingFee } from "@/lib/orderFees";
-import { getProductImageSrc } from "@/lib/productImage";
-import { toSentenceCase } from "@/lib/text";
-import { isAddressComplete, joinAddress } from "@/lib/address";
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+import { useCartStore, type CartItem, type AppliedCoupon } from '@/store/cartStore';
+import { useDeliveryStore, type ShippingAddress } from '@/store/deliveryStore';
+import { useHydrated } from '@/hooks/useHydrated';
+import { getFulfillmentOptions } from '@/lib/deliverySchedule';
+import { DeliverySelector } from '@/components/DeliverySelector';
+import { AddressFields } from '@/components/AddressFields';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import { FieldGroup, GroupField } from '@/components/ui/field-group';
+import { Skeleton } from '@/components/ui/skeleton';
+import { AlertCircle, CheckCircle2, ChevronDown, Lock } from 'lucide-react';
+import { calculateProcessingFee } from '@/lib/orderFees';
+import { getProductImageSrc } from '@/lib/productImage';
+import { toSentenceCase } from '@/lib/text';
+import { isAddressComplete, joinAddress } from '@/lib/address';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -38,19 +38,19 @@ function nameLooksValid(name: string) {
 
 // Formats digits as the user types into (404) 952-7610 — US phone numbers only.
 function formatPhoneNumber(value: string) {
-  let digits = value.replace(/\D/g, "");
+  let digits = value.replace(/\D/g, '');
   // Browser autofill often includes the +1 country code (e.g. "+1 (404) 952-7610"),
   // which would otherwise shift every digit and drop the real last one.
-  if (digits.length === 11 && digits[0] === "1") digits = digits.slice(1);
+  if (digits.length === 11 && digits[0] === '1') digits = digits.slice(1);
   digits = digits.slice(0, 10);
-  if (digits.length === 0) return "";
+  if (digits.length === 0) return '';
   if (digits.length < 4) return `(${digits}`;
   if (digits.length < 7) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
   return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
 }
 
 function phoneDigitCount(value: string) {
-  return value.replace(/\D/g, "").length;
+  return value.replace(/\D/g, '').length;
 }
 
 function ErrorText({ children }: { children: React.ReactNode }) {
@@ -62,9 +62,11 @@ function ErrorText({ children }: { children: React.ReactNode }) {
   );
 }
 
-function InlineErrorBanner({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+function InlineErrorBanner({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600 ${className}`}>
+    <div
+      className={`flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600 ${className}`}
+    >
       <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
       <span>{children}</span>
     </div>
@@ -100,12 +102,14 @@ function PaymentSection({
   onValidateAll: () => boolean;
   buildRequestBody: () => CheckoutRequestBody;
   customerName: string;
-  shippingForConfirm: { name: string; address: { line1: string; city?: string; state?: string; postal_code?: string; country: string } } | undefined;
+  shippingForConfirm:
+    | { name: string; address: { line1: string; city?: string; state?: string; postal_code?: string; country: string } }
+    | undefined;
 }) {
   const router = useRouter();
   const stripe = useStripe();
   const elements = useElements();
-  const [payState, setPayState] = useState<"idle" | "processing" | "success">("idle");
+  const [payState, setPayState] = useState<'idle' | 'processing' | 'success'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [isAmountUpdating, setIsAmountUpdating] = useState(false);
   const isFirstAmount = useRef(true);
@@ -132,33 +136,33 @@ function PaymentSection({
 
     if (!onValidateAll()) return;
 
-    setPayState("processing");
+    setPayState('processing');
 
     const { error: submitError } = await elements.submit();
     if (submitError) {
-      setError(submitError.message ?? "Please check your payment details.");
-      setPayState("idle");
+      setError(submitError.message ?? 'Please check your payment details.');
+      setPayState('idle');
       return;
     }
 
     let clientSecret: string;
     try {
-      const response = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(buildRequestBody()),
       });
       const data = await response.json();
       if (!response.ok) {
-        setError(data.error ?? "Something went wrong. Please try again.");
-        setPayState("idle");
+        setError(data.error ?? 'Something went wrong. Please try again.');
+        setPayState('idle');
         return;
       }
       clientSecret = data.clientSecret;
     } catch (requestError) {
-      console.error("Error creating payment intent:", requestError);
-      setError("Something went wrong. Please check your connection and try again.");
-      setPayState("idle");
+      console.error('Error creating payment intent:', requestError);
+      setError('Something went wrong. Please check your connection and try again.');
+      setPayState('idle');
       return;
     }
 
@@ -172,24 +176,24 @@ function PaymentSection({
         },
         ...(shippingForConfirm ? { shipping: shippingForConfirm } : {}),
       },
-      redirect: "if_required",
+      redirect: 'if_required',
     });
 
     if (confirmError) {
-      setError(confirmError.message ?? "Payment failed. Please try again.");
-      setPayState("idle");
+      setError(confirmError.message ?? 'Payment failed. Please try again.');
+      setPayState('idle');
       return;
     }
 
-    if (paymentIntent?.status === "succeeded") {
-      setPayState("success");
+    if (paymentIntent?.status === 'succeeded') {
+      setPayState('success');
       // A brief beat on the success state before leaving the page, so the
       // confirmation actually registers instead of an instant redirect.
       setTimeout(() => {
         router.push(`/order-success?payment_intent=${paymentIntent.id}`);
       }, 900);
     } else {
-      setPayState("idle");
+      setPayState('idle');
     }
   };
 
@@ -200,12 +204,12 @@ function PaymentSection({
       <Button
         type="button"
         onClick={handlePay}
-        disabled={!stripe || !elements || payState !== "idle"}
+        disabled={!stripe || !elements || payState !== 'idle'}
         className="w-full bg-brand-success hover:bg-brand-success-hover text-white py-3 font-medium text-lg overflow-hidden"
         size="lg"
       >
         <AnimatePresence mode="wait" initial={false}>
-          {payState === "success" ? (
+          {payState === 'success' ? (
             <motion.div
               key="success"
               initial={{ opacity: 0, scale: 0.85 }}
@@ -222,7 +226,7 @@ function PaymentSection({
               </motion.div>
               Payment successful
             </motion.div>
-          ) : payState === "processing" ? (
+          ) : payState === 'processing' ? (
             <motion.div
               key="processing"
               initial={{ opacity: 0 }}
@@ -256,11 +260,11 @@ function PaymentSection({
         </AnimatePresence>
       </Button>
       <p className="text-xs text-brand-muted text-center">
-        By completing your order, you agree to our{" "}
+        By completing your order, you agree to our{' '}
         <Link href="/terms" target="_blank" className="text-brand-brown hover:underline">
           Terms of Service
-        </Link>{" "}
-        and{" "}
+        </Link>{' '}
+        and{' '}
         <Link href="/privacy" target="_blank" className="text-brand-brown hover:underline">
           Privacy Policy
         </Link>
@@ -298,10 +302,10 @@ function OrderSummaryPanel({
   taxAmount: number;
   processingFee: number;
   total: number;
-  selectedType: "shipping" | "delivery" | "pickup";
+  selectedType: 'shipping' | 'delivery' | 'pickup';
   isRecalculating: boolean;
 }) {
-  const [couponInput, setCouponInput] = useState("");
+  const [couponInput, setCouponInput] = useState('');
   const [couponError, setCouponError] = useState<string | null>(null);
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
 
@@ -310,15 +314,15 @@ function OrderSummaryPanel({
     setIsApplyingCoupon(true);
     setCouponError(null);
     try {
-      const res = await fetch("/api/validate-coupon", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/validate-coupon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: couponInput, subtotal }),
       });
       const result = await res.json();
       if (result.valid) {
         setCoupon({ code: couponInput.trim().toUpperCase(), percentOff: result.percentOff });
-        setCouponInput("");
+        setCouponInput('');
       } else {
         setCouponError(result.error ?? "That code isn't valid.");
       }
@@ -367,13 +371,11 @@ function OrderSummaryPanel({
               )}
               {item.boxFlavors && item.boxFlavors.length > 1 && (
                 <p className="text-xs text-brand-muted">
-                  {item.boxFlavors.map((f) => toSentenceCase(f.flavor)).join(", ")}
+                  {item.boxFlavors.map((f) => toSentenceCase(f.flavor)).join(', ')}
                 </p>
               )}
               {item.message && (
-                <p className="text-xs text-brand-muted italic truncate">
-                  Message: &ldquo;{item.message}&rdquo;
-                </p>
+                <p className="text-xs text-brand-muted italic truncate">Message: &ldquo;{item.message}&rdquo;</p>
               )}
             </div>
             <p className="text-sm font-medium text-brand-text flex-shrink-0">
@@ -389,7 +391,11 @@ function OrderSummaryPanel({
             <span className="inline-flex items-center gap-1 rounded-md bg-brand-bg border border-brand-border px-2 py-1 text-xs font-medium text-brand-text">
               🏷️ {appliedCoupon.code} · {appliedCoupon.percentOff}% off
             </span>
-            <button type="button" onClick={clearCoupon} className="text-xs text-brand-muted hover:text-brand-text underline">
+            <button
+              type="button"
+              onClick={clearCoupon}
+              className="text-xs text-brand-muted hover:text-brand-text underline"
+            >
               Remove
             </button>
           </div>
@@ -403,7 +409,7 @@ function OrderSummaryPanel({
                   setCouponError(null);
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") {
+                  if (e.key === 'Enter') {
                     e.preventDefault();
                     handleApplyCoupon();
                   }
@@ -412,7 +418,7 @@ function OrderSummaryPanel({
                 className="bg-white border-brand-border focus:border-brand-brown"
               />
               <Button type="button" onClick={handleApplyCoupon} disabled={isApplyingCoupon || !couponInput.trim()}>
-                {isApplyingCoupon ? "Checking…" : "Apply"}
+                {isApplyingCoupon ? 'Checking…' : 'Apply'}
               </Button>
             </div>
             {couponError && <ErrorText>{couponError}</ErrorText>}
@@ -434,11 +440,11 @@ function OrderSummaryPanel({
         )}
 
         <div className="flex justify-between text-brand-muted">
-          <span>{selectedType === "shipping" ? "Shipping" : selectedType === "delivery" ? "Delivery" : "Pickup"}</span>
+          <span>{selectedType === 'shipping' ? 'Shipping' : selectedType === 'delivery' ? 'Delivery' : 'Pickup'}</span>
           {isRecalculating ? (
             <Skeleton className="h-4 w-14" />
           ) : (
-            <span className="text-brand-text">{deliveryFee > 0 ? `$${deliveryFee.toFixed(2)}` : "Free"}</span>
+            <span className="text-brand-text">{deliveryFee > 0 ? `$${deliveryFee.toFixed(2)}` : 'Free'}</span>
           )}
         </div>
 
@@ -450,7 +456,7 @@ function OrderSummaryPanel({
         )}
 
         <div className="flex justify-between gap-4 text-brand-muted">
-          <span>Card processing fee (2.9% + $0.80)</span>
+          <span>Card processing fee</span>
           {isRecalculating ? (
             <Skeleton className="h-4 w-12 flex-shrink-0" />
           ) : (
@@ -472,7 +478,8 @@ export default function CheckoutPage() {
   const hydrated = useHydrated();
   const [isLoading, setIsLoading] = useState(true);
 
-  const { items, getTotalPrice, getShippingInfo, getMinimumOrderInfo, appliedCoupon, setCoupon, clearCoupon } = useCartStore();
+  const { items, getTotalPrice, getShippingInfo, getMinimumOrderInfo, appliedCoupon, setCoupon, clearCoupon } =
+    useCartStore();
   const {
     selectedType,
     billingAddress,
@@ -483,7 +490,7 @@ export default function CheckoutPage() {
     setBillingAddress,
   } = useDeliveryStore();
 
-  const [customerInfo, setCustomerInfo] = useState({ name: "", email: "", phone: "" });
+  const [customerInfo, setCustomerInfo] = useState({ name: '', email: '', phone: '' });
   const [contactErrors, setContactErrors] = useState<{ name?: string; email?: string; phone?: string }>({});
   // Before the first "Pay" click, blur shouldn't nag about an untouched empty
   // field — only about content that's actually wrong (a malformed email, an
@@ -524,7 +531,7 @@ export default function CheckoutPage() {
   // delivery/pickup. Best-effort: si falla, el checkout sigue con las reglas fijas.
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/blocked-dates")
+    fetch('/api/blocked-dates')
       .then((res) => res.json())
       .then((data) => {
         if (!cancelled && Array.isArray(data?.dates)) setBlockedDates(data.dates);
@@ -538,7 +545,7 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (isLoading) return;
     if (items.length === 0) {
-      router.push("/");
+      router.push('/');
     }
   }, [isLoading, items.length, router]);
 
@@ -548,18 +555,22 @@ export default function CheckoutPage() {
   const isBillingAddressValid = isAddressComplete(billingAddress);
   const effectiveDeliveryAddress = deliveryAddressSameAsBilling ? billingAddress : deliveryAddress;
   const effectiveShippingAddress = shippingAddressSameAsBilling ? billingAddress : shippingAddress;
-  const isDeliveryValid = selectedType !== "delivery" || isAddressComplete(effectiveDeliveryAddress);
-  const isShippingAddressValid = selectedType !== "shipping" || isAddressComplete(effectiveShippingAddress);
+  const isDeliveryValid = selectedType !== 'delivery' || isAddressComplete(effectiveDeliveryAddress);
+  const isShippingAddressValid = selectedType !== 'shipping' || isAddressComplete(effectiveShippingAddress);
 
   // Live tax preview (see /api/tax-quote) — keeps the order summary, sticky
   // total, and the amount shown in the Payment Element / Apple Pay / Google Pay
   // sheet in sync with what /api/checkout will actually charge at "Pay" time.
   const itemsSignature = JSON.stringify(
-    items.map((i) => ({ id: i.product.id, q: i.quantity, f: i.flavor, bf: i.boxFlavors }))
+    items.map((i) => ({ id: i.product.id, q: i.quantity, f: i.flavor, bf: i.boxFlavors })),
   );
   const taxReady =
     items.length > 0 &&
-    (selectedType === "pickup" ? isBillingAddressValid : selectedType === "delivery" ? isDeliveryValid : isShippingAddressValid);
+    (selectedType === 'pickup'
+      ? isBillingAddressValid
+      : selectedType === 'delivery'
+        ? isDeliveryValid
+        : isShippingAddressValid);
 
   useEffect(() => {
     if (!taxReady) {
@@ -570,52 +581,60 @@ export default function CheckoutPage() {
 
     setIsTaxQuoting(true);
     const timer = setTimeout(() => {
-      fetch("/api/tax-quote", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      fetch('/api/tax-quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items,
           deliveryInfo: {
             type: selectedType,
-            address: selectedType === "delivery" ? joinAddress(effectiveDeliveryAddress) : "",
+            address: selectedType === 'delivery' ? joinAddress(effectiveDeliveryAddress) : '',
             fee: deliveryFee,
           },
-          deliveryAddress: selectedType === "delivery" ? effectiveDeliveryAddress : undefined,
-          shippingAddress: selectedType === "shipping" ? effectiveShippingAddress : undefined,
+          deliveryAddress: selectedType === 'delivery' ? effectiveDeliveryAddress : undefined,
+          shippingAddress: selectedType === 'shipping' ? effectiveShippingAddress : undefined,
           billingAddress,
         }),
       })
         .then((res) => res.json())
-        .then((data) => setTaxAmount(typeof data.taxAmount === "number" ? data.taxAmount : 0))
+        .then((data) => setTaxAmount(typeof data.taxAmount === 'number' ? data.taxAmount : 0))
         .catch(() => setTaxAmount(0))
         .finally(() => setIsTaxQuoting(false));
     }, 500);
 
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [taxReady, itemsSignature, selectedType, deliveryFee, JSON.stringify(billingAddress), JSON.stringify(effectiveDeliveryAddress), JSON.stringify(effectiveShippingAddress)]);
+  }, [
+    taxReady,
+    itemsSignature,
+    selectedType,
+    deliveryFee,
+    JSON.stringify(billingAddress),
+    JSON.stringify(effectiveDeliveryAddress),
+    JSON.stringify(effectiveShippingAddress),
+  ]);
 
-  const handleInputChange = (field: "name" | "email" | "phone", value: string) => {
-    const nextValue = field === "phone" ? formatPhoneNumber(value) : value;
+  const handleInputChange = (field: 'name' | 'email' | 'phone', value: string) => {
+    const nextValue = field === 'phone' ? formatPhoneNumber(value) : value;
     setCustomerInfo((prev) => ({ ...prev, [field]: nextValue }));
     setContactErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
   };
 
-  const validateContactField = (field: "name" | "email" | "phone", value: string): string | undefined => {
-    if (field === "email") {
-      if (!value.trim()) return "Email is required";
-      if (!emailLooksValid(value)) return "Enter a valid email address";
-    } else if (field === "name") {
-      if (!value.trim()) return "Name is required";
-      if (!nameLooksValid(value)) return "Enter your full name";
+  const validateContactField = (field: 'name' | 'email' | 'phone', value: string): string | undefined => {
+    if (field === 'email') {
+      if (!value.trim()) return 'Email is required';
+      if (!emailLooksValid(value)) return 'Enter a valid email address';
+    } else if (field === 'name') {
+      if (!value.trim()) return 'Name is required';
+      if (!nameLooksValid(value)) return 'Enter your full name';
     } else {
-      if (!value.trim()) return "Phone number is required";
-      if (phoneDigitCount(value) !== 10) return "Enter a complete 10-digit phone number";
+      if (!value.trim()) return 'Phone number is required';
+      if (phoneDigitCount(value) !== 10) return 'Enter a complete 10-digit phone number';
     }
     return undefined;
   };
 
-  const handleContactBlur = (field: "name" | "email" | "phone") => {
+  const handleContactBlur = (field: 'name' | 'email' | 'phone') => {
     const value = customerInfo[field];
     if (!value.trim() && !hasAttemptedSubmit) {
       // Untouched empty field, no submit attempt yet — don't nag.
@@ -630,38 +649,39 @@ export default function CheckoutPage() {
     setHasAttemptedSubmit(true);
 
     const contactFieldErrors = {
-      name: validateContactField("name", customerInfo.name),
-      email: validateContactField("email", customerInfo.email),
-      phone: validateContactField("phone", customerInfo.phone),
+      name: validateContactField('name', customerInfo.name),
+      email: validateContactField('email', customerInfo.email),
+      phone: validateContactField('phone', customerInfo.phone),
     };
     setContactErrors(contactFieldErrors);
     const contactOk = !Object.values(contactFieldErrors).some(Boolean);
 
     const billingOk = isBillingAddressValid;
-    setBillingError(billingOk ? null : "A complete billing address is required.");
+    setBillingError(billingOk ? null : 'A complete billing address is required.');
 
     const deliveryErrs: string[] = [];
-    if (selectedType === "delivery" && !isDeliveryValid) deliveryErrs.push("A complete delivery address is required.");
-    if (selectedType === "shipping" && !isShippingAddressValid) deliveryErrs.push("A complete shipping address is required.");
-    setDeliveryError(deliveryErrs.length > 0 ? deliveryErrs.join(" ") : null);
+    if (selectedType === 'delivery' && !isDeliveryValid) deliveryErrs.push('A complete delivery address is required.');
+    if (selectedType === 'shipping' && !isShippingAddressValid)
+      deliveryErrs.push('A complete shipping address is required.');
+    setDeliveryError(deliveryErrs.length > 0 ? deliveryErrs.join(' ') : null);
 
     return contactOk && billingOk && deliveryErrs.length === 0;
   };
 
   const buildRequestBody = (): CheckoutRequestBody => {
-    const window_ = selectedType !== "shipping" ? fulfillment[selectedType] : null;
+    const window_ = selectedType !== 'shipping' ? fulfillment[selectedType] : null;
     return {
       items,
       customerInfo,
       deliveryInfo: {
         type: selectedType,
-        address: selectedType === "delivery" ? joinAddress(effectiveDeliveryAddress) : "",
-        date: window_?.date ?? "",
-        time: window_?.window ?? "",
+        address: selectedType === 'delivery' ? joinAddress(effectiveDeliveryAddress) : '',
+        date: window_?.date ?? '',
+        time: window_?.window ?? '',
         fee: deliveryFee,
       },
-      deliveryAddress: selectedType === "delivery" ? effectiveDeliveryAddress : undefined,
-      shippingAddress: selectedType === "shipping" ? effectiveShippingAddress : undefined,
+      deliveryAddress: selectedType === 'delivery' ? effectiveDeliveryAddress : undefined,
+      shippingAddress: selectedType === 'shipping' ? effectiveShippingAddress : undefined,
       billingAddress,
       couponCode: appliedCoupon?.code,
     };
@@ -682,9 +702,9 @@ export default function CheckoutPage() {
     return null; // redirecting
   }
 
-  const addressForFulfillment = selectedType === "shipping" ? effectiveShippingAddress : effectiveDeliveryAddress;
+  const addressForFulfillment = selectedType === 'shipping' ? effectiveShippingAddress : effectiveDeliveryAddress;
   const shippingForConfirm =
-    selectedType === "pickup"
+    selectedType === 'pickup'
       ? undefined
       : {
           name: customerInfo.name,
@@ -693,7 +713,7 @@ export default function CheckoutPage() {
             city: addressForFulfillment.city,
             state: addressForFulfillment.state,
             postal_code: addressForFulfillment.zip,
-            country: "US",
+            country: 'US',
           },
         };
 
@@ -725,8 +745,10 @@ export default function CheckoutPage() {
           aria-expanded={mobileSummaryOpen}
         >
           <span className="flex items-center gap-1.5 text-sm font-medium text-brand-text">
-            <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${mobileSummaryOpen ? "rotate-180" : ""}`} />
-            {mobileSummaryOpen ? "Hide order summary" : "Show order summary"}
+            <ChevronDown
+              className={`h-4 w-4 transition-transform duration-200 ${mobileSummaryOpen ? 'rotate-180' : ''}`}
+            />
+            {mobileSummaryOpen ? 'Hide order summary' : 'Show order summary'}
           </span>
           <span className="text-sm font-semibold text-brand-brown">${total.toFixed(2)}</span>
         </button>
@@ -734,9 +756,9 @@ export default function CheckoutPage() {
           {mobileSummaryOpen && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
+              animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
               className="overflow-hidden border-t border-brand-border"
             >
               <div className="px-4 pb-4 pt-3">
@@ -755,8 +777,8 @@ export default function CheckoutPage() {
         {!orderInfo.hasMinimumOrder && (
           <Card className="bg-yellow-50 border-yellow-200 mb-6 py-4 lg:mt-14 lg:flex-shrink-0">
             <CardContent className="px-4 text-sm text-yellow-800">
-              Your cart subtotal must be at least ${orderInfo.minimumRequired.toFixed(2)} to check out
-              (currently ${orderInfo.currentTotal.toFixed(2)}).
+              Your cart subtotal must be at least ${orderInfo.minimumRequired.toFixed(2)} to check out (currently $
+              {orderInfo.currentTotal.toFixed(2)}).
             </CardContent>
           </Card>
         )}
@@ -787,8 +809,8 @@ export default function CheckoutPage() {
                       label="Full name"
                       autoComplete="name"
                       value={customerInfo.name}
-                      onChange={(e) => handleInputChange("name", e.target.value)}
-                      onBlur={() => handleContactBlur("name")}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      onBlur={() => handleContactBlur('name')}
                       placeholder="Full name"
                       aria-invalid={!!contactErrors.name}
                       required
@@ -798,8 +820,8 @@ export default function CheckoutPage() {
                       type="email"
                       autoComplete="email"
                       value={customerInfo.email}
-                      onChange={(e) => handleInputChange("email", e.target.value)}
-                      onBlur={() => handleContactBlur("email")}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      onBlur={() => handleContactBlur('email')}
                       placeholder="email@example.com"
                       aria-invalid={!!contactErrors.email}
                       required
@@ -810,8 +832,8 @@ export default function CheckoutPage() {
                       inputMode="tel"
                       autoComplete="tel"
                       value={customerInfo.phone}
-                      onChange={(e) => handleInputChange("phone", e.target.value)}
-                      onBlur={() => handleContactBlur("phone")}
+                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      onBlur={() => handleContactBlur('phone')}
                       placeholder="(404) 952-7610"
                       maxLength={14}
                       aria-invalid={!!contactErrors.phone}
@@ -846,15 +868,15 @@ export default function CheckoutPage() {
                   <Elements
                     stripe={stripePromise}
                     options={{
-                      mode: "payment",
-                      currency: "usd",
+                      mode: 'payment',
+                      currency: 'usd',
                       amount: Math.max(50, Math.round(total * 100)),
                       appearance: {
                         variables: {
-                          colorPrimary: "#9B562C",
-                          colorText: "#211A16",
-                          colorTextSecondary: "#6B5D54",
-                          borderRadius: "8px",
+                          colorPrimary: '#9B562C',
+                          colorText: '#211A16',
+                          colorTextSecondary: '#6B5D54',
+                          borderRadius: '8px',
                         },
                       },
                     }}
