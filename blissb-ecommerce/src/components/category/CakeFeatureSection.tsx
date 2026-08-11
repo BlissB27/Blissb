@@ -115,6 +115,7 @@ export function CakeFeatureSection({ product, index }: CakeFeatureSectionProps) 
           {hasFlavorSelector && (
             <FlavorSelector
               flavors={product.flavors ?? []}
+              flavorOptions={product.flavorOptions}
               fixedTarget={false}
               onSelectionChange={setBoxFlavors}
             />
