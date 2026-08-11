@@ -39,6 +39,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Asignar el suscriptor a un grupo dispara la automatización de bienvenida
+    // (email con el código de descuento) configurada en MailerLite. Si la
+    // variable no está definida, el alta sigue funcionando sin grupo.
+    const groupId = process.env.MAILERLITE_GROUP_ID;
+
     // Llamar a la API de MailerLite
     const response = await fetch('https://connect.mailerlite.com/api/subscribers', {
       method: 'POST',
@@ -49,6 +54,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         email: email,
         status: 'active',
+        ...(groupId ? { groups: [groupId] } : {}),
       }),
     });
 
