@@ -135,6 +135,7 @@ function MiniCookieBoxCta({ product }: { product: Product | null }) {
         onOpenChange={setIsOptionsOpen}
         title={product.name}
         flavors={product.flavors ?? []}
+        flavorOptions={product.flavorOptions}
         fixedTarget
         targetQuantity={product.boxSize}
         onSelectionChange={setBoxFlavors}

@@ -95,7 +95,9 @@ export function ProductHighlightCard({
         onOpenChange={setIsOptionsOpen}
         title={product.name}
         flavors={product.flavors ?? []}
-        fixedTarget={false}
+        flavorOptions={product.flavorOptions}
+        fixedTarget={!!product.isSoldInBox}
+        targetQuantity={product.isSoldInBox ? (product.boxSize as number) : undefined}
         onSelectionChange={setBoxFlavors}
         errorMessage={errorMessage}
         onConfirm={handleConfirmOptions}
