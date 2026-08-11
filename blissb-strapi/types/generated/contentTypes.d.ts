@@ -790,6 +790,57 @@ export interface ApiProductProduct extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiSeasonalThemeSeasonalTheme
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'seasonal_themes';
+  info: {
+    displayName: 'Seasonal Theme';
+    pluralName: 'seasonal-themes';
+    singularName: 'seasonal-theme';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    announcements: Schema.Attribute.Component<'site.announcement', true>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    decoration: Schema.Attribute.Enumeration<
+      ['none', 'snowfall', 'fireworks', 'autumn-leaves', 'hearts']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'none'>;
+    discountModal: Schema.Attribute.Component<'site.discount-modal', false>;
+    key: Schema.Attribute.Enumeration<
+      [
+        'default',
+        'christmas',
+        'valentines',
+        'mothers-day',
+        'july-4',
+        'thanksgiving',
+        'custom',
+      ]
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::seasonal-theme.seasonal-theme'
+    > &
+      Schema.Attribute.Private;
+    logo: Schema.Attribute.Media<'images'>;
+    logoWhite: Schema.Attribute.Media<'images'>;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiSiteSettingSiteSetting extends Struct.SingleTypeSchema {
   collectionName: 'site_settings';
   info: {
@@ -801,6 +852,10 @@ export interface ApiSiteSettingSiteSetting extends Struct.SingleTypeSchema {
     draftAndPublish: false;
   };
   attributes: {
+    activeTheme: Schema.Attribute.Relation<
+      'oneToOne',
+      'api::seasonal-theme.seasonal-theme'
+    >;
     announcements: Schema.Attribute.Component<'site.announcement', true>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -1369,6 +1424,7 @@ declare module '@strapi/strapi' {
       'api::hero.hero': ApiHeroHero;
       'api::home-occasion.home-occasion': ApiHomeOccasionHomeOccasion;
       'api::product.product': ApiProductProduct;
+      'api::seasonal-theme.seasonal-theme': ApiSeasonalThemeSeasonalTheme;
       'api::site-setting.site-setting': ApiSiteSettingSiteSetting;
       'api::subscriber.subscriber': ApiSubscriberSubscriber;
       'plugin::content-releases.release': PluginContentReleasesRelease;
