@@ -3,6 +3,8 @@ import Image from "next/image";
 import { CalendarDays, MapPin } from "lucide-react";
 import { getAllEvents, type EventItem } from "@/services/events";
 import { BAKERY_TIMEZONE } from "@/lib/bakeryLocation";
+import { JsonLd } from "@/components/JsonLd";
+import { buildEventJsonLd } from "@/lib/jsonLd";
 
 export const metadata: Metadata = {
   title: "Events | Bliss-B Desserts",
@@ -22,6 +24,10 @@ export default async function EventsPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* SEO: one Event schema per event so Google can surface dates/locations. */}
+      {events.map((event) => (
+        <JsonLd key={`ld-${event.id}`} data={buildEventJsonLd(event)} />
+      ))}
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center mb-12">
           <h1 className="text-3xl md:text-4xl font-bold text-brand-brown mb-4">Events</h1>

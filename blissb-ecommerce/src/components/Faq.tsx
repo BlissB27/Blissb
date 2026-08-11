@@ -2,8 +2,13 @@
 
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { WaveDivider } from './WaveDivider';
+import { JsonLd } from '@/components/JsonLd';
+import { buildFaqJsonLd } from '@/lib/jsonLd';
 
-export type FaqEntry = { question: string; answer: React.ReactNode };
+// `answerText` is the plain-text answer for the FAQPage structured data — only
+// needed when `answer` is JSX (e.g. contains an email link); string answers
+// already double as their own schema text.
+export type FaqEntry = { question: string; answer: React.ReactNode; answerText?: string };
 
 const EMAIL_LINK = (
   <a href="mailto:blissbdesserts@gmail.com" className="font-bold text-brand-brown">
@@ -40,6 +45,7 @@ export const FAQ_DATA: FaqEntry[] = [
   {
     question: 'What happens if I miss my pickup?',
     answer: <>Please email us at {EMAIL_LINK} and we&apos;ll do our best to help.</>,
+    answerText: "Please email us at blissbdesserts@gmail.com and we'll do our best to help.",
   },
   {
     question: 'How long do the cookies stay fresh?',
@@ -63,6 +69,7 @@ export const FAQ_DATA: FaqEntry[] = [
   {
     question: 'Do you work with other businesses?',
     answer: <>Yes! We welcome wholesale inquiries and creative collaborations. Reach out to us at {EMAIL_LINK}.</>,
+    answerText: 'Yes! We welcome wholesale inquiries and creative collaborations. Reach out to us at blissbdesserts@gmail.com.',
   },
   {
     question: 'Do your products contain allergens?',
@@ -113,8 +120,17 @@ export function FAQ({
   const leftColumn = entries.slice(0, midpoint);
   const rightColumn = entries.slice(midpoint);
 
+  // FAQPage structured data for the questions actually shown on this surface.
+  const schemaEntries = entries
+    .map((faq) => ({
+      question: faq.question,
+      answerText: faq.answerText ?? (typeof faq.answer === 'string' ? faq.answer : ''),
+    }))
+    .filter((faq) => faq.answerText.length > 0);
+
   return (
     <section className={`relative bg-[#ffeccf] py-16 pb-24 ${className ?? ''}`}>
+      {schemaEntries.length > 0 && <JsonLd data={buildFaqJsonLd(schemaEntries)} />}
       {withWaveDivider && <WaveDivider direction="top" color="#FFFFFF" className="absolute top-0 left-0 right-0" />}
 
       <div className={`mx-auto max-w-5xl px-4 ${withWaveDivider ? 'my-8 md:my-10' : ''}`}>

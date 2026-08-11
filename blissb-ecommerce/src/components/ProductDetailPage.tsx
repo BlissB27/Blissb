@@ -15,7 +15,10 @@ import type { Product } from "@/data/products";
 import { ProductCard } from "@/components/ProductCard";
 import { FlavorSelector } from "@/components/FlavorSelector";
 import { WaveDivider } from "@/components/WaveDivider";
+import { JsonLd } from "@/components/JsonLd";
 import { isOutOfStock } from "@/lib/stock";
+import { buildProductJsonLd, buildBreadcrumbJsonLd } from "@/lib/jsonLd";
+import { getProductUrl } from "@/lib/productUrl";
 
 // Product photos don't carry real pixel dimensions through the Strapi → Product
 // pipeline, and every product image is already displayed in a square frame
@@ -114,6 +117,16 @@ export function ProductDetailPage({ product, allProducts }: ProductDetailPagePro
 
   return (
     <div className="min-h-screen bg-white">
+      {/* SEO structured data — Product/Offer (price + availability) and the
+          breadcrumb trail, mirroring the visible one below. */}
+      <JsonLd data={buildProductJsonLd(product)} />
+      <JsonLd
+        data={buildBreadcrumbJsonLd([
+          { name: "Home", url: "/" },
+          { name: product.category.charAt(0).toUpperCase() + product.category.slice(1), url: `/${product.category}` },
+          { name: product.name, url: getProductUrl(product) },
+        ])}
+      />
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumb */}
         <nav className="text-sm text-brand-muted mb-6">

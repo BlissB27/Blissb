@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Inter } from "next/font/google";
 import { MotionConfig } from "framer-motion";
 import "./globals.css";
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     description: SITE_DESCRIPTION,
     url: SITE_URL,
     siteName: "Bliss-B Desserts",
-    images: [{ url: "/img/cookies-hero.png", width: 1920, height: 1080, alt: "Bliss-B Desserts handcrafted cookies" }],
+    images: [{ url: "/img/og-image.jpg", width: 1200, height: 633, alt: "Bliss-B Desserts — a spread of handcrafted cookies" }],
     locale: "en_US",
     type: "website",
   },
@@ -39,8 +39,13 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    images: ["/img/cookies-hero.png"],
+    images: ["/img/og-image.jpg"],
   },
+};
+
+// Sets <meta name="theme-color"> — the mobile browser UI color on the site.
+export const viewport: Viewport = {
+  themeColor: "#9B562C",
 };
 
 // LocalBusiness/Bakery structured data — lets Google show hours, address, and
