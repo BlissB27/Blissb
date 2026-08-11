@@ -443,8 +443,37 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
-export interface ApiBlockedDateBlockedDate
-  extends Struct.CollectionTypeSchema {
+export interface ApiAwardPhotoAwardPhoto extends Struct.CollectionTypeSchema {
+  collectionName: 'award_photos';
+  info: {
+    displayName: 'Award Photo';
+    pluralName: 'award-photos';
+    singularName: 'award-photo';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    alt: Schema.Attribute.String;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    image: Schema.Attribute.Media<'images'> & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::award-photo.award-photo'
+    > &
+      Schema.Attribute.Private;
+    order: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiBlockedDateBlockedDate extends Struct.CollectionTypeSchema {
   collectionName: 'blocked_dates';
   info: {
     displayName: 'Blocked Date';
@@ -461,7 +490,9 @@ export interface ApiBlockedDateBlockedDate
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    date: Schema.Attribute.Date & Schema.Attribute.Required & Schema.Attribute.Unique;
+    date: Schema.Attribute.Date &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -470,6 +501,91 @@ export interface ApiBlockedDateBlockedDate
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
     reason: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiCorporateSectionCorporateSection
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'corporate_sections';
+  info: {
+    displayName: 'Corporate Section';
+    pluralName: 'corporate-sections';
+    singularName: 'corporate-section';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    body: Schema.Attribute.Blocks;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    image: Schema.Attribute.Media<'images'>;
+    imageAlt: Schema.Attribute.String;
+    key: Schema.Attribute.Enumeration<['catering', 'gifting', 'cookie-cart']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::corporate-section.corporate-section'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    title: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiCouponCoupon extends Struct.CollectionTypeSchema {
+  collectionName: 'coupons';
+  info: {
+    displayName: 'Coupon';
+    pluralName: 'coupons';
+    singularName: 'coupon';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    active: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<true>;
+    code: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    expiresAt: Schema.Attribute.DateTime;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::coupon.coupon'
+    > &
+      Schema.Attribute.Private;
+    minSubtotal: Schema.Attribute.Decimal &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      >;
+    percentOff: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 100;
+          min: 1;
+        },
+        number
+      >;
+    publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -573,111 +689,38 @@ export interface ApiHeroHero extends Struct.CollectionTypeSchema {
   };
 }
 
-export interface ApiSiteSettingSiteSetting extends Struct.SingleTypeSchema {
-  collectionName: 'site_settings';
-  info: {
-    displayName: 'Site Settings';
-    pluralName: 'site-settings';
-    singularName: 'site-setting';
-  };
-  options: {
-    draftAndPublish: false;
-  };
-  attributes: {
-    announcements: Schema.Attribute.Component<'site.announcement', true>;
-    createdAt: Schema.Attribute.DateTime;
-    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    discountModal: Schema.Attribute.Component<'site.discount-modal', false>;
-    locale: Schema.Attribute.String & Schema.Attribute.Private;
-    localizations: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::site-setting.site-setting'
-    > &
-      Schema.Attribute.Private;
-    publishedAt: Schema.Attribute.DateTime;
-    updatedAt: Schema.Attribute.DateTime;
-    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-  };
-}
-
-export interface ApiCorporateSectionCorporateSection
+export interface ApiHomeOccasionHomeOccasion
   extends Struct.CollectionTypeSchema {
-  collectionName: 'corporate_sections';
+  collectionName: 'home_occasions';
   info: {
-    displayName: 'Corporate Section';
-    pluralName: 'corporate-sections';
-    singularName: 'corporate-section';
+    displayName: 'Home Occasion';
+    pluralName: 'home-occasions';
+    singularName: 'home-occasion';
   };
   options: {
     draftAndPublish: true;
   };
   attributes: {
-    body: Schema.Attribute.Blocks;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    description: Schema.Attribute.Text;
     image: Schema.Attribute.Media<'images'>;
     imageAlt: Schema.Attribute.String;
-    key: Schema.Attribute.Enumeration<['catering', 'gifting', 'cookie-cart']> &
+    key: Schema.Attribute.Enumeration<
+      ['events', 'corporate-gifts', 'catering']
+    > &
       Schema.Attribute.Required &
       Schema.Attribute.Unique;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
-      'api::corporate-section.corporate-section'
+      'api::home-occasion.home-occasion'
     > &
       Schema.Attribute.Private;
+    order: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
     publishedAt: Schema.Attribute.DateTime;
     title: Schema.Attribute.String;
-    updatedAt: Schema.Attribute.DateTime;
-    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-  };
-}
-
-export interface ApiCouponCoupon extends Struct.CollectionTypeSchema {
-  collectionName: 'coupons';
-  info: {
-    displayName: 'Coupon';
-    pluralName: 'coupons';
-    singularName: 'coupon';
-  };
-  options: {
-    draftAndPublish: false;
-  };
-  attributes: {
-    active: Schema.Attribute.Boolean &
-      Schema.Attribute.Required &
-      Schema.Attribute.DefaultTo<true>;
-    code: Schema.Attribute.String &
-      Schema.Attribute.Required &
-      Schema.Attribute.Unique;
-    createdAt: Schema.Attribute.DateTime;
-    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    expiresAt: Schema.Attribute.DateTime;
-    locale: Schema.Attribute.String & Schema.Attribute.Private;
-    localizations: Schema.Attribute.Relation<'oneToMany', 'api::coupon.coupon'> &
-      Schema.Attribute.Private;
-    minSubtotal: Schema.Attribute.Decimal &
-      Schema.Attribute.SetMinMax<
-        {
-          min: 0;
-        },
-        number
-      >;
-    percentOff: Schema.Attribute.Integer &
-      Schema.Attribute.Required &
-      Schema.Attribute.SetMinMax<
-        {
-          max: 100;
-          min: 1;
-        },
-        number
-      >;
-    publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -741,6 +784,35 @@ export interface ApiProductProduct extends Struct.CollectionTypeSchema {
         number
       > &
       Schema.Attribute.DefaultTo<0>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiSiteSettingSiteSetting extends Struct.SingleTypeSchema {
+  collectionName: 'site_settings';
+  info: {
+    displayName: 'Site Settings';
+    pluralName: 'site-settings';
+    singularName: 'site-setting';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    announcements: Schema.Attribute.Component<'site.announcement', true>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    discountModal: Schema.Attribute.Component<'site.discount-modal', false>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::site-setting.site-setting'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1288,12 +1360,14 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::award-photo.award-photo': ApiAwardPhotoAwardPhoto;
       'api::blocked-date.blocked-date': ApiBlockedDateBlockedDate;
       'api::corporate-section.corporate-section': ApiCorporateSectionCorporateSection;
       'api::coupon.coupon': ApiCouponCoupon;
       'api::event.event': ApiEventEvent;
       'api::gallery-photo.gallery-photo': ApiGalleryPhotoGalleryPhoto;
       'api::hero.hero': ApiHeroHero;
+      'api::home-occasion.home-occasion': ApiHomeOccasionHomeOccasion;
       'api::product.product': ApiProductProduct;
       'api::site-setting.site-setting': ApiSiteSettingSiteSetting;
       'api::subscriber.subscriber': ApiSubscriberSubscriber;
