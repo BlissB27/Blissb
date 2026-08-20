@@ -2,12 +2,30 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Mail, Sparkles } from "lucide-react";
+import { CalendarClock, Mail, MapPin, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HeroShell, HeroEyebrow } from "@/components/category/HeroShell";
 import type { HeroConfig } from "@/services/heroes";
 
 const EMAIL_HREF = "mailto:blissbdesserts@gmail.com";
+
+const FEATURES = [
+  {
+    Icon: CalendarClock,
+    title: "Book 2 Weeks Ahead",
+    description: "Give us at least two weeks' notice so every order gets the care and prep time it deserves.",
+  },
+  {
+    Icon: Sparkles,
+    title: "Custom Quotes",
+    description: "Every quote is tailored to your guest count, menu, and budget — never a generic package.",
+  },
+  {
+    Icon: MapPin,
+    title: "Serving Braselton & Beyond",
+    description: "Based in Braselton, GA, with cart service and delivery available for nearby events.",
+  },
+];
 
 type CorporateHeroProps = {
   /** Textos y foto principal editables desde Strapi (Hero key="corporate"). */
@@ -22,8 +40,8 @@ export function CorporateHero({ hero }: CorporateHeroProps) {
     "From wedding dessert tables to corporate gifting and our signature cookie cart, Bliss-B brings handcrafted treats to every kind of celebration — custom to your guest count, menu, and budget.";
   const primaryImage = hero?.image || "/img/event1.jpeg";
   return (
-    <HeroShell withWave={false}>
-      <div className="relative mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8 pt-12 pb-20 md:pt-20 md:pb-28 grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+    <HeroShell>
+      <div className="relative mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8 pt-12 pb-10 md:pt-20 md:pb-14 grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
         <motion.div
           initial={{ opacity: 0, x: -40 }}
           animate={{ opacity: 1, x: 0 }}
@@ -89,6 +107,26 @@ export function CorporateHero({ hero }: CorporateHeroProps) {
           </motion.div>
         </motion.div>
       </div>
+
+      {/* Booking basics stay inside the same terracotta panel as the rest of the
+          hero (per the v2 layout) instead of a separate colored band — the
+          WaveDivider in HeroShell closes this whole block in one wave. */}
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300, delay: 0.3, duration: 0.6 }}
+        className="relative mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8 pb-16 md:pb-24 grid grid-cols-1 md:grid-cols-3 gap-8"
+      >
+        {FEATURES.map((feature) => (
+          <div key={feature.title} className="text-center">
+            <div className="w-14 h-14 rounded-full border border-white/50 bg-white/10 flex items-center justify-center mx-auto mb-3">
+              <feature.Icon className="w-6 h-6 text-white" strokeWidth={1.75} aria-hidden="true" />
+            </div>
+            <h3 className="font-semibold text-white mb-1.5 text-sm md:text-base">{feature.title}</h3>
+            <p className="text-sm text-white/80">{feature.description}</p>
+          </div>
+        ))}
+      </motion.div>
     </HeroShell>
   );
 }

@@ -523,7 +523,7 @@ export interface ApiCorporateSectionCorporateSection
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    image: Schema.Attribute.Media<'images'>;
+    image: Schema.Attribute.Media<'images', true>;
     imageAlt: Schema.Attribute.String;
     key: Schema.Attribute.Enumeration<['catering', 'gifting', 'cookie-cart']> &
       Schema.Attribute.Required &

@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { CalendarClock, MapPin, Mail, Sparkles } from "lucide-react";
+import { Mail } from "lucide-react";
 import PhotoSwipeLightbox from "photoswipe/lightbox";
 import "photoswipe/style.css";
 import { Button } from "@/components/ui/button";
@@ -12,12 +12,27 @@ import { CorporateHero } from "@/components/category/CorporateHero";
 import { RichText } from "@/components/RichText";
 import type { HeroConfig } from "@/services/heroes";
 import type { GalleryPhoto } from "@/services/gallery";
-import type { CorporateSection } from "@/services/corporateSections";
+import type { CorporateSection, CorporateSectionImage } from "@/services/corporateSections";
 import { motion } from "framer-motion";
 
 const EMAIL_HREF = "mailto:blissbdesserts@gmail.com";
 
 const SECTION_IDS = ["catering", "corporate-gifting", "cookie-cart"];
+
+// Fallback local para cada sección cuando Strapi no tiene fotos cargadas —
+// mismo shape que CorporateSectionImage para poder compartir el render.
+const CATERING_FALLBACK: CorporateSectionImage[] = [
+  { url: "/img/catering.png", alt: "Cookie Cups" },
+  { url: "/img/catering1.jpeg", alt: "Mini tartas servidas en un evento" },
+  { url: "/img/corporate1.jpeg", alt: "Galletas Bliss-B decoradas para un evento" },
+  { url: "/img/carrito.jpeg", alt: "Carrito de postres Bliss-B" },
+];
+const GIFTING_FALLBACK: CorporateSectionImage[] = [
+  { url: "/img/Corporate.png", alt: "Corporate Gift Box with Cookies" },
+];
+const CART_FALLBACK: CorporateSectionImage[] = [
+  { url: "/img/carrito.jpeg", alt: "Bliss-B Cookie Cart at Event" },
+];
 
 // Fotos por defecto — se usan si la dueña no ha cargado ninguna en Strapi
 // (colección "Gallery Photo"). Real event/product photography, no stock.
@@ -27,24 +42,6 @@ const GALLERY_PHOTOS: GalleryPhoto[] = [
   { src: "/img/catering1.jpeg", alt: "Plated mini tarts for a catered event", width: 3024, height: 4032 },
   { src: "/img/corporate1.jpeg", alt: "A Bliss-B cookie box presented as a corporate gift", width: 5107, height: 3648 },
   { src: "/img/corporate.jpeg", alt: "Cookies branded with the Bliss-B logo for corporate gifting", width: 3024, height: 4032 },
-];
-
-const FEATURES = [
-  {
-    Icon: CalendarClock,
-    title: "Book 2 Weeks Ahead",
-    description: "Give us at least two weeks' notice so every order gets the care and prep time it deserves.",
-  },
-  {
-    Icon: Sparkles,
-    title: "Custom Quotes",
-    description: "Every quote is tailored to your guest count, menu, and budget — never a generic package.",
-  },
-  {
-    Icon: MapPin,
-    title: "Serving Braselton & Beyond",
-    description: "Based in Braselton, GA, with cart service and delivery available for nearby events.",
-  },
 ];
 
 export function CorporateContent({
@@ -65,6 +62,9 @@ export function CorporateContent({
   const catering = sections?.catering;
   const gifting = sections?.gifting;
   const cart = sections?.["cookie-cart"];
+  const cateringImages = catering?.images?.length ? catering.images : CATERING_FALLBACK;
+  const giftingImage = gifting?.images?.length ? gifting.images[0] : GIFTING_FALLBACK[0];
+  const cartImage = cart?.images?.length ? cart.images[0] : CART_FALLBACK[0];
 
   // Scroll to the requested section (from Banner's CTAs), then strip the query
   // param so the URL bar stays clean — no #hash or ?section= left behind.
@@ -90,24 +90,6 @@ export function CorporateContent({
     <div className="min-h-screen ">
       <CorporateHero hero={hero} />
 
-      {/* Booking basics - the numbers a corporate/event buyer needs before reaching out */}
-      <section className="relative bg-brand-bg">
-        <WaveDivider direction="top" color="#9B562C" className="absolute left-0 right-0" />
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {FEATURES.map((feature) => (
-              <div key={feature.title} className="text-center">
-                <div className="w-16 h-16 bg-brand-accent rounded-full flex items-center justify-center mx-auto mb-4">
-                  <feature.Icon className="w-7 h-7 text-white" strokeWidth={1.75} aria-hidden="true" />
-                </div>
-                <h3 className="font-semibold text-brand-text mb-2">{feature.title}</h3>
-                <p className="text-sm text-brand-muted">{feature.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-        <WaveDivider direction="bottom" color="#FFFFFF" className="absolute bottom-0 left-0 right-0" />
-      </section>
       {/* Catering & Events */}
       <section id="catering" className="py-12 md:py-16 bg-white scroll-mt-[150px] md:scroll-mt-[185px]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -203,7 +185,7 @@ export function CorporateContent({
               </motion.div>
             </motion.div>
 
-            {/* Right Content - Cookie Images Grid */}
+            {/* Right Content - stacked photos, however many the owner has uploaded in Strapi */}
             <motion.div
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
@@ -214,15 +196,22 @@ export function CorporateContent({
                 delay: 0.3,
                 duration: 0.6
               }}
-              className="relative w-full h-[300px] md:h-[400px] lg:h-[500px] order-1 md:order-2"
+              className="flex gap-3 overflow-x-auto md:flex-col md:overflow-visible md:gap-4 order-1 md:order-2 -mx-4 px-4 md:mx-0 md:px-0"
             >
-              <Image
-                src={catering?.image || "/img/catering.png"}
-                alt={catering?.imageAlt || "Cookie Cups"}
-                fill
-                className="object-cover rounded-lg"
-                sizes="(max-width: 768px) 100vw, 50vw"
-              />
+              {cateringImages.map((img, i) => (
+                <div
+                  key={img.url + i}
+                  className="relative flex-shrink-0 w-[70%] aspect-[2.4/1] md:w-full overflow-hidden rounded-full shadow-md"
+                >
+                  <Image
+                    src={img.url}
+                    alt={img.alt}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 70vw, 50vw"
+                  />
+                </div>
+              ))}
             </motion.div>
           </div>
         </div>
@@ -236,8 +225,8 @@ export function CorporateContent({
             {/* Left Content - Gift Boxes */}
             <div className="relative w-full h-[300px] md:h-[400px] lg:h-[500px] order-2 lg:order-1">
               <Image
-                src={gifting?.image || "/img/Corporate.png"}
-                alt={gifting?.imageAlt || "Corporate Gift Box with Cookies"}
+                src={giftingImage.url}
+                alt={giftingImage.alt}
                 fill
                 className="object-contain rounded-lg"
                 sizes="(max-width: 768px) 100vw, 50vw"
@@ -364,8 +353,8 @@ export function CorporateContent({
             {/* Right Content - Cart Images */}
             <div className="relative w-full h-[300px] md:h-[400px] lg:h-[500px] order-1 lg:order-2">
               <Image
-                src={cart?.image || "/img/carrito.jpeg"}
-                alt={cart?.imageAlt || "Bliss-B Cookie Cart at Event"}
+                src={cartImage.url}
+                alt={cartImage.alt}
                 fill
                 className="object-cover rounded-lg"
                 sizes="(max-width: 768px) 100vw, 50vw"
