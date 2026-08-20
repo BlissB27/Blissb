@@ -57,6 +57,12 @@ const nextConfig: NextConfig = {
   },
 
   images: {
+    // Parche temporal: el team de Vercel agotó la cuota gratis de Image
+    // Optimization (5,000 transformations/mes, plan Hobby) y todas las
+    // imágenes del sitio devolvían 402 OPTIMIZED_IMAGE_REQUEST_PAYMENT_REQUIRED.
+    // Sirve los archivos tal cual (sin resize/WebP automático) hasta que se
+    // suba a Pro o se resetee la cuota — quitar este flag en ese momento.
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'http',
