@@ -1,10 +1,15 @@
 import { strapiGet, getStrapiMediaUrl } from '@/lib/strapi';
 
+export type CorporateSectionImage = {
+  url: string;
+  alt: string;
+};
+
 export type CorporateSection = {
   title?: string;
-  image?: string;
-  imageAlt?: string;
-  // Contenido del editor de bloques (WYSIWYG) de Strapi; se renderiza con <RichText>.
+  // El campo "image" en Strapi acepta varias fotos (media multiple) — la
+  // dueña puede subir 1 o varias y CorporateContent las apila en la sección.
+  images?: CorporateSectionImage[];
   body?: unknown[] | null;
 };
 
@@ -19,10 +24,15 @@ export async function getCorporateSections(): Promise<Record<string, CorporateSe
     const map: Record<string, CorporateSection> = {};
     for (const s of res?.data || []) {
       if (!s?.key) continue;
+      const rawImages = Array.isArray(s.image) ? s.image : s.image ? [s.image] : [];
       map[s.key] = {
         title: s.title || undefined,
-        image: s.image?.url ? getStrapiMediaUrl(s.image.url) : undefined,
-        imageAlt: s.imageAlt || undefined,
+        images: rawImages
+          .filter((img: any) => img?.url)
+          .map((img: any) => ({
+            url: getStrapiMediaUrl(img.url),
+            alt: img.alternativeText || s.imageAlt || s.title || 'Bliss-B',
+          })),
         body: Array.isArray(s.body) && s.body.length > 0 ? s.body : undefined,
       };
     }
