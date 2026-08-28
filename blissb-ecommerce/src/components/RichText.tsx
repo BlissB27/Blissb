@@ -99,3 +99,19 @@ export function RichText({ content, className }: { content?: unknown[] | null; c
   if (!Array.isArray(content) || content.length === 0) return null;
   return <div className={className}>{(content as BlockNode[]).map((node, i) => renderNode(node, i))}</div>;
 }
+
+function collectText(nodes?: BlockNode[]): string {
+  return (nodes ?? []).map((node) => (node.text !== undefined ? node.text : collectText(node.children))).join("");
+}
+
+// Texto plano de un bloque de Strapi (sin formato ni enlaces) — para
+// FAQPage/JSON-LD u otros usos donde solo hace falta el contenido, no el
+// markup.
+export function blocksToPlainText(content?: unknown[] | null): string {
+  if (!Array.isArray(content) || content.length === 0) return "";
+  return (content as BlockNode[])
+    .map((node) => collectText(node.children))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+}

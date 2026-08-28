@@ -621,6 +621,33 @@ export interface ApiEventEvent extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiFaqFaq extends Struct.CollectionTypeSchema {
+  collectionName: 'faqs';
+  info: {
+    displayName: 'FAQ';
+    pluralName: 'faqs';
+    singularName: 'faq';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    answer: Schema.Attribute.Blocks & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<'oneToMany', 'api::faq.faq'> &
+      Schema.Attribute.Private;
+    order: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    publishedAt: Schema.Attribute.DateTime;
+    question: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiGalleryPhotoGalleryPhoto
   extends Struct.CollectionTypeSchema {
   collectionName: 'gallery_photos';
@@ -1420,6 +1447,7 @@ declare module '@strapi/strapi' {
       'api::corporate-section.corporate-section': ApiCorporateSectionCorporateSection;
       'api::coupon.coupon': ApiCouponCoupon;
       'api::event.event': ApiEventEvent;
+      'api::faq.faq': ApiFaqFaq;
       'api::gallery-photo.gallery-photo': ApiGalleryPhotoGalleryPhoto;
       'api::hero.hero': ApiHeroHero;
       'api::home-occasion.home-occasion': ApiHomeOccasionHomeOccasion;

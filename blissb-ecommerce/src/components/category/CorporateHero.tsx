@@ -68,43 +68,22 @@ export function CorporateHero({ hero }: CorporateHeroProps) {
           </Button>
         </motion.div>
 
-        {/* Two photos, stacked diagonally like a quick photo collage */}
+        {/* Single hero photo, editable from Strapi (Hero key="corporate") */}
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: "spring", damping: 20, stiffness: 300, delay: 0.2, duration: 0.7 }}
-          className="relative mx-auto w-full max-w-sm aspect-square"
+          whileHover={{ scale: 1.03, transition: { type: "spring", damping: 15, stiffness: 300 } }}
+          className="relative mx-auto w-full max-w-md aspect-[4/3] overflow-hidden rounded-2xl shadow-xl cursor-pointer"
         >
-          <motion.div
-            initial={{ opacity: 0, rotate: 0 }}
-            animate={{ opacity: 1, rotate: -6 }}
-            whileHover={{ rotate: -2, scale: 1.05, transition: { type: "spring", damping: 15, stiffness: 300 } }}
-            className="absolute left-0 top-0 w-[68%] aspect-square overflow-hidden rounded-2xl shadow-xl cursor-pointer"
-          >
-            <Image
-              src={primaryImage}
-              alt="The Bliss-B cart set up on-site at an event"
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 60vw, 260px"
-              priority
-            />
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, rotate: 0 }}
-            animate={{ opacity: 1, rotate: 6 }}
-            whileHover={{ rotate: 2, scale: 1.05, transition: { type: "spring", damping: 15, stiffness: 300 } }}
-            className="absolute bottom-0 right-0 w-[58%] aspect-square overflow-hidden rounded-2xl shadow-2xl cursor-pointer"
-          >
-            <Image
-              src="/img/carrito.jpeg"
-              alt="The Bliss-B dessert cart styled for an event"
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 50vw, 220px"
-            />
-          </motion.div>
+          <Image
+            src={primaryImage}
+            alt="The Bliss-B cart set up on-site at an event"
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 90vw, 420px"
+            priority
+          />
         </motion.div>
       </div>
 

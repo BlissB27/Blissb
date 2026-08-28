@@ -8,6 +8,7 @@ import { InstagramGallery } from "@/components/InstagramGallery";
 import { Awards } from "@/components/Awards";
 import { EventsPreview } from "@/components/EventsPreview";
 import { FAQ } from "@/components/Faq";
+import { getFaqs } from "@/services/faqs";
 
 // Title/description already match the root layout's defaults, which are
 // written for the home page — only the canonical needs to be explicit here.
@@ -15,7 +16,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
-export default function Home() {
+export default async function Home() {
+  const faqs = await getFaqs();
   return (
     <main className="min-h-screen">
       <Hero />
@@ -34,7 +36,7 @@ export default function Home() {
       <InstagramGallery />
       <EventsPreview />
       <Awards />
-      <FAQ />
+      <FAQ items={faqs.length > 0 ? faqs : undefined} />
     </main>
   );
 }
