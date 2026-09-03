@@ -5,6 +5,7 @@ import { sendOrderEmails } from '@/lib/email';
 import { sendOrderPush } from '@/lib/pushover';
 import { getProductByIdAsync } from '@/data/products';
 import { decrementProductStock } from '@/services/products';
+import { createOrderRecord } from '@/services/orders';
 import { toSentenceCase } from '@/lib/text';
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -174,6 +175,31 @@ export async function POST(request: NextRequest) {
         deliveryTime: metadata.deliveryTime || '',
         specialMessage: metadata.specialMessage || '',
       });
+
+      // 🧾 Guarda la orden en Strapi para el panel de la clienta. Best-effort —
+      // no debe tumbar el webhook (el pago ya se cobró).
+      await createOrderRecord({
+        orderNumber,
+        paymentId: paymentIntent.id,
+        customerName: metadata.customerName || 'Cliente',
+        customerEmail: paymentIntent.receipt_email || metadata.customerEmail || '',
+        items: products.map((p) => ({
+          name: p.name,
+          price: p.price,
+          quantity: p.quantity,
+          size: p.size,
+          message: p.message,
+        })),
+        subtotal,
+        shipping,
+        processingFee,
+        total,
+        shippingAddress,
+        deliveryType: metadata.deliveryType || '',
+        deliveryDate: metadata.deliveryDate || '',
+        deliveryTime: metadata.deliveryTime || '',
+        specialMessage: metadata.specialMessage || '',
+      }).catch((err) => console.error('Failed to save order in Strapi:', err));
 
       console.log('Email results:', emailResult);
 
