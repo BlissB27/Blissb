@@ -283,6 +283,7 @@ function OrderSummaryPanel({
   appliedCoupon,
   setCoupon,
   clearCoupon,
+  customerEmail,
   subtotal,
   discountAmount,
   deliveryFee,
@@ -296,6 +297,7 @@ function OrderSummaryPanel({
   appliedCoupon: AppliedCoupon | null;
   setCoupon: (coupon: AppliedCoupon) => void;
   clearCoupon: () => void;
+  customerEmail: string;
   subtotal: number;
   discountAmount: number;
   deliveryFee: number;
@@ -317,7 +319,7 @@ function OrderSummaryPanel({
       const res = await fetch('/api/validate-coupon', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: couponInput, subtotal }),
+        body: JSON.stringify({ code: couponInput, subtotal, email: customerEmail }),
       });
       const result = await res.json();
       if (result.valid) {
@@ -722,6 +724,7 @@ export default function CheckoutPage() {
     appliedCoupon,
     setCoupon,
     clearCoupon,
+    customerEmail: customerInfo.email,
     subtotal,
     discountAmount,
     deliveryFee,

@@ -195,6 +195,7 @@ export async function POST(request: NextRequest) {
         processingFee,
         total,
         shippingAddress,
+        couponCode: metadata.couponCode || undefined,
         deliveryType: metadata.deliveryType || '',
         deliveryDate: metadata.deliveryDate || '',
         deliveryTime: metadata.deliveryTime || '',

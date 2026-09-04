@@ -6,14 +6,15 @@ import { validateCoupon } from '@/lib/coupons';
 // only ever learns whether the single code it typed is valid, and its %.
 export async function POST(request: NextRequest) {
   try {
-    const { code, subtotal } = await request.json();
+    const { code, subtotal, email } = await request.json();
 
     if (typeof code !== 'string' || !code.trim()) {
       return NextResponse.json({ valid: false, percentOff: 0, error: 'Enter a discount code.' }, { status: 200 });
     }
 
     const parsedSubtotal = typeof subtotal === 'number' && Number.isFinite(subtotal) ? subtotal : undefined;
-    const result = await validateCoupon(code, parsedSubtotal);
+    const parsedEmail = typeof email === 'string' && email.trim() ? email.trim() : undefined;
+    const result = await validateCoupon(code, parsedSubtotal, parsedEmail);
 
     return NextResponse.json(result, { status: 200 });
   } catch (error) {

@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     let discountAmount = 0;
     let appliedCouponCode: string | undefined;
     if (couponCode) {
-      const { valid, percentOff, error } = await validateCoupon(couponCode, validatedSubtotal);
+      const { valid, percentOff, error } = await validateCoupon(couponCode, validatedSubtotal, customerInfo.email);
       if (!valid) {
         return NextResponse.json({ error: error ?? 'That discount code is not valid.' }, { status: 400 });
       }

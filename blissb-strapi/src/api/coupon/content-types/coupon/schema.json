@@ -33,6 +33,11 @@
     "minSubtotal": {
       "type": "decimal",
       "min": 0
+    },
+    "oneUsePerCustomer": {
+      "type": "boolean",
+      "default": true,
+      "required": true
     }
   }
 }

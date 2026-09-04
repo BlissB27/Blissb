@@ -1,4 +1,4 @@
-import { strapiPost } from '@/lib/strapi';
+import { strapiGet, strapiPost } from '@/lib/strapi';
 
 type OrderItem = {
   name: string;
@@ -28,6 +28,7 @@ type OrderRecord = {
   processingFee: number;
   total: number;
   shippingAddress: ShippingAddress;
+  couponCode?: string;
   deliveryType?: string;
   deliveryDate?: string;
   deliveryTime?: string;
@@ -40,4 +41,16 @@ type OrderRecord = {
 export async function createOrderRecord(order: OrderRecord): Promise<boolean> {
   await strapiPost('/orders', { data: order });
   return true;
+}
+
+// Un pedido en Strapi solo existe si el pago se completó (lo crea el webhook
+// de Stripe), así que "existe una orden con este email + código" es
+// exactamente "este cliente ya canjeó este cupón".
+export async function hasCustomerUsedCoupon(customerEmail: string, couponCode: string): Promise<boolean> {
+  const res: any = await strapiGet('/orders', {
+    'filters[customerEmail][$eqi]': customerEmail.trim(),
+    'filters[couponCode][$eqi]': couponCode.trim(),
+    'pagination[limit]': '1',
+  });
+  return Array.isArray(res?.data) && res.data.length > 0;
 }

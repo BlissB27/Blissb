@@ -37,6 +37,9 @@
       "type": "decimal",
       "required": true
     },
+    "couponCode": {
+      "type": "string"
+    },
     "shipping": {
       "type": "decimal",
       "default": 0

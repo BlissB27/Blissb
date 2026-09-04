@@ -1,4 +1,5 @@
 import { strapiGet } from '@/lib/strapi';
+import { hasCustomerUsedCoupon } from '@/services/orders';
 
 // Coupons live in Strapi (colección "Coupon") so the client can create/edit/
 // deactivate them from the admin without a code change. This module only runs
@@ -11,9 +12,15 @@ const INVALID = (error: string): CouponResult => ({ valid: false, percentOff: 0,
 /**
  * Validates a code against Strapi. Pass `subtotal` when it's known (checkout /
  * apply) so the minimum-subtotal rule can be enforced; omit it to only check
- * existence/active/expiry.
+ * existence/active/expiry. Pass `customerEmail` when known so a coupon marked
+ * "one use per customer" can be checked against past orders — omit it (e.g.
+ * the cart page, before the customer has entered an email) to skip that check.
  */
-export async function validateCoupon(code: string, subtotal?: number): Promise<CouponResult> {
+export async function validateCoupon(
+  code: string,
+  subtotal?: number,
+  customerEmail?: string
+): Promise<CouponResult> {
   const normalized = code.trim().toUpperCase();
   if (!normalized) return INVALID('Enter a discount code.');
 
@@ -39,6 +46,16 @@ export async function validateCoupon(code: string, subtotal?: number): Promise<C
   if (expiresAt && expiresAt.getTime() < Date.now()) return INVALID('That discount code has expired.');
   if (subtotal !== undefined && minSubtotal > 0 && subtotal < minSubtotal) {
     return INVALID(`This code needs a subtotal of at least $${minSubtotal.toFixed(2)}.`);
+  }
+
+  const oneUsePerCustomer = coupon.oneUsePerCustomer !== false;
+  if (oneUsePerCustomer && customerEmail) {
+    try {
+      const alreadyUsed = await hasCustomerUsedCoupon(customerEmail, normalized);
+      if (alreadyUsed) return INVALID("You've already used this code.");
+    } catch {
+      // Best-effort: si Strapi no responde, no bloqueamos el checkout por esto.
+    }
   }
 
   return { valid: true, percentOff };
