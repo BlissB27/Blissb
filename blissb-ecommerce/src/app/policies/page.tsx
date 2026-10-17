@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Package, MapPin, Truck, Clock, AlertCircle, RefreshCw, X, type LucideIcon } from 'lucide-react';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { WaveDivider } from '@/components/WaveDivider';
+import { PICKUP_ADDRESS } from '@/lib/bakeryLocation';
 
 type PolicySection = {
   Icon: LucideIcon;
@@ -28,7 +29,8 @@ const POLICY_SECTIONS: PolicySection[] = [
         the next available day.
       </>,
       <>
-        <strong className="text-brand-text">Saturday:</strong> pickup only, at the Suwanee Farmers Market, 8am–12pm.
+        <strong className="text-brand-text">Saturday:</strong> pickup only (no local delivery), same 2:00pm cutoff and
+        6pm–8pm pickup window.
       </>,
       <>
         The minimum order subtotal to check out is <strong className="text-brand-text">$20</strong>.
@@ -62,11 +64,8 @@ const POLICY_SECTIONS: PolicySection[] = [
     title: 'Pick-Up Days and Policies',
     items: [
       <>
-        <strong className="text-brand-text">Tuesday–Friday:</strong> pickup in Braselton, between 6pm–8pm (same-day if
-        ordered before the 2:00pm cutoff).
-      </>,
-      <>
-        <strong className="text-brand-text">Saturday:</strong> pickup only at the Suwanee Farmers Market, 8am–12pm.
+        <strong className="text-brand-text">Tuesday–Saturday:</strong> pickup at {PICKUP_ADDRESS}, between 6pm–8pm
+        (same-day if ordered before the 2:00pm cutoff).
       </>,
       <>
         If you need to arrange a pick-up on a different day or time, please contact us at{' '}

@@ -5,11 +5,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import { AddressFields } from "@/components/AddressFields";
 import { useDeliveryStore, type DeliveryType, type ShippingAddress } from "@/store/deliveryStore";
 import { getFulfillmentOptions } from "@/lib/deliverySchedule";
-import { BAKERY_ADDRESS } from "@/lib/bakeryLocation";
+import { PICKUP_ADDRESS } from "@/lib/bakeryLocation";
 import { isAddressComplete, joinAddress } from "@/lib/address";
 import { AlertCircle, CheckCircle2, MapPin, Package, ShoppingBag, Truck, type LucideIcon } from "lucide-react";
 
-const GOOGLE_MAPS_DIRECTIONS_URL = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(BAKERY_ADDRESS)}`;
+const GOOGLE_MAPS_DIRECTIONS_URL = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(PICKUP_ADDRESS)}`;
 
 // Drops in from just above rather than a plain fade — used whenever the
 // fulfillment type changes, so the newly-revealed section reads as "arriving"
@@ -183,6 +183,7 @@ export function DeliverySelector({ subtotal, shippingCost, blockedDates = [], on
                 <MapPin className="w-4 h-4" />
                 <span className="text-sm font-medium">Pick up here</span>
               </div>
+              <p className="text-sm text-brand-text">{PICKUP_ADDRESS}</p>
               <a
                 href={GOOGLE_MAPS_DIRECTIONS_URL}
                 target="_blank"

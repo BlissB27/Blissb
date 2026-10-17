@@ -22,7 +22,8 @@ An artisanal, small-batch home bakery (not a mass-market or wholesale operation)
 
 - Order windows: online orders Tuesday–Friday with a 2:00pm cutoff; orders before cutoff get same-day delivery (2–6pm window) or pickup (6–8pm); orders after cutoff move to the next day.
 - Monday: shipping only (UPS), no delivery/pickup.
-- Saturday: pickup only, at Suwanee Farmers Market, 8am–12pm.
+- Saturday: pickup only (no delivery), same 6–8pm window and 2:00pm cutoff as Tuesday–Friday. The owner attends events (e.g. Suwanee Farmers Market), but those aren't pickup locations.
+- Pickup location (only one): 1180 Braselton Village Parkway, Braselton, GA 30517.
 - Delivery origin: 111 Manor Way, Braselton, GA 30517. Delivery radius 25 miles; beyond that, only shipping or in-store pickup is offered.
 - Backend: Strapi Cloud (content/catalog/inventory). Frontend: Next.js on Vercel. Payments: Stripe. Transactional email: Resend. Newsletter: MailerLite (with subscribers also mirrored into Strapi for owner visibility).
 - The owner runs day-to-day operations solo or with minimal help and is not a developer — future admin-facing features (event postings, date blocking, seasonal theming) must be usable without code changes.

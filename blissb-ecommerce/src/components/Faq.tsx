@@ -30,7 +30,7 @@ export const FAQ_DATA: FaqEntry[] = [
   {
     question: 'Can I get same-day delivery or pickup?',
     answer:
-      'Yes! Order Tuesday–Friday before 2:00pm for same-day local delivery (2pm–6pm) or same-day pickup (6pm–8pm). Order after 2:00pm and it rolls to the next available day. Saturday is pickup-only at the Suwanee Farmers Market, 8am–12pm.',
+      'Yes! Order Tuesday–Friday before 2:00pm for same-day local delivery (2pm–6pm) or same-day pickup (6pm–8pm). Order after 2:00pm and it rolls to the next available day. Saturday is pickup-only, with the same cutoff and 6pm–8pm window.',
   },
   {
     question: 'How much does delivery cost?',
@@ -40,7 +40,7 @@ export const FAQ_DATA: FaqEntry[] = [
   {
     question: 'Can I pick up my order?',
     answer:
-      "Yes! Once your order is confirmed, you'll receive pickup instructions and our address by email.",
+      "Yes! Pickup is Tuesday–Saturday, 6pm–8pm, at 1180 Braselton Village Parkway, Braselton, GA 30517.",
   },
   {
     question: 'What happens if I miss my pickup?',

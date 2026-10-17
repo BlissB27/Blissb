@@ -4,7 +4,9 @@
 // - Tuesday–Friday: online order window with a 2:00pm cutoff (bakery local time).
 //   Before cutoff -> same-day delivery (2pm-6pm) or same-day pickup (6pm-8pm).
 //   After cutoff -> rolls to the next available day of that same type.
-// - Saturday: pickup only, at the Suwanee Farmers Market, 8am-12pm.
+// - Saturday: pickup only (no delivery), same 6pm-8pm window and 2:00pm cutoff as Tuesday–Friday.
+//   The owner attends events (e.g. Suwanee Farmers Market), but those aren't pickup locations —
+//   pickup is only ever at PICKUP_ADDRESS.
 // - Sunday: no rule is confirmed in the proposal. The site's stated business hours are
 //   "Sunday: Closed", so it's treated the same as Monday for delivery/pickup purposes
 //   (shipping-only) — flagged as an interpretation, not a confirmed rule, until the owner confirms it.
@@ -56,6 +58,8 @@ function dateStringForOffset(baseDateISO: string, offsetDays: number): { dateISO
 }
 
 const isTueFri = (weekday: string) => ["Tuesday", "Wednesday", "Thursday", "Friday"].includes(weekday);
+const isOpenDay = (type: FulfillmentType, weekday: string) =>
+  isTueFri(weekday) || (type === "pickup" && weekday === "Saturday");
 
 function findNextWindow(type: FulfillmentType, now: Date, blockedDates: Set<string>): FulfillmentWindow {
   const bakeryNow = getBakeryLocalParts(now);
@@ -70,23 +74,13 @@ function findNextWindow(type: FulfillmentType, now: Date, blockedDates: Set<stri
     // ni pickup ese día. Shipping (UPS) no se ve afectado.
     if (blockedDates.has(dateISO)) continue;
 
-    if (isTueFri(weekday)) {
+    if (isOpenDay(type, weekday)) {
       if (isFirstDay && cutoffPassedToday) continue; // today's window already closed
       return {
         type,
         date: dateISO,
         dayName: weekday,
         window: type === "delivery" ? "2:00 PM - 6:00 PM" : "6:00 PM - 8:00 PM",
-        isToday: isFirstDay,
-      };
-    }
-
-    if (type === "pickup" && weekday === "Saturday") {
-      return {
-        type,
-        date: dateISO,
-        dayName: weekday,
-        window: "8:00 AM - 12:00 PM (Suwanee Farmers Market)",
         isToday: isFirstDay,
       };
     }
