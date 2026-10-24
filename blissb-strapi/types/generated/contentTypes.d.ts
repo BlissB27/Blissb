@@ -576,6 +576,9 @@ export interface ApiCouponCoupon extends Struct.CollectionTypeSchema {
         },
         number
       >;
+    oneUsePerCustomer: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<true>;
     percentOff: Schema.Attribute.Integer &
       Schema.Attribute.Required &
       Schema.Attribute.SetMinMax<
@@ -748,6 +751,49 @@ export interface ApiHomeOccasionHomeOccasion
     order: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
     publishedAt: Schema.Attribute.DateTime;
     title: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiOrderOrder extends Struct.CollectionTypeSchema {
+  collectionName: 'orders';
+  info: {
+    displayName: 'Order';
+    pluralName: 'orders';
+    singularName: 'order';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    couponCode: Schema.Attribute.String;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    customerEmail: Schema.Attribute.Email & Schema.Attribute.Required;
+    customerName: Schema.Attribute.String & Schema.Attribute.Required;
+    deliveryDate: Schema.Attribute.String;
+    deliveryTime: Schema.Attribute.String;
+    deliveryType: Schema.Attribute.String;
+    items: Schema.Attribute.JSON & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<'oneToMany', 'api::order.order'> &
+      Schema.Attribute.Private;
+    orderNumber: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    paymentId: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    processingFee: Schema.Attribute.Decimal & Schema.Attribute.DefaultTo<0>;
+    publishedAt: Schema.Attribute.DateTime;
+    shipping: Schema.Attribute.Decimal & Schema.Attribute.DefaultTo<0>;
+    shippingAddress: Schema.Attribute.JSON;
+    specialMessage: Schema.Attribute.Text;
+    subtotal: Schema.Attribute.Decimal & Schema.Attribute.Required;
+    total: Schema.Attribute.Decimal & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1451,6 +1497,7 @@ declare module '@strapi/strapi' {
       'api::gallery-photo.gallery-photo': ApiGalleryPhotoGalleryPhoto;
       'api::hero.hero': ApiHeroHero;
       'api::home-occasion.home-occasion': ApiHomeOccasionHomeOccasion;
+      'api::order.order': ApiOrderOrder;
       'api::product.product': ApiProductProduct;
       'api::seasonal-theme.seasonal-theme': ApiSeasonalThemeSeasonalTheme;
       'api::site-setting.site-setting': ApiSiteSettingSiteSetting;
