@@ -144,7 +144,7 @@ export async function getFeaturedProducts(): Promise<Product[]> {
 // que la llama (el pago ya se cobró) — el caller es responsable de atrapar errores.
 export async function decrementProductStock(productId: string, quantity: number): Promise<boolean> {
   try {
-    const response: any = await strapiGet(`/products/${productId}`);
+    const response: any = await strapiGet(`/products/${productId}`, undefined, { fresh: true });
     const currentStock = response?.data?.stock ?? 0;
     const newStock = Math.max(0, currentStock - quantity);
 

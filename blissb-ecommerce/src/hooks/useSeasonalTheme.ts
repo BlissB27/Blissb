@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { Decoration } from '@/components/SeasonalDecorations';
+import { fetchSiteSettings } from '@/lib/siteSettingsClient';
 
 // ⚠️ SOLO DEV — simula el preset que activaría la clienta en Strapi Cloud, sin
 // desplegar. Poner un adorno aquí es como "activar Navidad en el panel". Fast
@@ -26,8 +27,7 @@ export function useSeasonalTheme(): { theme: ClientSeasonalTheme | null; decorat
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/site-settings')
-      .then((r) => r.json())
+    fetchSiteSettings()
       .then((d) => {
         if (!cancelled) setTheme(d?.theme ?? null);
       })

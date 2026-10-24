@@ -1,5 +1,12 @@
 const STRAPI_TOKEN = process.env.STRAPI_API_TOKEN;
 
+// Strapi Cloud cobra por request y el sitio tiene poco tráfico: con una caché
+// corta casi cada visita (sobre todo bots) llegaba con la caché vencida y volvía
+// a pedir todo. Cacheamos 1h y Strapi avisa por webhook (/api/revalidate) cuando
+// la clienta publica algo, así los cambios se ven al instante igual.
+export const STRAPI_CACHE_TAG = 'strapi';
+const STRAPI_REVALIDATE_SECONDS = 3600;
+
 // Carries the HTTP status so callers can tell "not found" (expected, e.g. a
 // product lookup miss) apart from a genuine failure worth logging.
 export class StrapiRequestError extends Error {
@@ -44,11 +51,14 @@ async function strapiRequest(path: string, options: RequestInit = {}) {
     headers['Authorization'] = `Bearer ${STRAPI_TOKEN}`;
   }
 
+  const isGet = options.method === 'GET' || !options.method;
   const response = await fetch(url, {
     ...options,
     headers,
-    // Enable caching for GET requests
-    next: options.method === 'GET' || !options.method ? { revalidate: 60 } : undefined,
+    // GETs se cachean salvo que el caller pida datos frescos (cache: 'no-store')
+    next: isGet && !options.cache
+      ? { revalidate: STRAPI_REVALIDATE_SECONDS, tags: [STRAPI_CACHE_TAG] }
+      : undefined,
   }).catch((error) => {
     console.error('Strapi request failed:', error);
     throw error;
@@ -67,12 +77,17 @@ async function strapiRequest(path: string, options: RequestInit = {}) {
   return await response.json();
 }
 
-// GET request helper
-export async function strapiGet(path: string, params?: Record<string, string>) {
+// GET request helper. `fresh: true` salta la caché — para lecturas que deben
+// reflejar el estado real al momento (stock antes de descontar, cupón ya usado).
+export async function strapiGet(
+  path: string,
+  params?: Record<string, string>,
+  { fresh = false }: { fresh?: boolean } = {}
+) {
   const searchParams = params ? new URLSearchParams(params).toString() : '';
   const url = searchParams ? `${path}?${searchParams}` : path;
 
-  return strapiRequest(url);
+  return strapiRequest(url, fresh ? { cache: 'no-store' } : {});
 }
 
 // POST request helper

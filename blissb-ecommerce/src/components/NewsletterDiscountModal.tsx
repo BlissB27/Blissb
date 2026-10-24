@@ -6,6 +6,7 @@ import { Check } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { fetchSiteSettings } from '@/lib/siteSettingsClient';
 
 const SUBSCRIBED_KEY = 'bliss-b-newsletter-subscribed';
 const LAST_SHOWN_KEY = 'bliss-b-newsletter-modal-last-shown';
@@ -45,8 +46,7 @@ export function NewsletterDiscountModal() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/site-settings')
-      .then((res) => res.json())
+    fetchSiteSettings()
       .then((data) => {
         const dm = data?.discountModal;
         if (cancelled || !dm) return;

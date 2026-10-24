@@ -51,6 +51,6 @@ export async function hasCustomerUsedCoupon(customerEmail: string, couponCode: s
     'filters[customerEmail][$eqi]': customerEmail.trim(),
     'filters[couponCode][$eqi]': couponCode.trim(),
     'pagination[limit]': '1',
-  });
+  }, { fresh: true });
   return Array.isArray(res?.data) && res.data.length > 0;
 }

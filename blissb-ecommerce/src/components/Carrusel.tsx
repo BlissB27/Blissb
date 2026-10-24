@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
+import { fetchSiteSettings } from "@/lib/siteSettingsClient";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Gift, Handshake, CakeSlice, type LucideIcon } from "lucide-react";
 
@@ -38,8 +39,7 @@ export function Carrusel() {
   // Best-effort: si falla o está vacío, se quedan los FALLBACK_CTAS.
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/site-settings")
-      .then((res) => res.json())
+    fetchSiteSettings()
       .then((data) => {
         const items = Array.isArray(data?.announcements) ? data.announcements : [];
         if (!cancelled && items.length > 0) {
